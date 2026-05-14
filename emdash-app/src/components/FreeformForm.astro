@@ -1,0 +1,280 @@
+---
+interface FormField {
+  id: string;
+  type: string;
+  label: string;
+  handle: string;
+  required: boolean;
+  placeholder?: string;
+  options?: string[];
+}
+
+interface FormRow {
+  id: string;
+  fields: FormField[];
+}
+
+interface FormData {
+  id: string;
+  name: string;
+  rows: FormRow[];
+  successMessage: string;
+}
+
+interface Props {
+  formId: string;
+  class?: string;
+}
+
+const { formId, class: className } = Astro.props;
+
+const apiUrl = new URL(
+  `/_emdash/api/plugins/freeform/get-form?id=${encodeURIComponent(formId)}`,
+  Astro.url.origin
+);
+
+let formData: FormData | null = null;
+let fetchError: string | null = null;
+
+try {
+  const res = await fetch(apiUrl.toString());
+  if (res.ok) {
+    formData = (await res.json()).data;
+  } else if (res.status === 404) {
+    fetchError = `Form "${formId}" not found. Create it in the Freeform admin panel.`;
+  } else {
+    fetchError = "Failed to load form.";
+  }
+} catch {
+  fetchError = "Could not connect to Freeform service.";
+}
+---
+
+{fetchError ? (
+  <p class="ff-load-error">{fetchError}</p>
+) : formData ? (
+  <form
+    id={`ff-${formId}`}
+    class:list={["ff-form", className]}
+    data-form-id={formId}
+    data-resolved-id={formData.id}
+    data-success={formData.successMessage}
+    novalidate
+  >
+    {formData.rows.map((row) => (
+      <div class={`ff-row ff-row--${row.fields.length}col`}>
+        {row.fields.map((field) => (
+          <div class="ff-field">
+            <label for={`ff-${formId}-${field.handle}`} class="ff-label">
+              {field.label}
+              {field.required && <span class="ff-required" aria-hidden="true"> *</span>}
+            </label>
+
+            {field.type === "textarea" ? (
+              <textarea
+                id={`ff-${formId}-${field.handle}`}
+                name={field.handle}
+                required={field.required}
+                placeholder={field.placeholder ?? ""}
+                class="ff-input ff-textarea"
+                rows={4}
+              />
+            ) : field.type === "select" ? (
+              <select
+                id={`ff-${formId}-${field.handle}`}
+                name={field.handle}
+                required={field.required}
+                class="ff-input ff-select"
+              >
+                <option value="">— Select —</option>
+                {(field.options ?? []).map((opt) => (
+                  <option value={opt}>{opt}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type={field.type === "phone" ? "tel" : field.type}
+                id={`ff-${formId}-${field.handle}`}
+                name={field.handle}
+                required={field.required}
+                placeholder={field.placeholder ?? ""}
+                class="ff-input"
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    ))}
+
+    <div class="ff-footer">
+      <button type="submit" class="ff-submit">Submit</button>
+      <div
+        id={`ff-${formId}-msg`}
+        class="ff-msg"
+        role="status"
+        aria-live="polite"
+        hidden
+      />
+    </div>
+  </form>
+) : null}
+
+<style>
+  .ff-load-error {
+    color: #991b1b;
+    font-size: 0.875rem;
+    padding: 0.75rem;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 0.375rem;
+  }
+  .ff-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 640px;
+    font-family: inherit;
+  }
+  .ff-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  .ff-field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .ff-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+  }
+  .ff-required {
+    color: #ef4444;
+  }
+  .ff-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    color: #111827;
+    background: #fff;
+    box-sizing: border-box;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+  }
+  .ff-input:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  }
+  .ff-textarea {
+    resize: vertical;
+    min-height: 7rem;
+    line-height: 1.5;
+  }
+  .ff-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    padding-right: 2.5rem;
+  }
+  .ff-footer {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+  .ff-submit {
+    padding: 0.5rem 1.5rem;
+    background: #4f46e5;
+    color: #fff;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: inherit;
+  }
+  .ff-submit:hover:not(:disabled) {
+    background: #4338ca;
+  }
+  .ff-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .ff-msg {
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    border: 1px solid transparent;
+  }
+  .ff-msg--success {
+    background: #f0fdf4;
+    color: #166534;
+    border-color: #bbf7d0;
+  }
+  .ff-msg--error {
+    background: #fef2f2;
+    color: #991b1b;
+    border-color: #fecaca;
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLFormElement>(".ff-form").forEach((form) => {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const formId = form.dataset.formId!;
+      const resolvedId = form.dataset.resolvedId ?? formId;
+      const msgEl = document.getElementById(`ff-${formId}-msg`)!;
+      const submitBtn = form.querySelector<HTMLButtonElement>(".ff-submit")!;
+
+      submitBtn.disabled = true;
+      msgEl.hidden = true;
+      msgEl.className = "ff-msg";
+
+      // Collect all field values — use the resolved storage ID for submission
+      const payload: Record<string, string> = { formId: resolvedId };
+      new FormData(form).forEach((val, key) => {
+        payload[key] = String(val);
+      });
+
+      try {
+        const res = await fetch("/_emdash/api/plugins/freeform/submit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const json = ((await res.json()).data ?? {}) as {
+          success: boolean;
+          message?: string;
+          error?: string;
+        };
+
+        if (json.success) {
+          form.reset();
+          msgEl.textContent = json.message ?? "Thank you!";
+          msgEl.className = "ff-msg ff-msg--success";
+        } else {
+          msgEl.textContent = json.error ?? "Submission failed. Please try again.";
+          msgEl.className = "ff-msg ff-msg--error";
+        }
+      } catch {
+        msgEl.textContent = "Network error — please try again.";
+        msgEl.className = "ff-msg ff-msg--error";
+      }
+
+      msgEl.hidden = false;
+      submitBtn.disabled = false;
+    });
+  });
+</script>
