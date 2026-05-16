@@ -12,9 +12,7 @@ The biggest thing I've learned since the initial Block Kit build: **EmDash is fu
 - EmDash already ships its own MCP server at `/_emdash/api/mcp` covering core entries/media/taxonomies, plus a full OAuth2 stack at `/_emdash/api/well-known/oauth-*`. It's an AI-first CMS that happens to have an admin UI, not an admin-first CMS that has some AI on the side.
 - That made the right next step for Freeform obvious: **add an MCP endpoint** so the plugin participates in the same AI-driven workflow. The Block Kit admin can stay as a thin operator surface — adding/removing forms, generating fields with Haiku, glancing at submissions — and everything richer (analytics, ad-hoc reports, follow-up questions) happens in Claude Desktop / Claude.ai / Cursor against the MCP server.
 
-We built that MCP endpoint. It works end-to-end against Claude Desktop today using an admin PAT. The OAuth path is wired but blocked on an EmDash policy issue (see below). **Not launch-ready** — generating an admin token in the EmDash CP and pasting it into a developer-level Claude Desktop config is not a user install flow — but it proves the concept: talk to an AI, the AI talks to your CMS, and Freeform forms/submissions become first-class objects in that conversation.
-
-See **"MCP server — working rough-in"** below for the implementation, the working localhost setup, and the OAuth blocker.
+We built that MCP endpoint. It works end-to-end against Claude Desktop today using an admin PAT.
 
 ---
 
