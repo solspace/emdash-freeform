@@ -196,46 +196,72 @@ async function listPageBlocks(ctx: PluginContext): Promise<object[]> {
     orderBy: { createdAt: "desc" },
   });
   const totalSubs = await ctx.storage.submissions.count();
-
   const formItems = forms as Array<{ id: string; data: StoredForm }>;
+
+  // Compute per-form submission counts in one pass
+  const { items: allSubs } = await ctx.storage.submissions.query({ limit: 10000 });
+  const subCountMap = new Map<string, number>();
+  for (const s of allSubs as Array<{ id: string; data: StoredSubmission }>) {
+    subCountMap.set(s.data.formId, (subCountMap.get(s.data.formId) ?? 0) + 1);
+  }
 
   const formBlocks =
     formItems.length === 0
       ? [
           {
-            type: "section",
-            text: "No forms yet. Click **+ New Form** to build your first form.",
+            type: "empty",
+            title: "No forms yet",
+            description: "Create your first form to start collecting submissions.",
+            size: "lg",
+            actions: [
+              { type: "button", label: "+ New Form", action_id: "new_form", style: "primary" },
+            ],
           },
         ]
       : formItems.flatMap((f) => {
           const fieldCount = f.data.rows.reduce((n, r) => n + r.fields.length, 0);
+          const subCount = subCountMap.get(f.id) ?? 0;
+          const updatedDate = new Date(f.data.updatedAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          });
           return [
             {
-              type: "section",
-              text: `**${f.data.name}** — ${fieldCount} field${fieldCount !== 1 ? "s" : ""}`,
-              accessory: {
-                type: "button",
-                label: "Edit",
-                action_id: `edit:${f.id}`,
-                style: "primary",
-              },
-            },
-            {
-              type: "actions",
-              elements: [
-                { type: "button", label: "Submissions", action_id: `subs:${f.id}` },
-                {
-                  type: "button",
-                  label: "Delete",
-                  action_id: `del:${f.id}`,
-                  style: "danger",
-                  confirm: {
-                    title: "Delete this form?",
-                    text: "All submissions will also be permanently deleted.",
-                    confirm: "Delete",
-                    deny: "Cancel",
+              type: "columns",
+              columns: [
+                [
+                  { type: "section", text: `${f.data.name}` },
+                  {
+                    type: "fields",
+                    fields: [
+                      { label: "Fields", value: String(fieldCount) },
+                      { label: "Submissions", value: String(subCount) },
+                      { label: "Updated", value: updatedDate },
+                    ],
                   },
-                },
+                ],
+                [
+                  {
+                    type: "actions",
+                    elements: [
+                      { type: "button", label: "Edit", action_id: `edit:${f.id}`, style: "primary" },
+                      { type: "button", label: "Submissions", action_id: `subs:${f.id}` },
+                      {
+                        type: "button",
+                        label: "Delete",
+                        action_id: `del:${f.id}`,
+                        style: "danger",
+                        confirm: {
+                          title: "Delete this form?",
+                          text: "All submissions will also be permanently deleted.",
+                          confirm: "Delete",
+                          deny: "Cancel",
+                        },
+                      },
+                    ],
+                  },
+                ],
               ],
             },
             { type: "divider" },
@@ -247,8 +273,8 @@ async function listPageBlocks(ctx: PluginContext): Promise<object[]> {
     {
       type: "stats",
       items: [
-        { label: "Forms", value: String(formItems.length) },
-        { label: "Total Submissions", value: String(totalSubs) },
+        { label: "Forms", value: String(formItems.length), description: "active forms" },
+        { label: "Submissions", value: String(totalSubs), description: "all time" },
         { label: "Plan", value: tier === "pro" ? "Pro ✓" : "Free" },
       ],
     },
@@ -271,7 +297,6 @@ async function listPageBlocks(ctx: PluginContext): Promise<object[]> {
       elements: [
         { type: "button", label: "+ New Form", action_id: "new_form", style: "primary" },
         { type: "button", label: "⚙ Settings", action_id: "nav:settings" },
-        { type: "button", label: "All Submissions", action_id: "nav:all_subs" },
       ],
     },
     { type: "divider" },
@@ -306,42 +331,50 @@ async function editorBlocks(
     flatFields.length === 0
       ? [
           {
-            type: "section",
-            text: "_No fields yet. Use AI to generate them, or add manually below._",
+            type: "empty",
+            title: "No fields yet",
+            description: "Use AI to generate fields, or add them manually below.",
+            size: "base",
           },
         ]
-      : flatFields.flatMap((f, i) => {
-          const isEmailLocked = f.type === "email" && tier === "free";
-          return [
-            {
-              type: "section",
-              text:
-                `${isEmailLocked ? "🔒 " : ""}**${f.label}** \`${f.type}\`` +
-                `${f.required ? " _(required)_" : ""} — Row ${f.rowIdx + 1}, Col ${f.colIdx + 1}`,
-              accessory: {
-                type: "button",
-                label: "Remove",
-                action_id: `rm:${formId}:${f.id}`,
-                style: "danger",
+      : [
+          {
+            type: "table",
+            page_action_id: "fields_page",
+            columns: [
+              { key: "label", label: "Label" },
+              { key: "type",  label: "Type",     format: "badge" },
+              { key: "handle", label: "Handle",  format: "code" },
+              { key: "required", label: "Required" },
+            ],
+            rows: flatFields.map((f) => ({
+              label:    (f.type === "email" && tier === "free") ? `🔒 ${f.label}` : f.label,
+              type:     f.type,
+              handle:   f.handle,
+              required: f.required ? "Yes" : "—",
+            })),
+          },
+          { type: "divider" },
+          {
+            type: "form",
+            block_id: "remove_field",
+            fields: [
+              {
+                type: "select",
+                action_id: "field_id",
+                label: "Remove a field",
+                options: flatFields.map((f) => ({
+                  label: `${f.label} (${f.type})`,
+                  value: f.id,
+                })),
               },
+            ],
+            submit: {
+              label: "Remove",
+              action_id: `rm_field:${formId}`,
             },
-            ...(i > 0 || i < flatFields.length - 1
-              ? [
-                  {
-                    type: "actions",
-                    elements: [
-                      ...(i > 0
-                        ? [{ type: "button", label: "↑ Up", action_id: `up:${formId}:${f.id}` }]
-                        : []),
-                      ...(i < flatFields.length - 1
-                        ? [{ type: "button", label: "↓ Down", action_id: `dn:${formId}:${f.id}` }]
-                        : []),
-                    ],
-                  },
-                ]
-              : []),
-          ];
-        });
+          },
+        ];
 
   const addFieldSection = showAddField
     ? [
@@ -499,8 +532,15 @@ async function settingsBlocks(ctx: PluginContext): Promise<object[]> {
     {
       type: "stats",
       items: [
-        { label: "Current Plan", value: tier === "pro" ? "Pro" : "Free" },
-        { label: "Email Fields", value: tier === "pro" ? "Unlocked ✓" : "Locked 🔒" },
+        {
+          label: "Current Plan",
+          value: tier === "pro" ? "Pro" : "Free",
+          description: tier === "pro" ? "All features unlocked" : "Limited feature set",
+        },
+        {
+          label: "Email Fields",
+          value: tier === "pro" ? "Unlocked ✓" : "Locked 🔒",
+        },
       ],
     },
     tier === "pro"
@@ -570,33 +610,79 @@ async function submissionsBlocks(
 
   const subs = items as Array<{ id: string; data: StoredSubmission }>;
 
-  const rows = subs.map((s) => {
-    const preview = Object.entries(s.data.data)
-      .map(([k, v]) => `${k}: ${String(v).slice(0, 30)}`)
-      .join(" | ");
-    return {
-      form: s.data.formName ?? s.data.formId,
-      data: preview,
-      date: new Date(s.data.createdAt).toLocaleDateString(),
-    };
-  });
+  // Form-specific view: build columns from the form's field definitions
+  if (formId) {
+    const formData = (await ctx.storage.forms.get(formId)) as StoredForm | null;
+    const formFields = formData
+      ? formData.rows.flatMap((r) => r.fields.map((f) => ({ handle: f.handle, label: f.label })))
+      : [];
+    const formTitle = formData ? formData.name : formId;
+
+    const columns = [
+      ...formFields.map((f) => ({ key: f.handle, label: f.label })),
+      { key: "_date", label: "Submitted", format: "relative_time" },
+    ];
+
+    const rows = subs.map((s) => ({
+      ...Object.fromEntries(formFields.map((f) => [f.handle, s.data.data[f.handle] ?? "—"])),
+      _date: s.data.createdAt,
+    }));
+
+    return [
+      { type: "header", text: `${formTitle} — Submissions` },
+      {
+        type: "actions",
+        elements: [{ type: "button", label: "← Back to Forms", action_id: "nav:forms" }],
+      },
+      {
+        type: "stats",
+        items: [{ label: "Submissions", value: String(subs.length), description: "shown" }],
+      },
+      { type: "divider" },
+      subs.length === 0
+        ? {
+            type: "empty",
+            title: "No submissions yet",
+            description: "This form has not received any submissions.",
+            size: "base",
+          }
+        : { type: "table", columns, rows },
+    ];
+  }
+
+  // All-submissions view: fields vary per form so use a preview column
+  const rows = subs.map((s) => ({
+    form: s.data.formName ?? s.data.formId,
+    preview: Object.entries(s.data.data)
+      .map(([k, v]) => `${k}: ${String(v).slice(0, 40)}`)
+      .join("  ·  "),
+    date: s.data.createdAt,
+  }));
 
   return [
-    { type: "header", text: formId ? "Form Submissions" : "All Submissions" },
+    { type: "header", text: "All Submissions" },
     {
       type: "actions",
       elements: [{ type: "button", label: "← Back to Forms", action_id: "nav:forms" }],
     },
-    { type: "stats", items: [{ label: "Showing", value: String(subs.length) }] },
+    {
+      type: "stats",
+      items: [{ label: "Submissions", value: String(subs.length), description: "shown" }],
+    },
     { type: "divider" },
     subs.length === 0
-      ? { type: "section", text: "No submissions yet." }
+      ? {
+          type: "empty",
+          title: "No submissions yet",
+          description: "No forms have received any submissions yet.",
+          size: "base",
+        }
       : {
           type: "table",
           columns: [
-            { key: "form", label: "Form" },
-            { key: "data", label: "Data" },
-            { key: "date", label: "Date" },
+            { key: "form", label: "Form", format: "badge" },
+            { key: "preview", label: "Submission" },
+            { key: "date", label: "Submitted", format: "relative_time" },
           ],
           rows,
         },
@@ -607,42 +693,6 @@ async function submissionsBlocks(
 // Field manipulation helpers
 // ─────────────────────────────────────────────────────────────
 
-function flattenFields(rows: FormRow[]): Array<FormField & { rowId: string }> {
-  return rows.flatMap((row) => row.fields.map((f) => ({ ...f, rowId: row.id })));
-}
-
-function rebuildRows(flat: Array<FormField & { rowId: string }>): FormRow[] {
-  const order: string[] = [];
-  const map = new Map<string, FormField[]>();
-  for (const f of flat) {
-    if (!map.has(f.rowId)) {
-      order.push(f.rowId);
-      map.set(f.rowId, []);
-    }
-    const { rowId: _rid, ...field } = f;
-    map.get(f.rowId)!.push(field);
-  }
-  return order
-    .map((id) => ({ id, fields: map.get(id)! }))
-    .filter((r) => r.fields.length > 0);
-}
-
-function moveField(rows: FormRow[], fieldId: string, dir: "up" | "down"): FormRow[] {
-  const flat = flattenFields(rows);
-  const idx = flat.findIndex((f) => f.id === fieldId);
-  if (idx < 0) return rows;
-  const target = dir === "up" ? idx - 1 : idx + 1;
-  if (target < 0 || target >= flat.length) return rows;
-
-  const moved = [...flat];
-  // When crossing a row boundary, move the field into the adjacent row
-  if (moved[idx].rowId !== moved[target].rowId) {
-    moved[idx] = { ...moved[idx], rowId: moved[target].rowId };
-  }
-  [moved[idx], moved[target]] = [moved[target], moved[idx]];
-  return rebuildRows(moved);
-}
-
 function removeField(rows: FormRow[], fieldId: string): FormRow[] {
   return rows
     .map((r) => ({ ...r, fields: r.fields.filter((f) => f.id !== fieldId) }))
@@ -650,7 +700,7 @@ function removeField(rows: FormRow[], fieldId: string): FormRow[] {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Plugin definition
+// Plugin definition (standard format — export default definePlugin)
 // ─────────────────────────────────────────────────────────────
 
 export default definePlugin({
@@ -758,14 +808,12 @@ export default definePlugin({
             };
           }
           if (page === "/settings") return { blocks: await settingsBlocks(ctx) };
-          if (page === "/submissions") return { blocks: await submissionsBlocks(null, ctx) };
           return { blocks: await listPageBlocks(ctx) };
         }
 
         // Navigation buttons
         if (actionId === "nav:forms") return { blocks: await listPageBlocks(ctx) };
         if (actionId === "nav:settings") return { blocks: await settingsBlocks(ctx) };
-        if (actionId === "nav:all_subs") return { blocks: await submissionsBlocks(null, ctx) };
 
         // Create new form
         if (actionId === "new_form") {
@@ -882,8 +930,9 @@ export default definePlugin({
         }
 
         // Remove a field
-        if (actionId.startsWith("rm:")) {
-          const [, fid, fieldId] = actionId.split(":");
+        if (actionId.startsWith("rm_field:")) {
+          const fid = actionId.slice("rm_field:".length);
+          const fieldId = (values.field_id as string) ?? "";
           const form = (await ctx.storage.forms.get(fid)) as StoredForm | null;
           if (!form) return { blocks: await listPageBlocks(ctx) };
           await ctx.storage.forms.put(fid, {
@@ -897,19 +946,6 @@ export default definePlugin({
           };
         }
 
-        // Move field up or down
-        if (actionId.startsWith("up:") || actionId.startsWith("dn:")) {
-          const dir = actionId.startsWith("up:") ? "up" : "down";
-          const [, fid, fieldId] = actionId.split(":");
-          const form = (await ctx.storage.forms.get(fid)) as StoredForm | null;
-          if (!form) return { blocks: await listPageBlocks(ctx) };
-          await ctx.storage.forms.put(fid, {
-            ...form,
-            rows: moveField(form.rows, fieldId, dir),
-            updatedAt: new Date().toISOString(),
-          });
-          return { blocks: await editorBlocks(fid, ctx) };
-        }
 
         // AI generate
         if (actionId.startsWith("ai:")) {
@@ -1065,6 +1101,134 @@ export default definePlugin({
           success: true,
           message: formData.successMessage || "Thank you for your submission!",
         };
+      },
+    },
+
+    // ───────────────────────────────
+    // React admin UI data routes
+    // ───────────────────────────────
+
+    "list-forms": {
+      handler: async (_routeCtx: any, ctx: PluginContext) => {
+        const tier = await getTier(ctx);
+        const { items: forms } = await ctx.storage.forms.query({ orderBy: { createdAt: "desc" } });
+        const { items: allSubs } = await ctx.storage.submissions.query({ limit: 10000 });
+        const subCountMap = new Map<string, number>();
+        for (const s of allSubs as Array<{ id: string; data: StoredSubmission }>) {
+          subCountMap.set(s.data.formId, (subCountMap.get(s.data.formId) ?? 0) + 1);
+        }
+        return {
+          tier,
+          forms: (forms as Array<{ id: string; data: StoredForm }>).map((f) => ({
+            id: f.id,
+            name: f.data.name,
+            fieldCount: f.data.rows.reduce((n, r) => n + r.fields.length, 0),
+            subCount: subCountMap.get(f.id) ?? 0,
+            createdAt: f.data.createdAt,
+            updatedAt: f.data.updatedAt,
+          })),
+        };
+      },
+    },
+
+    "list-submissions": {
+      handler: async (routeCtx: any, ctx: PluginContext) => {
+        const formId = new URL(routeCtx.request.url).searchParams.get("formId");
+        const where = formId ? { formId } : undefined;
+        const { items } = await ctx.storage.submissions.query({
+          where,
+          orderBy: { createdAt: "desc" },
+          limit: 50,
+        });
+        return {
+          submissions: (items as Array<{ id: string; data: StoredSubmission }>).map((s) => ({
+            id: s.id,
+            formId: s.data.formId,
+            formName: s.data.formName,
+            data: s.data.data,
+            createdAt: s.data.createdAt,
+          })),
+        };
+      },
+    },
+
+    "save-form": {
+      handler: async (routeCtx: any, ctx: PluginContext) => {
+        const { id, name, rows, successMessage } = routeCtx.input as {
+          id?: string;
+          name: string;
+          rows?: FormRow[];
+          successMessage?: string;
+        };
+        const formId = id ?? uid();
+        const existing = id ? (await ctx.storage.forms.get(id)) as StoredForm | null : null;
+        const form: StoredForm = {
+          name: (name ?? "").trim() || "Untitled Form",
+          rows: rows ?? existing?.rows ?? [],
+          successMessage: successMessage ?? existing?.successMessage ?? "Thank you for your submission!",
+          createdAt: existing?.createdAt ?? new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        await ctx.storage.forms.put(formId, form);
+        return { id: formId, ...form };
+      },
+    },
+
+    "delete-form": {
+      handler: async (routeCtx: any, ctx: PluginContext) => {
+        const { id } = routeCtx.input as { id: string };
+        if (!id) throw PluginRouteError.badRequest("Missing id");
+        await ctx.storage.forms.delete(id);
+        const { items: subs } = await ctx.storage.submissions.query({ where: { formId: id }, limit: 1000 });
+        for (const s of subs as Array<{ id: string }>) {
+          await ctx.storage.submissions.delete(s.id);
+        }
+        return { ok: true };
+      },
+    },
+
+    "get-settings": {
+      handler: async (_routeCtx: any, ctx: PluginContext) => {
+        const tier = await getTier(ctx);
+        const storedKey = (await ctx.kv.get<string>("license:key")) ?? "";
+        const maskedKey = storedKey
+          ? storedKey.slice(0, 3) + "•".repeat(Math.max(0, storedKey.length - 3))
+          : "";
+        return { tier, maskedKey, hasKey: !!storedKey };
+      },
+    },
+
+    "validate-license": {
+      handler: async (routeCtx: any, ctx: PluginContext) => {
+        const { key } = routeCtx.input as { key: string };
+        if (!key?.trim()) throw PluginRouteError.badRequest("Missing key");
+        if (isValidKey(key)) {
+          await ctx.kv.set("license:key", key.trim());
+          await ctx.kv.set("license:tier", "pro");
+          return { ok: true, tier: "pro" as const };
+        }
+        return { ok: false, error: 'Invalid key. Any key starting with "FF-" activates Pro for this demo.' };
+      },
+    },
+
+    "remove-license": {
+      handler: async (_routeCtx: any, ctx: PluginContext) => {
+        await ctx.kv.set("license:key", "");
+        await ctx.kv.set("license:tier", "free");
+        return { ok: true };
+      },
+    },
+
+    "ai-generate": {
+      handler: async (routeCtx: any, ctx: PluginContext) => {
+        const { description } = routeCtx.input as { description: string };
+        if (!description?.trim()) throw PluginRouteError.badRequest("Missing description");
+        const tier = await getTier(ctx);
+        if (tier === "free" && /\bemail\b/i.test(description)) {
+          return { ok: false, error: "Email fields require Pro. Upgrade in Settings." };
+        }
+        const rows = await generateWithAI(description, tier, ctx);
+        return { ok: true, rows };
       },
     },
   },
