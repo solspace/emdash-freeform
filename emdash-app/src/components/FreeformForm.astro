@@ -1,4 +1,9 @@
 ---
+interface FieldOption {
+  value: string;
+  label: string;
+}
+
 interface FormField {
   id: string;
   type: string;
@@ -6,8 +11,18 @@ interface FormField {
   handle: string;
   required: boolean;
   placeholder?: string;
-  options?: string[];
+  options?: FieldOption[];
+  defaultValue?: string | string[];
 }
+
+const asStringDefault = (v: string | string[] | undefined): string =>
+  Array.isArray(v) ? (v[0] ?? "") : (v ?? "");
+
+const asArrayDefault = (v: string | string[] | undefined): Set<string> => {
+  if (Array.isArray(v)) return new Set(v);
+  if (typeof v === "string" && v) return new Set([v]);
+  return new Set();
+};
 
 interface FormRow {
   id: string;
@@ -19,6 +34,7 @@ interface FormData {
   name: string;
   rows: FormRow[];
   successMessage: string;
+  csrfToken: string;
 }
 
 interface Props {
@@ -63,48 +79,168 @@ try {
   >
     {formData.rows.map((row) => (
       <div class={`ff-row ff-row--${row.fields.length}col`}>
-        {row.fields.map((field) => (
-          <div class="ff-field">
-            <label for={`ff-${formId}-${field.handle}`} class="ff-label">
-              {field.label}
-              {field.required && <span class="ff-required" aria-hidden="true"> *</span>}
-            </label>
+        {row.fields.map((field) => {
+          const isStandaloneCheckbox = field.type === "checkbox";
+          const isOptionGroup =
+            field.type === "radio" || field.type === "checkbox_group";
 
-            {field.type === "textarea" ? (
-              <textarea
-                id={`ff-${formId}-${field.handle}`}
-                name={field.handle}
-                required={field.required}
-                placeholder={field.placeholder ?? ""}
-                class="ff-input ff-textarea"
-                rows={4}
-              />
-            ) : field.type === "select" ? (
-              <select
-                id={`ff-${formId}-${field.handle}`}
-                name={field.handle}
-                required={field.required}
-                class="ff-input ff-select"
-              >
-                <option value="">— Select —</option>
-                {(field.options ?? []).map((opt) => (
-                  <option value={opt}>{opt}</option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type={field.type === "phone" ? "tel" : field.type}
-                id={`ff-${formId}-${field.handle}`}
-                name={field.handle}
-                required={field.required}
-                placeholder={field.placeholder ?? ""}
-                class="ff-input"
-              />
-            )}
-          </div>
-        ))}
+          // Single-checkbox fields put the label to the right of the box.
+          // Radio / checkbox-group render their own per-option labels.
+          const showTopLabel = !isStandaloneCheckbox && !isOptionGroup;
+          const showGroupLabel = isOptionGroup;
+
+          return (
+            <div class="ff-field">
+              {showTopLabel && (
+                <label for={`ff-${formId}-${field.handle}`} class="ff-label">
+                  {field.label}
+                  {field.required && (
+                    <span class="ff-required" aria-hidden="true"> *</span>
+                  )}
+                </label>
+              )}
+              {showGroupLabel && (
+                <span class="ff-label">
+                  {field.label}
+                  {field.required && (
+                    <span class="ff-required" aria-hidden="true"> *</span>
+                  )}
+                </span>
+              )}
+
+              {field.type === "textarea" ? (
+                <textarea
+                  id={`ff-${formId}-${field.handle}`}
+                  name={field.handle}
+                  required={field.required}
+                  placeholder={field.placeholder ?? ""}
+                  class="ff-input ff-textarea"
+                  rows={4}
+                >{asStringDefault(field.defaultValue)}</textarea>
+              ) : field.type === "select" ? (
+                (() => {
+                  const selected = asStringDefault(field.defaultValue);
+                  return (
+                    <select
+                      id={`ff-${formId}-${field.handle}`}
+                      name={field.handle}
+                      required={field.required}
+                      class="ff-input ff-select"
+                    >
+                      <option value="" selected={!selected}>— Select —</option>
+                      {(field.options ?? []).map((opt) => (
+                        <option value={opt.value} selected={opt.value === selected}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  );
+                })()
+              ) : field.type === "multi_select" ? (
+                (() => {
+                  const selected = asArrayDefault(field.defaultValue);
+                  return (
+                    <select
+                      id={`ff-${formId}-${field.handle}`}
+                      name={field.handle}
+                      required={field.required}
+                      multiple
+                      class="ff-input ff-select ff-multi-select"
+                    >
+                      {(field.options ?? []).map((opt) => (
+                        <option value={opt.value} selected={selected.has(opt.value)}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  );
+                })()
+              ) : field.type === "radio" ? (
+                (() => {
+                  const selected = asStringDefault(field.defaultValue);
+                  return (
+                    <div class="ff-option-list" role="radiogroup">
+                      {(field.options ?? []).map((opt, i) => (
+                        <label class="ff-option">
+                          <input
+                            type="radio"
+                            name={field.handle}
+                            value={opt.value}
+                            required={field.required && i === 0}
+                            checked={opt.value === selected}
+                          />
+                          <span>{opt.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  );
+                })()
+              ) : field.type === "checkbox_group" ? (
+                (() => {
+                  const selected = asArrayDefault(field.defaultValue);
+                  return (
+                    <div class="ff-option-list">
+                      {(field.options ?? []).map((opt) => (
+                        <label class="ff-option">
+                          <input
+                            type="checkbox"
+                            name={field.handle}
+                            value={opt.value}
+                            checked={selected.has(opt.value)}
+                          />
+                          <span>{opt.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  );
+                })()
+              ) : field.type === "checkbox" ? (
+                <label class="ff-option ff-option--single">
+                  <input
+                    id={`ff-${formId}-${field.handle}`}
+                    type="checkbox"
+                    name={field.handle}
+                    value="true"
+                    required={field.required}
+                    checked={asStringDefault(field.defaultValue) === "true"}
+                  />
+                  <span>
+                    {field.label}
+                    {field.required && (
+                      <span class="ff-required" aria-hidden="true"> *</span>
+                    )}
+                  </span>
+                </label>
+              ) : (
+                <input
+                  type={field.type === "phone" ? "tel" : field.type}
+                  id={`ff-${formId}-${field.handle}`}
+                  name={field.handle}
+                  required={field.required}
+                  placeholder={field.placeholder ?? ""}
+                  class="ff-input"
+                  value={asStringDefault(field.defaultValue)}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
     ))}
+
+    <input type="hidden" name="__ff_csrf" value={formData.csrfToken} />
+    <div class="ff-hp" aria-hidden="true">
+      <label>
+        Leave this field empty
+        <input
+          type="text"
+          name="__ff_hp_url"
+          tabindex={-1}
+          autocomplete="off"
+          value=""
+        />
+      </label>
+    </div>
 
     <div class="ff-footer">
       <button type="submit" class="ff-submit">Submit</button>
@@ -183,6 +319,32 @@ try {
     background-position: right 0.75rem center;
     padding-right: 2.5rem;
   }
+  .ff-multi-select {
+    background-image: none;
+    padding-right: 0.75rem;
+    min-height: 7rem;
+  }
+  .ff-option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding-top: 0.1rem;
+  }
+  .ff-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #374151;
+    cursor: pointer;
+  }
+  .ff-option input {
+    margin: 0;
+    accent-color: #4f46e5;
+  }
+  .ff-option--single {
+    padding-top: 0.25rem;
+  }
   .ff-footer {
     display: flex;
     align-items: center;
@@ -225,6 +387,15 @@ try {
     color: #991b1b;
     border-color: #fecaca;
   }
+  /* Honeypot — visually and assistively hidden, but still rendered so bots fill it. */
+  .ff-hp {
+    position: absolute;
+    left: -10000px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
 </style>
 
 <script>
@@ -241,11 +412,14 @@ try {
       msgEl.hidden = true;
       msgEl.className = "ff-msg";
 
-      // Collect all field values — use the resolved storage ID for submission
-      const payload: Record<string, string> = { formId: resolvedId };
-      new FormData(form).forEach((val, key) => {
-        payload[key] = String(val);
-      });
+      // Collect field values. Keys that appear more than once (checkbox groups,
+      // <select multiple>) become arrays; everything else is a single string.
+      const fd = new FormData(form);
+      const payload: Record<string, string | string[]> = { formId: resolvedId };
+      for (const key of new Set(fd.keys())) {
+        const all = fd.getAll(key).map((v) => String(v));
+        payload[key] = all.length > 1 ? all : all[0];
+      }
 
       try {
         const res = await fetch("/_emdash/api/plugins/freeform/submit", {

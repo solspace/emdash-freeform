@@ -17,6 +17,10 @@ export default defineConfig({
 		emdash({
 			database: d1({ binding: "DB", session: "auto" }),
 			storage: r2({ binding: "MEDIA" }),
+			// Marketplace plugins always run sandboxed via sandboxRunner.
+			// Runner ships as a subpath of @emdash-cms/cloudflare (already installed).
+			marketplace: "https://marketplace.emdashcms.com",
+			sandboxRunner: "@emdash-cms/cloudflare/sandbox",
 			// Use plugins[] for local dev (trusted mode).
 			// Switch to sandboxed[] when deploying to Cloudflare.
 			plugins: [freeformPlugin()],
