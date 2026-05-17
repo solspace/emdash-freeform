@@ -1,4 +1,7 @@
 import type { APIRoute } from "astro";
+// Astro 6 removed Astro.locals.runtime.env. The replacement is this virtual
+// module exposed by the Cloudflare adapter (and shimmed by Miniflare in dev).
+import { env } from "cloudflare:workers";
 
 export const prerender = false;
 
@@ -63,7 +66,14 @@ function unauthorized(origin: string): Response {
   );
 }
 
+// A Fetcher is anything with a `fetch` method matching the global signature.
+// In production it's `env.SELF` (a service binding); in dev it's `globalThis`.
+// Threading it through avoids the Cloudflare loopback restriction that blocks
+// a worker from making HTTP requests back to its own hostname.
+type Fetcher = { fetch: typeof fetch };
+
 async function callPluginRoute(
+  fetcher: Fetcher,
   request: Request,
   routeName: string,
   init?: { method?: "GET" | "POST"; query?: Record<string, string>; body?: unknown }
@@ -73,7 +83,7 @@ async function callPluginRoute(
     for (const [k, v] of Object.entries(init.query)) url.searchParams.set(k, v);
   }
   const auth = request.headers.get("Authorization");
-  const res = await fetch(url, {
+  const res = await fetcher.fetch(url, {
     method: init?.method ?? "GET",
     headers: {
       ...(auth ? { Authorization: auth } : {}),
@@ -493,15 +503,20 @@ const TOOLS = [
   },
 ] as const;
 
-async function runTool(request: Request, name: string, args: any): Promise<unknown> {
+async function runTool(
+  fetcher: Fetcher,
+  request: Request,
+  name: string,
+  args: any,
+): Promise<unknown> {
   if (name === "list_forms") {
-    return callPluginRoute(request, "list-forms");
+    return callPluginRoute(fetcher, request, "list-forms");
   }
   if (name === "list_submissions") {
     const query: Record<string, string> = {};
     if (args?.formId) query.formId = String(args.formId);
     if (args?.includeArchived) query.includeArchived = "true";
-    const data = (await callPluginRoute(request, "list-submissions", { query })) as {
+    const data = (await callPluginRoute(fetcher, request, "list-submissions", { query })) as {
       submissions: Array<{ createdAt: string; spamScore: number | null; [k: string]: unknown }>;
     };
     let subs = data.submissions;
@@ -523,13 +538,13 @@ async function runTool(request: Request, name: string, args: any): Promise<unkno
   }
   if (name === "get_form") {
     if (!args?.id) throw new Error("Missing required argument: id");
-    return callPluginRoute(request, "get-form", { query: { id: String(args.id) } });
+    return callPluginRoute(fetcher, request, "get-form", { query: { id: String(args.id) } });
   }
 
   // ── Form composition ──────────────────────────────
   if (name === "create_form") {
     if (!args?.name) throw new Error("Missing required argument: name");
-    return callPluginRoute(request, "save-form", {
+    return callPluginRoute(fetcher, request, "save-form", {
       method: "POST",
       body: {
         name: args.name,
@@ -544,7 +559,7 @@ async function runTool(request: Request, name: string, args: any): Promise<unkno
     // Intentional: `handle` is not forwarded. The save-form route would ignore
     // it on update anyway, but suppressing it here keeps the contract honest
     // and makes set_form_handle the only path that mutates handles.
-    return callPluginRoute(request, "save-form", {
+    return callPluginRoute(fetcher, request, "save-form", {
       method: "POST",
       body: {
         id: args.id,
@@ -558,14 +573,14 @@ async function runTool(request: Request, name: string, args: any): Promise<unkno
     if (!args?.id || !args?.handle) {
       throw new Error("Missing required arguments: id, handle");
     }
-    return callPluginRoute(request, "set-form-handle", {
+    return callPluginRoute(fetcher, request, "set-form-handle", {
       method: "POST",
       body: { id: args.id, handle: args.handle },
     });
   }
   if (name === "delete_form") {
     if (!args?.id) throw new Error("Missing required argument: id");
-    return callPluginRoute(request, "delete-form", {
+    return callPluginRoute(fetcher, request, "delete-form", {
       method: "POST",
       body: { id: args.id },
     });
@@ -574,7 +589,7 @@ async function runTool(request: Request, name: string, args: any): Promise<unkno
     if (!args?.formId || !args?.field) {
       throw new Error("Missing required arguments: formId, field");
     }
-    return callPluginRoute(request, "add-field", {
+    return callPluginRoute(fetcher, request, "add-field", {
       method: "POST",
       body: {
         formId: args.formId,
@@ -587,7 +602,7 @@ async function runTool(request: Request, name: string, args: any): Promise<unkno
     if (!args?.formId || !args?.fieldId) {
       throw new Error("Missing required arguments: formId, fieldId");
     }
-    return callPluginRoute(request, "remove-field", {
+    return callPluginRoute(fetcher, request, "remove-field", {
       method: "POST",
       body: { formId: args.formId, fieldId: args.fieldId },
     });
@@ -596,7 +611,7 @@ async function runTool(request: Request, name: string, args: any): Promise<unkno
     if (!args?.formId || !args?.fieldId) {
       throw new Error("Missing required arguments: formId, fieldId");
     }
-    return callPluginRoute(request, "update-field", {
+    return callPluginRoute(fetcher, request, "update-field", {
       method: "POST",
       body: {
         formId: args.formId,
@@ -612,10 +627,10 @@ async function runTool(request: Request, name: string, args: any): Promise<unkno
 
   // ── Spam filter ───────────────────────────────────
   if (name === "get_spam_settings") {
-    return callPluginRoute(request, "get-spam-settings");
+    return callPluginRoute(fetcher, request, "get-spam-settings");
   }
   if (name === "set_spam_settings") {
-    return callPluginRoute(request, "update-spam-settings", {
+    return callPluginRoute(fetcher, request, "update-spam-settings", {
       method: "POST",
       body: {
         enabled: args?.enabled,
@@ -627,7 +642,7 @@ async function runTool(request: Request, name: string, args: any): Promise<unkno
     if (typeof args?.minScore !== "number") {
       throw new Error("Missing required argument: minScore (number)");
     }
-    return callPluginRoute(request, "archive-submissions", {
+    return callPluginRoute(fetcher, request, "archive-submissions", {
       method: "POST",
       body: {
         formId: args.formId,
@@ -639,17 +654,17 @@ async function runTool(request: Request, name: string, args: any): Promise<unkno
 
   // ── Notification templates ────────────────────────
   if (name === "list_templates") {
-    return callPluginRoute(request, "list-templates");
+    return callPluginRoute(fetcher, request, "list-templates");
   }
   if (name === "get_template") {
     if (!args?.id) throw new Error("Missing required argument: id");
-    return callPluginRoute(request, "get-template", { query: { id: String(args.id) } });
+    return callPluginRoute(fetcher, request, "get-template", { query: { id: String(args.id) } });
   }
   if (name === "create_template") {
     if (!args?.name || typeof args.subject !== "string" || typeof args.body !== "string") {
       throw new Error("Missing required arguments: name, subject, body");
     }
-    return callPluginRoute(request, "save-template", {
+    return callPluginRoute(fetcher, request, "save-template", {
       method: "POST",
       body: {
         name: args.name,
@@ -662,10 +677,10 @@ async function runTool(request: Request, name: string, args: any): Promise<unkno
   if (name === "update_template") {
     if (!args?.id) throw new Error("Missing required argument: id");
     // save-template expects all four core fields; merge with existing.
-    const existing = (await callPluginRoute(request, "get-template", {
+    const existing = (await callPluginRoute(fetcher, request, "get-template", {
       query: { id: String(args.id) },
     })) as { name: string; subject: string; body: string; format: "text" | "html" };
-    return callPluginRoute(request, "save-template", {
+    return callPluginRoute(fetcher, request, "save-template", {
       method: "POST",
       body: {
         id: args.id,
@@ -678,7 +693,7 @@ async function runTool(request: Request, name: string, args: any): Promise<unkno
   }
   if (name === "delete_template") {
     if (!args?.id) throw new Error("Missing required argument: id");
-    return callPluginRoute(request, "delete-template", {
+    return callPluginRoute(fetcher, request, "delete-template", {
       method: "POST",
       body: { id: args.id },
     });
@@ -687,7 +702,7 @@ async function runTool(request: Request, name: string, args: any): Promise<unkno
   // ── Per-form notification assignments ────────────
   if (name === "list_form_notifications") {
     if (!args?.formId) throw new Error("Missing required argument: formId");
-    return callPluginRoute(request, "list-form-notifications", {
+    return callPluginRoute(fetcher, request, "list-form-notifications", {
       query: { formId: String(args.formId) },
     });
   }
@@ -695,7 +710,7 @@ async function runTool(request: Request, name: string, args: any): Promise<unkno
     if (!args?.formId || !args?.templateId || !args?.recipientType) {
       throw new Error("Missing required arguments: formId, templateId, recipientType");
     }
-    return callPluginRoute(request, "attach-notification", {
+    return callPluginRoute(fetcher, request, "attach-notification", {
       method: "POST",
       body: {
         formId: args.formId,
@@ -708,14 +723,14 @@ async function runTool(request: Request, name: string, args: any): Promise<unkno
   }
   if (name === "detach_notification") {
     if (!args?.id) throw new Error("Missing required argument: id");
-    return callPluginRoute(request, "detach-notification", {
+    return callPluginRoute(fetcher, request, "detach-notification", {
       method: "POST",
       body: { id: args.id },
     });
   }
   if (name === "update_form_notification") {
     if (!args?.id) throw new Error("Missing required argument: id");
-    return callPluginRoute(request, "update-form-notification", {
+    return callPluginRoute(fetcher, request, "update-form-notification", {
       method: "POST",
       body: {
         id: args.id,
@@ -737,6 +752,10 @@ export const POST: APIRoute = async ({ request }) => {
   if (!auth?.toLowerCase().startsWith("bearer ")) {
     return unauthorized(origin);
   }
+
+  // env.SELF on Cloudflare; globalThis.fetch in local dev (no service binding
+  // to look up, and same-origin subrequests work fine without one).
+  const fetcher: Fetcher = (env as any).SELF ?? globalThis;
 
   let body: JsonRpcRequest;
   try {
@@ -766,7 +785,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     if (method === "tools/call") {
-      const result = await runTool(request, params?.name, params?.arguments ?? {});
+      const result = await runTool(fetcher, request, params?.name, params?.arguments ?? {});
       return rpcResult(id, {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       });

@@ -1,25 +1,37 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "my-emdash-site",
+	"name": "freeform-demo",
 	"main": "./src/worker.ts",
 	"compatibility_date": "2026-02-24",
-	"compatibility_flags": ["nodejs_compat"],
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "my-emdash-site",
+			"database_name": "freeform-demo",
+			"database_id": "65cc710d-13bc-4e6a-bec8-5d03257b7fcf",
 		},
 	],
 	"r2_buckets": [
 		{
 			"binding": "MEDIA",
-			"bucket_name": "my-emdash-media",
+			"bucket_name": "freeform-demo-media",
 		},
 	],
 	// Worker Loader for plugin sandboxing
 	"worker_loaders": [
 		{
 			"binding": "LOADER",
+		},
+	],
+	// Self-binding so the MCP handler can invoke plugin routes in-process.
+	// Cloudflare blocks workers from making HTTP fetches to their own hostname;
+	// env.SELF.fetch() dispatches directly to the worker handler instead.
+	"services": [
+		{
+			"binding": "SELF",
+			"service": "freeform-demo",
 		},
 	],
 }

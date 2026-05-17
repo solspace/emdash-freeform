@@ -1,4 +1,10 @@
 ---
+// Astro 6 + Cloudflare adapter: the worker can't fetch its own hostname over
+// HTTP (loopback is blocked and returns a misleading 404). The SELF service
+// binding dispatches to the worker handler in-process, sidestepping that.
+// In `astro dev` SELF is undefined and globalThis.fetch works fine.
+import { env } from "cloudflare:workers";
+
 interface FieldOption {
   value: string;
   label: string;
@@ -52,8 +58,10 @@ const apiUrl = new URL(
 let formData: FormData | null = null;
 let fetchError: string | null = null;
 
+const fetcher = (env as any).SELF ?? globalThis;
+
 try {
-  const res = await fetch(apiUrl.toString());
+  const res = await fetcher.fetch(apiUrl.toString());
   if (res.ok) {
     formData = (await res.json()).data;
   } else if (res.status === 404) {
