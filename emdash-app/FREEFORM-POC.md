@@ -4,6 +4,61 @@ Built in roughly 3 hours using Claude Code. This doc is for you, Gustavs — no 
 
 ---
 
+## Update (2026-05-18): The `plugin:install` hook doesn't fire for trusted plugins
+
+A real gotcha worth saving you the hour I spent on it. We had a `plugin:install` hook in `hooks/install.ts` that seeded the demo Contact form on first install. After nuking the local D1 and KV state for a clean test, EmDash booted, registered Freeform, the admin sidebar showed up — but the install hook never ran and the Contact form never appeared.
+
+**Root cause.** EmDash 0.12's runtime (`node_modules/emdash/dist/astro/middleware.mjs` around line 614) only reads `_plugin_state` rows on boot. It marks our plugin as enabled if there's no row or status is "active". **It never calls `pluginManager.install()` or `pluginManager.activate()` for trusted plugins.** Those methods exist (`pluginManager.install` / `pluginManager.activate` in `search-n-ZCMfr3.mjs:7715`+), and they DO fire the `plugin:install` hook, but they're only invoked from the marketplace install path — i.e. when EmDash installs a sandboxed bundle from a marketplace URL through its admin UI.
+
+For plugins declared in `astro.config.mjs` as `plugins: [freeformPlugin()]`, the `_plugin_state` table stays empty forever, and `plugin:install` is dead code.
+
+**Diagnostic SQL.** To confirm whether install ever ran for a given plugin:
+
+```bash
+sqlite3 .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite \
+  "SELECT plugin_id, status, installed_at FROM _plugin_state;"
+```
+
+Empty result for your plugin id = install never fired. If you also see no plugin-storage rows that the install hook would have created, the hook hasn't run on this DB.
+
+**The workaround we shipped.** `lib/seed.ts` exports an idempotent `ensureDemoSeed(ctx)`:
+
+- KV flag `seed:contact_v1` short-circuits subsequent calls.
+- If the flag is missing but the form already exists, set the flag and return (handles the "KV wiped, storage kept" edge).
+- Otherwise write the demo form and flip the flag.
+
+It's called from two places:
+1. The original `installHook.handler` — still wired up so that the marketplace path works whenever EmDash actually invokes `plugin:install` for sandboxed plugins.
+2. `adminRoute.handler` on `page_load` — the catch-all. First time the user opens any admin page, the seed runs if needed. No-op cost on every subsequent load.
+
+**Production impact.** When we deploy this plugin sandboxed via the marketplace, `plugin:install` SHOULD fire (per EmDash's install code path). The two-place wiring means we don't depend on either path being reliable. Net effect: demo data shows up on a fresh DB regardless of which install path EmDash actually uses.
+
+**Open question for the EmDash team.** This is probably a gap — `plugin:install` is documented as a lifecycle hook plugins can rely on, but in trusted-mode (the most common dev configuration) it silently never runs. Either the docs should call this out, or `definePlugin()` / the runtime should fire it on first encounter of an unknown trusted plugin id. Filed in the feature-requests list below.
+
+---
+
+## Update (2026-05-18): Why we don't get our own DB tables
+
+You'll want per-form DB tables (the Craft Freeform model — `freeform_submissions_<handle>` with a column per field). We can't have them, at least not in sandboxed plugins. Logging the reasoning here so it doesn't get re-litigated.
+
+**The constraint.** EmDash plugin storage is a generic JSON+indexed-fields key/value API. It exposes `get` / `put` / `delete` / `query` over declared collections (`forms`, `submissions`, ...) and indexes on the fields you name in the descriptor. There is **no DDL surface** — no `CREATE TABLE`, no `ALTER TABLE`, no migrations. The underlying SQLite/D1 tables belong to the host (`_emdash_plugin_storage` and friends), and EmDash core owns their migration history. Plugins write JSON blobs into those host-owned tables, period.
+
+**Why not bypass it.** Three options exist if you really want bespoke tables, and none are good:
+
+1. **Run DDL from the plugin** — breaks the sandbox model. The whole point of `format: "standard"` is that the plugin can't touch arbitrary host state. EmDash also can't audit a plugin's schema during marketplace review if the plugin mutates schema at runtime.
+2. **Run a parallel DB just for Freeform** — operational mess on Cloudflare. We'd need our own D1 binding (or external Postgres), backup story, migration runner, and we lose the unified backup/restore the EmDash host already gives us. Defeats the point of being a plugin.
+3. **Lobby EmDash for a "structured collections" plugin API** — the right product answer, but a long timeline and scope creep into the host. Worth filing as a feature request; not worth blocking on.
+
+**What we lose.** Native SQL queries over submission data. Per-field indexes Gustavs would want for reporting. Schema-level type guarantees. The comfortable "open the table in TablePlus" workflow.
+
+**What we get back.** Schema-free field changes (add/rename/delete fields without migrations). Unified backup/restore. Works identically on local SQLite and D1. Plugin sandbox stays clean.
+
+**The mitigation we just built.** CSV export over MCP. The `export_submissions_csv` MCP tool returns a short-lived signed URL that streams a CSV of any filtered submission set; the AI hands the link to the user in chat, they click, browser downloads. That gives Gustavs (and any human running a real report) the spreadsheet-shaped data without forking the storage layer. Per-form exports get a column per field handle; multi-form exports fall back to a JSON column. See the `Export endpoint` section below for the implementation.
+
+**If we ever truly need column-per-field storage.** The cleanest path is a *materialized-view* sync — an opt-in setting that, on each submission write, also inserts a row into a `freeform_<handle>` table the plugin "owns" via a privileged migration. That requires EmDash to grow either a plugin-DDL escape hatch or a structured-collections API. Not now.
+
+---
+
 ## Update (2026-05-15): EmDash is built for AI, not for GUIs
 
 The biggest thing I've learned since the initial Block Kit build: **EmDash is fundamentally designed for humans to drive the CMS through AI agents, not through an admin GUI.** That re-frames a lot of the rough edges we ran into.
@@ -144,8 +199,9 @@ The Block Kit docs have some discrepancies from the live renderer. What actually
 // Buttons — property is "label", NOT "text"
 { type: "button", label: "Edit", action_id: "edit:123", style: "primary" }
 
-// Section with inline button
-{ type: "section", text: "**Form name**", accessory: { type: "button", label: "Edit", action_id: "edit:123" } }
+// Section with inline button — `text` is rendered literally, NOT as markdown.
+// No bold/italic/links — wrap names in quotes for emphasis instead.
+{ type: "section", text: "Form name", accessory: { type: "button", label: "Edit", action_id: "edit:123" } }
 
 // Confirm dialog on danger buttons
 { type: "button", label: "Delete", action_id: "del:123", style: "danger",
@@ -239,7 +295,6 @@ For a real production Freeform, you'd need:
 - **Multi-page / wizard forms**
 - **Conditional logic** (show/hide fields based on values)
 - **Spam protection** (honeypot, reCAPTCHA, Turnstile)
-- **Export** — CSV download of submissions
 - **Submission detail view** in admin (currently only a table row preview)
 - **Pagination** on submissions list (currently capped at 50)
 - **Webhooks** and integrations (Slack, Mailchimp, etc.)
@@ -375,6 +430,39 @@ Worth raising with the EmDash team:
 2. **OAuth-grantable plugin scope** *or* **plugin-declared route scopes** — unblocks the OAuth path for plugin MCP servers.
 3. **`html` / `iframe` / `markdown` Block Kit type** *or* **plugin-injected Astro routes** — unlocks rich in-admin UI for marketplace-listable plugins.
 4. **Plugin extension point for the built-in MCP server** — `createMcpServer()` is a static factory today; plugins should be able to contribute tools to the canonical `/_emdash/api/mcp` endpoint so customers don't have to install a separate MCP server per plugin.
+5. **`plugin:install` should fire for trusted plugins too** — currently only marketplace-installed (sandboxed) plugins ever receive the install hook. Trusted plugins declared in `astro.config.mjs` `plugins: []` never trigger it, leaving the hook as dead code in the most common dev configuration. Either document this clearly or fire the hook on first runtime encounter of an unseen trusted plugin id.
+
+---
+
+## CSV export endpoint
+
+Submissions can be exported as CSV via a signed-URL pattern, exposed primarily through the `export_submissions_csv` MCP tool.
+
+**Flow.**
+
+1. AI calls `export_submissions_csv` with a filter (same shape as `list_submissions`, plus optional `submissionIds: string[]` for "export exactly these").
+2. MCP server forwards to the plugin's `prepare-export` route (admin-authenticated via the same PAT used for the MCP call).
+3. Plugin matches submissions, signs a token containing the filter + 15-min expiry (HMAC-SHA256 over `{ filter, exp, iat }`, secret stored once in plugin KV as `export:secret`), returns `{ url, filename, rowCount, expiresAt }`.
+4. AI renders the URL as a markdown link in chat.
+5. User clicks → browser hits `/freeform/export/<token>` (Astro route, lives outside the plugin since plugin returns are wrapped in `{ data: ... }` and can't set `Content-Type: text/csv` or `Content-Disposition`).
+6. Download endpoint forwards the token to the plugin's `export-csv` route (`public: true`, no admin auth — token authenticates), which verifies the signature, re-queries submissions, and returns `{ csv, filename }`.
+7. Astro endpoint emits `text/csv; charset=utf-8` with `Content-Disposition: attachment; filename=...`.
+
+**Why re-query at download time.** The token contains the filter, not a snapshot. No temp files to manage, no storage lifecycle, fresh data if the user clicks late. Caveat: a submission archived between issue and click won't appear — for the POC that's correct behavior.
+
+**Files.**
+
+- `packages/freeform-plugin/src/lib/csv.ts` — RFC 4180 escaping, UTF-8 BOM for Excel, formula-injection guard (leading `=` `+` `-` `@` get quoted).
+- `packages/freeform-plugin/src/lib/export-token.ts` — base64url HMAC sign/verify, KV-backed secret.
+- `packages/freeform-plugin/src/routes/exports.ts` — `prepare-export` (admin) + `export-csv` (public, token-gated).
+- `src/pages/freeform/export/[token].ts` — public download Astro endpoint.
+
+**Column policy.**
+
+- Single-form export (`formId` set, or all `submissionIds` from one form): `submission_id, form_handle, form_name, created_at, spam_score, archived` + one column per form field handle.
+- Multi-form export: same standard columns plus `data_json` (stringified field map). Field-set differs per form, so a flat schema would be wrong.
+
+**Limits.** Hard cap of 10,000 rows per export query, 1,000 ids per `submissionIds` list. Beyond that the user should narrow the filter or paginate (paginated exports not built yet).
 
 ---
 

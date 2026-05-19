@@ -2,6 +2,7 @@ import type { PluginContext } from "emdash";
 import { ALL_FIELD_TYPES, FREE_FIELD_TYPES } from "../constants";
 import { ensureFormHandle } from "../lib/form-handles";
 import { getTier } from "../lib/license";
+import { effectiveSpamSettings, getSpamSettings } from "../lib/spam-settings";
 import type {
   StoredAssignment,
   StoredForm,
@@ -17,7 +18,14 @@ function shortDate(iso: string): string {
   });
 }
 
-export async function listPageBlocks(ctx: PluginContext): Promise<object[]> {
+// `confirmDelId`: form id currently in the inline "are you sure" state. We
+// don't use Block Kit's `confirm:` modal because its CSS is owned upstream and
+// we have no hook to override it from the plugin. Two-step inline pattern is
+// the workaround until EmDash fixes the modal padding.
+export async function listPageBlocks(
+  ctx: PluginContext,
+  confirmDelId?: string,
+): Promise<object[]> {
   const tier = await getTier(ctx);
   const { items: forms } = await ctx.storage.forms.query({
     orderBy: { createdAt: "desc" },
@@ -52,6 +60,41 @@ export async function listPageBlocks(ctx: PluginContext): Promise<object[]> {
       : formItems.flatMap((f) => {
           const fieldCount = f.data.rows.reduce((n, r) => n + r.fields.length, 0);
           const subCount = subCountMap.get(f.id) ?? 0;
+          const isConfirming = f.id === confirmDelId;
+          const rightColumn = isConfirming
+            ? [
+                {
+                  type: "section",
+                  text: `⚠ Delete "${f.data.name}"? All ${subCount} submission${subCount === 1 ? "" : "s"} will also be permanently deleted.`,
+                },
+                {
+                  type: "actions",
+                  elements: [
+                    {
+                      type: "button",
+                      label: "Confirm delete",
+                      action_id: `confirm_del:${f.id}`,
+                      style: "danger",
+                    },
+                    { type: "button", label: "Cancel", action_id: `cancel_del:${f.id}` },
+                  ],
+                },
+              ]
+            : [
+                {
+                  type: "actions",
+                  elements: [
+                    { type: "button", label: "Edit", action_id: `edit:${f.id}`, style: "primary" },
+                    { type: "button", label: "Submissions", action_id: `subs:${f.id}` },
+                    {
+                      type: "button",
+                      label: "Delete",
+                      action_id: `del:${f.id}`,
+                      style: "danger",
+                    },
+                  ],
+                },
+              ];
           return [
             {
               type: "columns",
@@ -67,27 +110,7 @@ export async function listPageBlocks(ctx: PluginContext): Promise<object[]> {
                     ],
                   },
                 ],
-                [
-                  {
-                    type: "actions",
-                    elements: [
-                      { type: "button", label: "Edit", action_id: `edit:${f.id}`, style: "primary" },
-                      { type: "button", label: "Submissions", action_id: `subs:${f.id}` },
-                      {
-                        type: "button",
-                        label: "Delete",
-                        action_id: `del:${f.id}`,
-                        style: "danger",
-                        confirm: {
-                          title: "Delete this form?",
-                          text: "All submissions will also be permanently deleted.",
-                          confirm: "Delete",
-                          deny: "Cancel",
-                        },
-                      },
-                    ],
-                  },
-                ],
+                rightColumn,
               ],
             },
             { type: "divider" },
@@ -308,21 +331,14 @@ export async function editorBlocks(
     { type: "divider" },
     {
       type: "form",
-      block_id: "rename",
+      block_id: "form_meta",
       fields: [
         {
           type: "text_input",
-          action_id: "name",
-          label: "Form Name (display)",
+          action_id: "label",
+          label: "Label",
           initial_value: formData.name,
         },
-      ],
-      submit: { label: "Save Name", action_id: `rename:${formId}` },
-    },
-    {
-      type: "form",
-      block_id: "set_handle",
-      fields: [
         {
           type: "text_input",
           action_id: "handle",
@@ -331,22 +347,13 @@ export async function editorBlocks(
           placeholder: "contact_us",
         },
       ],
-      submit: {
-        label: "Change Handle",
-        action_id: `set_handle:${formId}`,
-        confirm: {
-          title: "Change this form's handle?",
-          text: "Any page or external tool referencing the old handle will stop resolving until updated. This is a deliberate breaking change.",
-          confirm: "Change handle",
-          deny: "Cancel",
-        },
-      },
+      submit: { label: "Save", action_id: `save_meta:${formId}` },
     },
     { type: "divider" },
     { type: "header", text: "✨ AI Form Builder" },
     {
       type: "section",
-      text: "Describe fields to add. AI will append them to your existing fields.",
+      text: "Describe what you want changed. AI can add new fields, edit existing ones (label, required, placeholder, options, default), or remove fields by name.",
     },
     ...(tier === "free"
       ? [
@@ -363,19 +370,88 @@ export async function editorBlocks(
         {
           type: "text_input",
           action_id: "description",
-          label: "Describe your form",
+          label: "What should the AI do?",
           placeholder:
-            'e.g. "First name and last name side by side, then email on the next row, then a message box"',
+            'e.g. "Make only the email field required" · "Add a phone field next to email" · "Remove the budget field" · "Rename Job Title to Role"',
         },
       ],
-      submit: { label: "✨ Generate with AI", action_id: `ai:${formId}` },
+      submit: { label: "✨ Apply with AI", action_id: `ai:${formId}` },
     },
     { type: "divider" },
     { type: "header", text: "Form Fields" },
     ...fieldBlocks,
     ...addFieldSection,
     { type: "divider" },
+    ...(await spamForFormBlocks(formId, formData, tier, ctx)),
+    { type: "divider" },
     ...(await notificationsForFormBlocks(formId, ctx)),
+  ];
+}
+
+async function spamForFormBlocks(
+  formId: string,
+  form: StoredForm,
+  tier: "free" | "pro",
+  ctx: PluginContext,
+): Promise<object[]> {
+  const header = { type: "header", text: "AI Spam Filter" };
+  if (tier !== "pro") {
+    return [
+      header,
+      {
+        type: "banner",
+        title: "Pro feature",
+        description:
+          "AI spam scoring requires a Pro license. Activate Pro in Settings to enable it.",
+        variant: "default",
+      },
+    ];
+  }
+
+  const globalDefaults = await getSpamSettings(ctx);
+  const effective = effectiveSpamSettings(form, globalDefaults);
+  const hasOverride = !!form.spam;
+  const inheritedNote = hasOverride
+    ? `Form override active. Global default is ${globalDefaults.enabled ? `on @ ${globalDefaults.threshold}/10` : "off"}.`
+    : `Inheriting global default: ${globalDefaults.enabled ? `on @ ${globalDefaults.threshold}/10` : "off"}. Toggle "Use custom settings" to override.`;
+
+  return [
+    header,
+    { type: "context", text: inheritedNote },
+    {
+      type: "stats",
+      items: [
+        { label: "Effective state", value: effective.enabled ? "On" : "Off" },
+        { label: "Effective threshold", value: `${effective.threshold} / 10` },
+        { label: "Source", value: hasOverride ? "Per-form" : "Global default" },
+      ],
+    },
+    {
+      type: "form",
+      block_id: "form_spam",
+      fields: [
+        {
+          type: "toggle",
+          action_id: "use_custom",
+          label: "Use custom settings for this form",
+          initial_value: hasOverride,
+        },
+        {
+          type: "toggle",
+          action_id: "enabled",
+          label: "Enable AI spam scoring",
+          initial_value: hasOverride ? !!form.spam?.enabled : effective.enabled,
+        },
+        {
+          type: "text_input",
+          action_id: "threshold",
+          label: "Flag threshold (0-10)",
+          initial_value: String(hasOverride ? form.spam!.threshold : effective.threshold),
+          placeholder: "7",
+        },
+      ],
+      submit: { label: "Save Spam Settings", action_id: `save_form_spam:${formId}` },
+    },
   ];
 }
 
@@ -438,7 +514,7 @@ async function notificationsForFormBlocks(
               type: "columns",
               columns: [
                 [
-                  { type: "section", text: `**${templateLabel}**` },
+                  { type: "section", text: templateLabel },
                   {
                     type: "fields",
                     fields: [

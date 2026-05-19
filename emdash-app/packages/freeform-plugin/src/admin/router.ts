@@ -1,16 +1,18 @@
 import type { PluginContext } from "emdash";
-import { generateWithAI } from "../ai/generate";
+import { editFormWithAI } from "../ai/generate";
 import { DEFAULT_SPAM_THRESHOLD } from "../constants";
 import { deleteFormAndSubmissions, removeField } from "../lib/field-ops";
 import {
   deriveUniqueFormHandle,
   isHandleTaken,
+  isLabelTaken,
   isValidFormHandle,
 } from "../lib/form-handles";
 import { activateLicense, clearLicense, getTier } from "../lib/license";
 import { deleteTemplateAndDetach } from "../lib/notifications";
 import { isMultiType, isOptionType, parseOptionsInput } from "../lib/options";
-import { setSpamSettings } from "../lib/spam-settings";
+import { ensureDemoSeed } from "../lib/seed";
+import { setFormSpamOverride, setSpamSettings } from "../lib/spam-settings";
 import { uid, toHandle } from "../lib/handles";
 import type {
   FieldType,
@@ -70,6 +72,10 @@ export const adminRoute = {
       if (page?.startsWith("widget:")) {
         return { blocks: await widgetBlocks(ctx) };
       }
+      // Idempotent: fills the demo Contact form on first admin load if the
+      // plugin:install hook never fired (trusted-plugin path). No-ops once
+      // the seed flag is set.
+      await ensureDemoSeed(ctx);
       if (page === "/settings") return { blocks: await settingsBlocks(ctx, siteOrigin) };
       if (page === "/templates") return { blocks: await templatesPageBlocks(ctx) };
       return { blocks: await listPageBlocks(ctx) };
@@ -98,7 +104,13 @@ export const adminRoute = {
     }
 
     if (actionId.startsWith("del:")) {
-      await deleteFormAndSubmissions(ctx, actionId.slice(4));
+      return { blocks: await listPageBlocks(ctx, actionId.slice(4)) };
+    }
+    if (actionId.startsWith("cancel_del:")) {
+      return { blocks: await listPageBlocks(ctx) };
+    }
+    if (actionId.startsWith("confirm_del:")) {
+      await deleteFormAndSubmissions(ctx, actionId.slice("confirm_del:".length));
       return {
         blocks: await listPageBlocks(ctx),
         toast: { message: "Form deleted", type: "success" },
@@ -109,66 +121,79 @@ export const adminRoute = {
       return { blocks: await submissionsBlocks(actionId.slice(5), ctx) };
     }
 
-    if (actionId.startsWith("rename:")) {
-      const fid = actionId.slice(7);
+    if (actionId.startsWith("save_meta:")) {
+      const fid = actionId.slice("save_meta:".length);
       const form = (await ctx.storage.forms.get(fid)) as StoredForm | null;
       if (!form) return { blocks: await listPageBlocks(ctx) };
-      const newName = ((values.name as string) ?? "").trim() || form.name;
-      await ctx.storage.forms.put(fid, {
-        ...form,
-        name: newName,
-        updatedAt: new Date().toISOString(),
-      });
-      return {
-        blocks: await editorBlocks(fid, ctx),
-        toast: { message: "Form renamed", type: "success" },
-      };
-    }
 
-    if (actionId.startsWith("set_handle:")) {
-      const fid = actionId.slice("set_handle:".length);
-      const form = (await ctx.storage.forms.get(fid)) as StoredForm | null;
-      if (!form) return { blocks: await listPageBlocks(ctx) };
+      const newLabel = ((values.label as string) ?? "").trim();
       const newHandle = ((values.handle as string) ?? "").trim();
+
+      if (!newLabel) {
+        return {
+          blocks: await editorBlocks(fid, ctx),
+          toast: { message: "Label cannot be empty.", type: "error" },
+        };
+      }
       if (!newHandle) {
         return {
           blocks: await editorBlocks(fid, ctx),
           toast: { message: "Handle cannot be empty.", type: "error" },
         };
       }
-      if (newHandle === form.handle) {
+
+      const labelChanged = newLabel !== form.name;
+      const handleChanged = newHandle !== form.handle;
+
+      if (labelChanged && (await isLabelTaken(ctx, newLabel, fid))) {
+        return {
+          blocks: await editorBlocks(fid, ctx),
+          toast: {
+            message: `Label "${newLabel}" is already in use by another form.`,
+            type: "error",
+          },
+        };
+      }
+
+      if (handleChanged) {
+        if (!isValidFormHandle(newHandle)) {
+          return {
+            blocks: await editorBlocks(fid, ctx),
+            toast: {
+              message:
+                "Handle must be lowercase snake_case starting with a letter (e.g. contact_us).",
+              type: "error",
+            },
+          };
+        }
+        if (await isHandleTaken(ctx, newHandle, fid)) {
+          return {
+            blocks: await editorBlocks(fid, ctx),
+            toast: {
+              message: `Handle "${newHandle}" is already in use by another form.`,
+              type: "error",
+            },
+          };
+        }
+      }
+
+      if (!labelChanged && !handleChanged) {
         return { blocks: await editorBlocks(fid, ctx) };
       }
-      if (!isValidFormHandle(newHandle)) {
-        return {
-          blocks: await editorBlocks(fid, ctx),
-          toast: {
-            message:
-              "Handle must be lowercase snake_case starting with a letter (e.g. contact_us).",
-            type: "error",
-          },
-        };
-      }
-      if (await isHandleTaken(ctx, newHandle, fid)) {
-        return {
-          blocks: await editorBlocks(fid, ctx),
-          toast: {
-            message: `Handle "${newHandle}" is already in use by another form.`,
-            type: "error",
-          },
-        };
-      }
+
       await ctx.storage.forms.put(fid, {
         ...form,
+        name: newLabel,
         handle: newHandle,
         updatedAt: new Date().toISOString(),
       });
+
+      const message = handleChanged
+        ? `Saved. Handle is now "${newHandle}" — update any page references.`
+        : "Saved.";
       return {
         blocks: await editorBlocks(fid, ctx),
-        toast: {
-          message: `Handle changed to "${newHandle}". Update any page references.`,
-          type: "success",
-        },
+        toast: { message, type: "success" },
       };
     }
 
@@ -301,55 +326,55 @@ export const adminRoute = {
       if (!form) return { blocks: await listPageBlocks(ctx) };
 
       const tier = await getTier(ctx);
-      if (tier === "free" && /\bemail\b/i.test(description)) {
-        return {
-          blocks: await editorBlocks(fid, ctx),
-          toast: {
-            message:
-              "Email fields require a Pro license. Remove 'email' from your description or upgrade in Settings.",
-            type: "error",
-          },
-        };
-      }
 
       try {
-        const result = await generateWithAI(description, tier, form, ctx);
-        await ctx.storage.forms.put(fid, {
-          ...form,
-          rows: [...form.rows, ...result.rows],
-          updatedAt: new Date().toISOString(),
-        });
+        const { newForm, summary } = await editFormWithAI(description, tier, form, ctx);
+        const anyChange =
+          summary.added > 0 || summary.updated > 0 || summary.removed > 0;
+        if (anyChange) await ctx.storage.forms.put(fid, newForm);
 
         const parts: string[] = [];
-        if (result.added === 0) {
+        if (summary.added > 0) {
+          parts.push(`Added ${summary.added} field${summary.added !== 1 ? "s" : ""}.`);
+        }
+        if (summary.updated > 0) {
+          parts.push(`Updated ${summary.updated} field${summary.updated !== 1 ? "s" : ""}.`);
+        }
+        if (summary.removed > 0) {
+          parts.push(`Removed ${summary.removed} field${summary.removed !== 1 ? "s" : ""}.`);
+        }
+        if (!anyChange) {
           parts.push(
-            "No new fields added — they already exist or no usable suggestions were returned.",
-          );
-        } else {
-          parts.push(
-            `Added ${result.added} field${result.added !== 1 ? "s" : ""} across ${result.rows.length} new row${result.rows.length !== 1 ? "s" : ""}.`,
+            "No changes applied — the request was already satisfied or didn't map to a valid operation.",
           );
         }
-        if (result.duplicatesSkipped > 0) {
+        if (summary.duplicatesSkipped > 0) {
           parts.push(
-            `${result.duplicatesSkipped} duplicate${result.duplicatesSkipped !== 1 ? "s" : ""} skipped.`,
+            `${summary.duplicatesSkipped} duplicate${summary.duplicatesSkipped !== 1 ? "s" : ""} skipped.`,
           );
         }
-        if (result.cappedAt !== null) parts.push(`Capped at ${result.cappedAt} per generation.`);
-        if (result.totalCapped !== null) {
-          parts.push(`Form is at the ${result.totalCapped}-field cap; stopped early.`);
+        if (summary.notFound.length > 0) {
+          parts.push(
+            `Couldn't find: ${summary.notFound.slice(0, 3).join(", ")}${summary.notFound.length > 3 ? "…" : ""}.`,
+          );
+        }
+        if (summary.cappedAt !== null) {
+          parts.push(`Capped at ${summary.cappedAt} added per request.`);
+        }
+        if (summary.totalCapped !== null) {
+          parts.push(`Form is at the ${summary.totalCapped}-field cap; stopped early.`);
         }
 
         return {
           blocks: await editorBlocks(fid, ctx),
           toast: {
             message: parts.join(" "),
-            type: result.added > 0 ? "success" : "info",
+            type: anyChange ? "success" : "info",
           },
         };
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        ctx.log.error("AI generation failed", { error: msg });
+        ctx.log.error("AI edit failed", { error: msg });
         return {
           blocks: await editorBlocks(fid, ctx),
           toast: { message: `AI error: ${msg}`, type: "error" },
@@ -527,6 +552,53 @@ export const adminRoute = {
               message: 'Invalid key. For this demo any key starting with "FF-" activates Pro.',
               type: "error",
             },
+      };
+    }
+
+    if (actionId.startsWith("save_form_spam:")) {
+      const fid = actionId.slice("save_form_spam:".length);
+      const tier = await getTier(ctx);
+      if (tier !== "pro") {
+        return {
+          blocks: await editorBlocks(fid, ctx),
+          toast: { message: "AI spam filtering requires a Pro license.", type: "error" },
+        };
+      }
+      const useCustom = (values.use_custom as boolean) ?? false;
+      if (!useCustom) {
+        const updated = await setFormSpamOverride(ctx, fid, null);
+        if (!updated) return { blocks: await listPageBlocks(ctx) };
+        return {
+          blocks: await editorBlocks(fid, ctx),
+          toast: {
+            message: "Custom spam settings cleared. Form inherits the global default.",
+            type: "success",
+          },
+        };
+      }
+      const enabled = (values.enabled as boolean) ?? false;
+      const thresholdRaw = ((values.threshold as string) ?? "").trim();
+      const thresholdNum =
+        thresholdRaw === "" ? DEFAULT_SPAM_THRESHOLD : Number(thresholdRaw);
+      if (!Number.isFinite(thresholdNum) || thresholdNum < 0 || thresholdNum > 10) {
+        return {
+          blocks: await editorBlocks(fid, ctx),
+          toast: { message: "Threshold must be a number from 0 to 10.", type: "error" },
+        };
+      }
+      const updated = await setFormSpamOverride(ctx, fid, {
+        enabled,
+        threshold: thresholdNum,
+      });
+      if (!updated) return { blocks: await listPageBlocks(ctx) };
+      return {
+        blocks: await editorBlocks(fid, ctx),
+        toast: {
+          message: enabled
+            ? `Custom spam filter on for this form, threshold ${Math.round(thresholdNum)}.`
+            : "Custom spam filter off for this form.",
+          type: "success",
+        },
       };
     }
 

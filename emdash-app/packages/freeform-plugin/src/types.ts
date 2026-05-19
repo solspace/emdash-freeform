@@ -61,6 +61,25 @@ export interface StoredForm {
   successMessage: string;
   createdAt: string;
   updatedAt: string;
+  // Per-form override of the global spam scoring settings. When absent, the
+  // form inherits the global defaults from KV (`spam:enabled` / `spam:threshold`).
+  spam?: SpamSettings;
+}
+
+export interface VisitorPageView {
+  url: string;
+  title?: string | null;
+  description?: string | null;
+  visitedAt: string;
+}
+
+export interface SubmissionBrief {
+  intent: string;
+  urgency: "low" | "medium" | "high";
+  summary: string;
+  keyFacts: string[];
+  suggestedAction: string;
+  generatedAt: string;
 }
 
 export interface StoredSubmission {
@@ -73,6 +92,12 @@ export interface StoredSubmission {
   spamScore?: number;
   spamReason?: string;
   archived?: boolean;
+  // Pages the visitor browsed before submitting. Captured client-side by the
+  // tracker in Base.astro and shipped with the submission.
+  journey?: VisitorPageView[];
+  // AI-generated summary of the submission + journey. Populated synchronously
+  // by the brief generator after the submission is stored.
+  brief?: SubmissionBrief;
 }
 
 export interface SpamSettings {

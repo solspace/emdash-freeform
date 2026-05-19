@@ -26,6 +26,8 @@ export const submissionsRoutes = {
           spamScore: s.data.spamScore ?? null,
           spamReason: s.data.spamReason ?? null,
           archived: s.data.archived === true,
+          brief: s.data.brief ?? null,
+          journey: s.data.journey ?? null,
         })),
       };
     },

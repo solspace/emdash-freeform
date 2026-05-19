@@ -1,7 +1,10 @@
 import { definePlugin } from "emdash";
 import { adminRoute } from "./admin/router";
 import { installHook } from "./hooks/install";
+import { agentRoutes } from "./routes/agent";
 import { aiRoutes } from "./routes/ai";
+import { chatRoutes } from "./routes/chat";
+import { exportsRoutes } from "./routes/exports";
 import { formsRoutes } from "./routes/forms";
 import { notificationRoutes } from "./routes/notifications";
 import { publicRoutes } from "./routes/public";
@@ -16,7 +19,10 @@ export default definePlugin({
   routes: {
     admin: adminRoute,
     ...publicRoutes,
+    ...agentRoutes,
+    ...chatRoutes,
     ...formsRoutes,
+    ...exportsRoutes,
     ...submissionsRoutes,
     ...settingsRoutes,
     ...aiRoutes,

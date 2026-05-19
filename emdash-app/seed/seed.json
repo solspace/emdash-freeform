@@ -2,13 +2,13 @@
 	"$schema": "https://emdashcms.com/seed.schema.json",
 	"version": "1",
 	"meta": {
-		"name": "Starter",
-		"description": "A minimal EmDash starter with posts and pages",
-		"author": "EmDash"
+		"name": "Mars Rover Supply",
+		"description": "Demo site for EmDash + Freeform — Mars Rover Supply Co.",
+		"author": "Solspace"
 	},
 	"settings": {
-		"title": "My Site",
-		"tagline": "Built with EmDash"
+		"title": "Mars Rover Supply Co.",
+		"tagline": "Engineering for the world beyond ours."
 	},
 	"collections": [
 		{
@@ -17,29 +17,10 @@
 			"labelSingular": "Post",
 			"supports": ["drafts", "revisions", "search", "seo"],
 			"fields": [
-				{
-					"slug": "title",
-					"label": "Title",
-					"type": "string",
-					"required": true,
-					"searchable": true
-				},
-				{
-					"slug": "featured_image",
-					"label": "Featured Image",
-					"type": "image"
-				},
-				{
-					"slug": "content",
-					"label": "Content",
-					"type": "portableText",
-					"searchable": true
-				},
-				{
-					"slug": "excerpt",
-					"label": "Excerpt",
-					"type": "text"
-				}
+				{ "slug": "title", "label": "Title", "type": "string", "required": true, "searchable": true },
+				{ "slug": "featured_image", "label": "Featured Image", "type": "image" },
+				{ "slug": "content", "label": "Content", "type": "portableText", "searchable": true },
+				{ "slug": "excerpt", "label": "Excerpt", "type": "text" }
 			]
 		},
 		{
@@ -48,19 +29,8 @@
 			"labelSingular": "Page",
 			"supports": ["drafts", "revisions", "search"],
 			"fields": [
-				{
-					"slug": "title",
-					"label": "Title",
-					"type": "string",
-					"required": true,
-					"searchable": true
-				},
-				{
-					"slug": "content",
-					"label": "Content",
-					"type": "portableText",
-					"searchable": true
-				}
+				{ "slug": "title", "label": "Title", "type": "string", "required": true, "searchable": true },
+				{ "slug": "content", "label": "Content", "type": "portableText", "searchable": true }
 			]
 		}
 	],
@@ -72,14 +42,10 @@
 			"hierarchical": true,
 			"collections": ["posts"],
 			"terms": [
-				{
-					"slug": "general",
-					"label": "General"
-				},
-				{
-					"slug": "updates",
-					"label": "Updates"
-				}
+				{ "slug": "news", "label": "News" },
+				{ "slug": "press-release", "label": "Press Releases" },
+				{ "slug": "mission-update", "label": "Mission Updates" },
+				{ "slug": "engineering-notes", "label": "Engineering Notes" }
 			]
 		},
 		{
@@ -89,142 +55,159 @@
 			"hierarchical": false,
 			"collections": ["posts"],
 			"terms": [
-				{
-					"slug": "starter",
-					"label": "Starter"
-				},
-				{
-					"slug": "example",
-					"label": "Example"
-				}
+				{ "slug": "manned", "label": "Manned" },
+				{ "slug": "autonomous", "label": "Autonomous" },
+				{ "slug": "rovers", "label": "Rovers" },
+				{ "slug": "life-support", "label": "Life Support" },
+				{ "slug": "propulsion", "label": "Propulsion" },
+				{ "slug": "lunar", "label": "Lunar" },
+				{ "slug": "mars", "label": "Mars" },
+				{ "slug": "contracts", "label": "Contracts" }
 			]
 		}
 	],
 	"menus": [
 		{
 			"name": "primary",
-			"label": "Primary Navigation",
+			"label": "Primary",
 			"items": [
-				{
-					"type": "custom",
-					"label": "Home",
-					"url": "/"
-				},
-				{
-					"type": "custom",
-					"label": "Posts",
-					"url": "/posts"
-				},
-				{
-					"type": "custom",
-					"label": "About",
-					"url": "/about"
-				}
-			]
-		}
-	],
-	"widgetAreas": [
-		{
-			"name": "sidebar",
-			"label": "Sidebar",
-			"description": "Sidebar widget area",
-			"widgets": [
-				{
-					"type": "component",
-					"componentId": "core:search",
-					"title": "Search"
-				},
-				{
-					"type": "component",
-					"componentId": "core:categories",
-					"title": "Categories"
-				},
-				{
-					"type": "component",
-					"componentId": "core:recent-posts",
-					"title": "Recent Posts",
-					"settings": {
-						"count": 5
-					}
-				}
+				{ "type": "custom", "label": "Products", "url": "/products" },
+				{ "type": "custom", "label": "Capabilities", "url": "/capabilities" },
+				{ "type": "custom", "label": "Operations", "url": "/operations" },
+				{ "type": "custom", "label": "News", "url": "/category/news" },
+				{ "type": "custom", "label": "Contact", "url": "/contact" }
 			]
 		}
 	],
 	"content": {
 		"pages": [
 			{
-				"id": "about",
-				"slug": "about",
+				"id": "products",
+				"slug": "products",
 				"status": "published",
 				"data": {
-					"title": "About",
+					"title": "Products",
 					"content": [
-						{
-							"_type": "block",
-							"style": "normal",
-							"children": [
-								{
-									"_type": "span",
-									"text": "This is the about page. Edit it in the admin panel or replace this template with your own design.",
-									"_key": "k1"
-								}
-							],
-							"_key": "k0"
-						}
+						{ "_type": "block", "_key": "p1", "style": "normal", "children": [{ "_type": "span", "_key": "s1", "text": "Crew-rated and autonomous platforms, plus the consumables and spares programs that keep them mission-capable. Every catalog item is qualified to Mars Rover Supply's MRS-9100 environmental specification — dust ingress, thermal cycling, and radiation tolerance characterized end-to-end before it leaves Tharsis Yard." }] },
+						{ "_type": "block", "_key": "p2", "style": "h2", "children": [{ "_type": "span", "_key": "s2", "text": "Manned platforms" }] },
+						{ "_type": "block", "_key": "p3", "style": "normal", "children": [{ "_type": "span", "_key": "s3", "text": "Carriage Class. 4-crew pressurized rover for 14-day surface excursions. Argon-cycle ECLSS, 38 kWh photovoltaic + RTG hybrid power train, 6×6 articulated chassis tested over 11,000 km of analog terrain at the Atacama Long-Range Facility." }] },
+						{ "_type": "block", "_key": "p4", "style": "normal", "children": [{ "_type": "span", "_key": "s4", "text": "Cartwright Heavy. 8-crew long-range pressurized rover. Designed for a 90-day continuous operations envelope with field-replaceable life-support cassettes. First delivery to Artemis Base Camp logistics partners projected Q4 2027." }] },
+						{ "_type": "block", "_key": "p5", "style": "h2", "children": [{ "_type": "span", "_key": "s5", "text": "Autonomous platforms" }] },
+						{ "_type": "block", "_key": "p6", "style": "normal", "children": [{ "_type": "span", "_key": "s6", "text": "Scout-7 Survey. Solar-electric autonomous rover for prospecting and site characterization. Modular instrument bay accepts LIBS, ground-penetrating radar, and neutron spectrometer payloads. 30 km/sol nominal range on Mars insolation." }] },
+						{ "_type": "block", "_key": "p7", "style": "normal", "children": [{ "_type": "span", "_key": "s7", "text": "Haulmaster-21. Autonomous cargo rover with 2,100 kg payload capacity. Tele-op fallback, autonomous convoy formation, and modular trailer interface for surface logistics at established bases." }] },
+						{ "_type": "block", "_key": "p8", "style": "h2", "children": [{ "_type": "span", "_key": "s8", "text": "Consumables & spares" }] },
+						{ "_type": "block", "_key": "p9", "style": "normal", "children": [{ "_type": "span", "_key": "s9", "text": "ECLSS cassettes, drive-train assemblies, photovoltaic blankets, suit-interface seals, and the full MRS-spec consumables catalog. Forward-deployed via the Tharsis Yard logistics partnership; standard fulfillment SLA is 38 sols to surface from order confirmation." }] }
+					]
+				}
+			},
+			{
+				"id": "capabilities",
+				"slug": "capabilities",
+				"status": "published",
+				"data": {
+					"title": "Capabilities",
+					"content": [
+						{ "_type": "block", "_key": "c1", "style": "normal", "children": [{ "_type": "span", "_key": "cs1", "text": "Mars Rover Supply delivers crew-rated and autonomous mobility platforms, mission-specific integration services, and the sustainment supply chain to keep both running. Founded in 2019 by veterans of the JPL Curiosity ops floor and the Crew Dragon mechanical team, we operate from Tharsis Yard in El Segundo, CA and a satellite assembly facility in Bremen." }] },
+						{ "_type": "block", "_key": "c2", "style": "h2", "children": [{ "_type": "span", "_key": "cs2", "text": "Engineering services" }] },
+						{ "_type": "block", "_key": "c3", "style": "normal", "children": [{ "_type": "span", "_key": "cs3", "text": "Mission-specific platform integration, instrument-bay configuration, autonomy stack tuning for site-specific terrain, and full systems-engineering deliverables under DO-178C and NPR 7150.2 process. Typical engagement runs 14–22 months from preliminary design review to flight delivery." }] },
+						{ "_type": "block", "_key": "c4", "style": "h2", "children": [{ "_type": "span", "_key": "cs4", "text": "Operations support" }] },
+						{ "_type": "block", "_key": "c5", "style": "normal", "children": [{ "_type": "span", "_key": "cs5", "text": "24/7 mission operations center support, anomaly triage with response time under 90 minutes for crew-rated platforms, and full telemetry archive with downstream analytics. We support every platform we ship for the full design life of the vehicle." }] }
+					]
+				}
+			},
+			{
+				"id": "operations",
+				"slug": "operations",
+				"status": "published",
+				"data": {
+					"title": "Operations",
+					"content": [
+						{ "_type": "block", "_key": "o1", "style": "normal", "children": [{ "_type": "span", "_key": "os1", "text": "Tharsis Yard, El Segundo, CA — 180,000 sq ft of integration and test floor space. ISO 8 cleanroom, 12,000 sq ft thermal-vacuum complex, and a closed-loop Martian-soil simulant arena for end-to-end mobility qualification." }] },
+						{ "_type": "block", "_key": "o2", "style": "normal", "children": [{ "_type": "span", "_key": "os2", "text": "Bremen Assembly — European production line for autonomous platforms destined for ESA programs. Operational since 2024, certified to MRS-9100 and ECSS-Q-ST-30 reliability standards." }] },
+						{ "_type": "block", "_key": "o3", "style": "normal", "children": [{ "_type": "span", "_key": "os3", "text": "Atacama Long-Range Facility — 11,000 km of contiguous analog terrain in northern Chile. Our reference site for mobility, dust ingress, and thermal-cycle endurance testing. Available to qualified customers under a partner-test program." }] }
+					]
+				}
+			},
+			{
+				"id": "contact",
+				"slug": "contact",
+				"status": "published",
+				"data": {
+					"title": "Contact",
+					"content": [
+						{ "_type": "block", "_key": "ct1", "style": "normal", "children": [{ "_type": "span", "_key": "cts1", "text": "Tell us about your mission. New programs, integration engagements, sustainment contracts, and partner-test inquiries all start with the form below. A senior program engineer responds to every inbound within one business day." }] },
+						{ "_type": "block", "_key": "ct2", "style": "normal", "children": [{ "_type": "span", "_key": "cts2", "text": "Press inquiries: press@marsroversupply.com  ·  Government & defense: gov@marsroversupply.com" }] }
 					]
 				}
 			}
 		],
 		"posts": [
 			{
-				"id": "post-1",
-				"slug": "welcome",
+				"id": "carriage-delivery-jpl",
+				"slug": "carriage-class-delivered-to-jpl",
 				"status": "published",
 				"data": {
-					"title": "Welcome",
-					"excerpt": "Your first post. Replace this with your own content.",
+					"title": "Carriage Class delivered to JPL for joint mobility trials",
+					"excerpt": "Two Carriage-class units shipped to Pasadena last week for the joint MRS / JPL terrain-response trial program.",
 					"content": [
-						{
-							"_type": "block",
-							"style": "normal",
-							"children": [
-								{
-									"_type": "span",
-									"text": "This is a starter post. The templates in this project show the basic patterns for querying and rendering EmDash content. Replace them with your own design.",
-									"_key": "k1"
-								}
-							],
-							"_key": "k0"
-						},
-						{
-							"_type": "block",
-							"style": "h2",
-							"children": [
-								{
-									"_type": "span",
-									"text": "What to do next",
-									"_key": "k3"
-								}
-							],
-							"_key": "k2"
-						},
-						{
-							"_type": "block",
-							"style": "normal",
-							"children": [
-								{
-									"_type": "span",
-									"text": "Open the admin panel to add content, or edit the Astro pages in src/pages to change how content is displayed.",
-									"_key": "k5"
-								}
-							],
-							"_key": "k4"
-						}
+						{ "_type": "block", "_key": "cd1", "style": "normal", "children": [{ "_type": "span", "_key": "cs1", "text": "Tharsis Yard completed acceptance testing on serial 014 and serial 015 of the Carriage class this month and transferred both vehicles to JPL's Mars Yard for the joint MRS / JPL terrain-response trial program. The 90-day program will exercise the autonomy fallback layer under closed-loop perception faults and characterize crew-rated brake performance on simulated regolith slopes up to 28 degrees." }] },
+						{ "_type": "block", "_key": "cd2", "style": "normal", "children": [{ "_type": "span", "_key": "cs2", "text": "Results will feed directly into the v3 autonomy stack release scheduled for first delivery in Q3 2027." }] }
 					]
 				},
 				"taxonomies": {
-					"category": ["general"],
-					"tag": ["starter", "example"]
+					"category": ["press-release"],
+					"tag": ["manned", "rovers", "mars"]
+				}
+			},
+			{
+				"id": "scout-7-prospecting",
+				"slug": "scout-7-completes-90-sol-prospecting-run",
+				"status": "published",
+				"data": {
+					"title": "Scout-7 completes 90-sol prospecting run at Jezero analog",
+					"excerpt": "1,847 km autonomous traverse without intervention. New mission-distance record for the platform.",
+					"content": [
+						{ "_type": "block", "_key": "sp1", "style": "normal", "children": [{ "_type": "span", "_key": "ss1", "text": "Scout-7 unit MRS-007-S22 completed a 90-sol prospecting traverse at the Jezero crater analog site at our Atacama facility on April 28. Total distance under autonomy: 1,847 km. Total operator interventions: zero. This is a new internal record for the platform and a meaningful proof-point ahead of the upcoming flight unit acceptance program." }] },
+						{ "_type": "block", "_key": "sp2", "style": "normal", "children": [{ "_type": "span", "_key": "ss2", "text": "The platform completed full instrument-bay cycling — LIBS, GPR, and neutron spectrometer payloads each took primary control for designated survey segments without telemetry handoff anomalies. End-of-run battery degradation was within 2.1% of the predictive model." }] }
+					]
+				},
+				"taxonomies": {
+					"category": ["mission-update"],
+					"tag": ["autonomous", "rovers", "mars"]
+				}
+			},
+			{
+				"id": "mrs-eclss-recompete",
+				"slug": "mrs-wins-eclss-cassette-recompete",
+				"status": "published",
+				"data": {
+					"title": "MRS wins ECLSS cassette sustainment recompete",
+					"excerpt": "Five-year sustainment contract for ECLSS cassettes on the Artemis Base Camp logistics rover fleet.",
+					"content": [
+						{ "_type": "block", "_key": "rc1", "style": "normal", "children": [{ "_type": "span", "_key": "rs1", "text": "Mars Rover Supply has been awarded the five-year sustainment recompete for ECLSS cassette production and field replacement on the Artemis Base Camp logistics rover fleet. The contract covers approximately 240 cassette deliveries per year through 2031 with options for two additional five-year periods." }] },
+						{ "_type": "block", "_key": "rc2", "style": "normal", "children": [{ "_type": "span", "_key": "rs2", "text": "First-year deliveries begin in Q3 of this year out of the Bremen line, with surface-fulfillment routing through the Tharsis Yard logistics partnership." }] }
+					]
+				},
+				"taxonomies": {
+					"category": ["press-release"],
+					"tag": ["contracts", "life-support", "lunar"]
+				}
+			},
+			{
+				"id": "thermal-cycling-notes",
+				"slug": "dust-ingress-thermal-cycling-q1-notes",
+				"status": "published",
+				"data": {
+					"title": "Engineering notes: dust ingress under thermal cycling, Q1 2026",
+					"excerpt": "First public release of Q1 2026 thermal-cycling dataset for the Scout-7 seal program.",
+					"content": [
+						{ "_type": "block", "_key": "tn1", "style": "normal", "children": [{ "_type": "span", "_key": "ts1", "text": "We're publishing the first quarter's thermal-cycling and dust-ingress dataset from the Scout-7 seal program. 14,400 cumulative thermal cycles across four seal candidates, recorded under closed-loop CO2 atmosphere at Martian surface pressures. Full dataset, methodology, and seal performance envelopes available via the customer portal." }] },
+						{ "_type": "block", "_key": "tn2", "style": "normal", "children": [{ "_type": "span", "_key": "ts2", "text": "Headline finding: the elastomer-A candidate retained 96.4% of nominal seal pressure after the full cycle count, a 3.1 point improvement over the legacy spec. Production transition is in flight for Scout-7 units shipping after September 2026." }] }
+					]
+				},
+				"taxonomies": {
+					"category": ["engineering-notes"],
+					"tag": ["autonomous", "mars"]
 				}
 			}
 		]

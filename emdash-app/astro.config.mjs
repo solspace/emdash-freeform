@@ -36,6 +36,20 @@ export default defineConfig({
 						pattern: "/.well-known/oauth-protected-resource/freeform/mcp",
 						entrypoint: new URL("./src/freeform-resource-metadata.ts", import.meta.url).pathname,
 					});
+					injectRoute({
+						pattern: "/.well-known/freeform.json",
+						entrypoint: new URL("./src/freeform-actions-index.ts", import.meta.url).pathname,
+					});
+					injectRoute({
+						pattern: "/.well-known/freeform/[handle]",
+						entrypoint: new URL("./src/freeform-action-manifest.ts", import.meta.url).pathname,
+					});
+					injectRoute({
+						pattern: "/llms.txt",
+						entrypoint: new URL("./src/llms-txt.ts", import.meta.url).pathname,
+					});
+					// /robots.txt lives at src/pages/robots.txt.ts so it wins
+					// over EmDash's default injected /robots.txt route.
 				},
 			},
 		},

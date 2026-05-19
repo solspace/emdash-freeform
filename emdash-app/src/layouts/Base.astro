@@ -7,8 +7,9 @@ import {
 	EmDashBodyEnd,
 } from "emdash/ui";
 import { createPublicPageContext } from "emdash/page";
-import LiveSearch from "emdash/ui/search";
+import FreeformDiscovery from "../components/FreeformDiscovery.astro";
 import { resolveStarterSiteIdentity } from "../utils/site-identity";
+import logoSvg from "../../public/logo.svg?raw";
 
 interface Props {
 	title: string;
@@ -16,12 +17,11 @@ interface Props {
 	description?: string | null;
 	image?: string | null;
 	canonical?: string | null;
-	/** Pass content reference for plugin page contributions on content pages */
 	content?: { collection: string; id: string; slug?: string | null };
 }
 
 const { title, pageTitle, description, image, canonical, content } = Astro.props;
-const { siteTitle, siteTagline, siteLogo } = resolveStarterSiteIdentity(await getSiteSettings());
+const { siteTitle, siteTagline } = resolveStarterSiteIdentity(await getSiteSettings());
 const fullTitle = title.includes(siteTitle) ? title : `${title} — ${siteTitle}`;
 const pageDescription = description ?? siteTagline;
 
@@ -39,6 +39,9 @@ const pageCtx = createPublicPageContext({
 	content,
 	siteName: siteTitle,
 });
+
+const today = new Date();
+const revStamp = `${today.getUTCFullYear()}.${String(today.getUTCMonth() + 1).padStart(2, "0")}.${String(today.getUTCDate()).padStart(2, "0")}`;
 ---
 
 <!doctype html>
@@ -49,27 +52,41 @@ const pageCtx = createPublicPageContext({
 		<title>{fullTitle}</title>
 		{pageDescription && <meta name="description" content={pageDescription} />}
 		{canonical && <link rel="canonical" href={canonical} />}
+		<link rel="icon" type="image/svg+xml" href="/rover.svg" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Michroma&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@300;400;500&display=swap"
+			rel="stylesheet"
+		/>
 		<EmDashHead page={pageCtx} />
+		<FreeformDiscovery />
 	</head>
 	<body>
 		<EmDashBodyStart page={pageCtx} />
 
-		<header>
-			<nav>
-				<a href="/">
-					{siteLogo
-						? <img src={siteLogo.url} alt={siteLogo.alt || siteTitle} style="height:48px;width:auto;margin:-8px 0;display:block;" />
-						: siteTitle
-					}
-				</a>
-				{
-					menu?.items.map((item) => (
-						<a href={item.url} target={item.target}>
-							{item.label}
-						</a>
-					))
-				}
-				<LiveSearch placeholder="Search..." collections={["posts", "pages"]} />
+		<div class="grain" aria-hidden="true"></div>
+
+		<div class="spec-strip" aria-hidden="true">
+			<span>MRS-9100</span>
+			<span class="sep">/</span>
+			<span>CLASSIFICATION: PUBLIC</span>
+			<span class="sep">/</span>
+			<span>REV. {revStamp}</span>
+			<span class="sep">/</span>
+			<span>THARSIS YARD · EL SEGUNDO · CA</span>
+		</div>
+
+		<header class="site-header">
+			<a href="/" class="brand" aria-label={siteTitle}>
+				<Fragment set:html={logoSvg} />
+			</a>
+			<nav class="primary-nav" aria-label="Primary">
+				{menu?.items.map((item) => (
+					<a href={item.url} target={item.target}>
+						{item.label}
+					</a>
+				))}
 			</nav>
 		</header>
 
@@ -77,10 +94,313 @@ const pageCtx = createPublicPageContext({
 			<slot />
 		</main>
 
-		<footer>
-			<WidgetArea name="sidebar" />
+		<footer class="site-footer">
+			<div class="footer-grid">
+				<div class="footer-block">
+					<div class="footer-label">Contact</div>
+					<a href="/contact">Start a program</a>
+					<a href="mailto:press@marsroversupply.com">press@marsroversupply.com</a>
+					<a href="mailto:gov@marsroversupply.com">gov@marsroversupply.com</a>
+				</div>
+				<div class="footer-block">
+					<div class="footer-label">Facilities</div>
+					<span>Tharsis Yard — El Segundo, CA</span>
+					<span>Bremen Assembly — Bremen, DE</span>
+					<span>Atacama Long-Range Facility — Antofagasta, CL</span>
+				</div>
+				<div class="footer-block">
+					<div class="footer-label">Standards</div>
+					<span>MRS-9100 environmental</span>
+					<span>DO-178C software</span>
+					<span>NPR 7150.2 systems</span>
+				</div>
+				<div class="footer-block widget-block">
+					<WidgetArea name="sidebar" />
+				</div>
+			</div>
+			<div class="footer-bottom">
+				<span>© {today.getUTCFullYear()} Mars Rover Supply Co.</span>
+				<span class="agent-cue">
+					AI agents &amp; developers — this site is machine-readable.
+					See <a href="/llms.txt">/llms.txt</a>.
+				</span>
+			</div>
 		</footer>
 
 		<EmDashBodyEnd page={pageCtx} />
+
+		<script is:inline>
+			// Visitor journey tracker — captures page metadata into localStorage so
+			// Freeform submissions can carry session context to the AI brief generator.
+			(function () {
+				try {
+					const key = "ff_journey";
+					const max = 25;
+					const desc = document.querySelector('meta[name="description"]');
+					const entry = {
+						url: location.pathname + location.search,
+						title: document.title,
+						description: desc ? desc.getAttribute("content") : null,
+						visitedAt: new Date().toISOString(),
+					};
+					const raw = localStorage.getItem(key);
+					const list = raw ? JSON.parse(raw) : [];
+					if (!list.length || list[list.length - 1].url !== entry.url) {
+						list.push(entry);
+					}
+					while (list.length > max) list.shift();
+					localStorage.setItem(key, JSON.stringify(list));
+				} catch (_) {
+					// localStorage may be unavailable; tracking is best-effort.
+				}
+			})();
+		</script>
+
+		<style is:global>
+			:root {
+				--mrs-bg: #0a0908;
+				--mrs-bg-elev: #14110f;
+				--mrs-fg: #f0e9df;
+				--mrs-fg-muted: #a39d92;
+				--mrs-fg-dim: #6b665e;
+				--mrs-accent: #c44010;
+				--mrs-rule: #2a2622;
+				--mrs-rule-strong: #423b34;
+
+				--font-display: "Michroma", "Courier New", monospace;
+				--font-body: "IBM Plex Sans", system-ui, sans-serif;
+				--font-mono: "IBM Plex Mono", ui-monospace, monospace;
+			}
+
+			* { box-sizing: border-box; }
+
+			html, body {
+				background: var(--mrs-bg);
+				color: var(--mrs-fg);
+				margin: 0;
+				padding: 0;
+				font-family: var(--font-body);
+				font-weight: 300;
+				font-size: 16px;
+				line-height: 1.55;
+				-webkit-font-smoothing: antialiased;
+				-moz-osx-font-smoothing: grayscale;
+			}
+
+			body {
+				min-height: 100vh;
+				display: flex;
+				flex-direction: column;
+				position: relative;
+			}
+
+			/* Subtle film grain over everything */
+			.grain {
+				position: fixed;
+				inset: 0;
+				pointer-events: none;
+				z-index: 1;
+				opacity: 0.06;
+				background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+				mix-blend-mode: overlay;
+			}
+
+			/* Top spec strip — NASA document-style header */
+			.spec-strip {
+				font-family: var(--font-mono);
+				font-size: 0.6875rem;
+				font-weight: 400;
+				letter-spacing: 0.1em;
+				color: var(--mrs-fg-muted);
+				padding: 0.5rem 1.5rem;
+				border-bottom: 1px solid var(--mrs-rule);
+				display: flex;
+				gap: 0.75rem;
+				flex-wrap: wrap;
+				text-transform: uppercase;
+				position: relative;
+				z-index: 2;
+			}
+			.spec-strip .sep { color: var(--mrs-fg-dim); }
+
+			/* Header */
+			.site-header {
+				display: grid;
+				grid-template-columns: auto 1fr;
+				align-items: center;
+				gap: 2.5rem;
+				padding: 1.75rem 1.5rem;
+				border-bottom: 1px solid var(--mrs-rule);
+				position: relative;
+				z-index: 2;
+			}
+			.brand svg {
+				display: block;
+				height: 52px;
+				width: auto;
+			}
+			.primary-nav {
+				display: flex;
+				gap: 2rem;
+				justify-content: center;
+				flex-wrap: wrap;
+			}
+			.primary-nav a {
+				font-family: var(--font-mono);
+				font-size: 0.75rem;
+				letter-spacing: 0.18em;
+				text-transform: uppercase;
+				color: var(--mrs-fg-muted);
+				text-decoration: none;
+				padding-bottom: 0.25rem;
+				border-bottom: 1px solid transparent;
+				transition: color 0.18s, border-color 0.18s;
+			}
+			.primary-nav a:hover {
+				color: var(--mrs-fg);
+				border-bottom-color: var(--mrs-accent);
+			}
+
+			/* Main */
+			main {
+				flex: 1;
+				position: relative;
+				z-index: 2;
+			}
+
+			/* Typography */
+			h1, h2, h3, h4 {
+				font-family: var(--font-display);
+				font-weight: 400;
+				letter-spacing: 0.04em;
+				line-height: 1.15;
+				margin: 0 0 1rem;
+				color: var(--mrs-fg);
+			}
+			h1 { font-size: clamp(2.25rem, 5vw, 3.75rem); }
+			h2 { font-size: clamp(1.5rem, 3vw, 2.25rem); letter-spacing: 0.06em; }
+			h3 { font-size: 1.25rem; letter-spacing: 0.08em; }
+			p {
+				margin: 0 0 1.25rem;
+				max-width: 64ch;
+				color: var(--mrs-fg);
+			}
+			a { color: var(--mrs-fg); }
+
+			/* Page container */
+			.page {
+				max-width: 1180px;
+				margin: 0 auto;
+				padding: 4rem 1.5rem 6rem;
+			}
+			.page-header {
+				border-bottom: 1px solid var(--mrs-rule);
+				padding-bottom: 1.5rem;
+				margin-bottom: 2.5rem;
+				display: flex;
+				justify-content: space-between;
+				align-items: flex-end;
+				gap: 2rem;
+				flex-wrap: wrap;
+			}
+			.page-header .eyebrow {
+				font-family: var(--font-mono);
+				font-size: 0.6875rem;
+				letter-spacing: 0.2em;
+				text-transform: uppercase;
+				color: var(--mrs-fg-muted);
+			}
+			.page-header h1 { margin: 0.5rem 0 0; }
+			.page-meta {
+				font-family: var(--font-mono);
+				font-size: 0.75rem;
+				letter-spacing: 0.1em;
+				color: var(--mrs-fg-muted);
+				text-transform: uppercase;
+			}
+
+			/* Footer */
+			.site-footer {
+				border-top: 1px solid var(--mrs-rule);
+				padding: 3.5rem 1.5rem 1.5rem;
+				margin-top: 6rem;
+				position: relative;
+				z-index: 2;
+			}
+			.footer-grid {
+				display: grid;
+				grid-template-columns: repeat(4, 1fr);
+				gap: 2.5rem;
+				max-width: 1180px;
+				margin: 0 auto 2.5rem;
+			}
+			.footer-block {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+			}
+			.footer-label {
+				font-family: var(--font-mono);
+				font-size: 0.6875rem;
+				letter-spacing: 0.2em;
+				text-transform: uppercase;
+				color: var(--mrs-accent);
+				border-bottom: 1px solid var(--mrs-rule);
+				padding-bottom: 0.5rem;
+				margin-bottom: 0.5rem;
+			}
+			.footer-block a,
+			.footer-block span {
+				font-family: var(--font-mono);
+				font-size: 0.8125rem;
+				color: var(--mrs-fg-muted);
+				text-decoration: none;
+				line-height: 1.6;
+			}
+			.footer-block a:hover { color: var(--mrs-fg); }
+			.footer-bottom {
+				max-width: 1180px;
+				margin: 0 auto;
+				padding-top: 1.5rem;
+				border-top: 1px solid var(--mrs-rule);
+				display: flex;
+				justify-content: space-between;
+				gap: 1.5rem;
+				flex-wrap: wrap;
+				font-family: var(--font-mono);
+				font-size: 0.6875rem;
+				color: var(--mrs-fg-dim);
+				letter-spacing: 0.1em;
+				text-transform: uppercase;
+			}
+			.agent-cue a {
+				color: var(--mrs-fg-muted);
+				text-decoration: underline;
+			}
+
+			/* Rules + utility */
+			.hairline { border-top: 1px solid var(--mrs-rule); }
+			.accent { color: var(--mrs-accent); }
+			.mono { font-family: var(--font-mono); }
+
+			@media (max-width: 780px) {
+				.site-header {
+					grid-template-columns: 1fr auto;
+					gap: 1rem;
+				}
+				.primary-nav {
+					grid-column: 1 / -1;
+					justify-content: flex-start;
+					gap: 1.25rem;
+				}
+				.footer-grid {
+					grid-template-columns: 1fr 1fr;
+					gap: 2rem;
+				}
+			}
+			@media (max-width: 520px) {
+				.footer-grid { grid-template-columns: 1fr; }
+			}
+		</style>
 	</body>
 </html>

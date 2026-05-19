@@ -6,6 +6,17 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	// Public hostname. CF auto-provisions DNS + SSL for this on deploy as long
+	// as marsroversupply.com is on the same CF account. Worker is reachable
+	// here only — workers.dev is disabled because Anthropic's outbound POST
+	// allowlist blocks workers.dev domains anyway.
+	"workers_dev": false,
+	"routes": [
+		{
+			"pattern": "emdash.marsroversupply.com",
+			"custom_domain": true
+		}
+	],
 	"d1_databases": [
 		{
 			"binding": "DB",

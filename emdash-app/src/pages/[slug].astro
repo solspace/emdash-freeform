@@ -5,16 +5,10 @@ import Base from "../layouts/Base.astro";
 import { resolveStarterSiteIdentity } from "../utils/site-identity";
 
 const slug = decodeSlug(Astro.params.slug);
-
-if (!slug) {
-	return Astro.redirect("/404");
-}
+if (!slug) return Astro.redirect("/404");
 
 const { entry: page, cacheHint } = await getEmDashEntry("pages", slug);
-
-if (!page) {
-	return Astro.redirect("/404");
-}
+if (!page) return Astro.redirect("/404");
 
 if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
 const { siteTitle } = resolveStarterSiteIdentity(await getSiteSettings());
@@ -24,6 +18,8 @@ const seo = getSeoMeta(page, {
 	siteUrl: Astro.url.origin,
 	path: `/${slug}`,
 });
+
+const docId = (page.data.id ?? slug).toString().toUpperCase();
 ---
 
 <Base
@@ -33,9 +29,53 @@ const seo = getSeoMeta(page, {
 	canonical={seo.canonical}
 	content={{ collection: "pages", id: page.data.id, slug }}
 >
-	<article>
-		<h1 {...page.edit.title}>{page.data.title}</h1>
+	<article class="page">
+		<header class="page-header">
+			<div>
+				<div class="eyebrow">DOC · {docId}</div>
+				<h1 {...page.edit.title}>{page.data.title}</h1>
+			</div>
+			<div class="page-meta">REV. {new Date().getUTCFullYear()}.{String(new Date().getUTCMonth() + 1).padStart(2, "0")}</div>
+		</header>
 
-		<PortableText value={page.data.content} />
+		<div class="prose">
+			<PortableText value={page.data.content} />
+		</div>
 	</article>
 </Base>
+
+<style is:global>
+	.prose h2 {
+		margin-top: 2.5rem;
+		padding-top: 1.25rem;
+		border-top: 1px solid var(--mrs-rule);
+	}
+	.prose h3 {
+		margin-top: 2rem;
+		color: var(--mrs-fg-muted);
+	}
+	.prose p {
+		color: var(--mrs-fg);
+		font-size: 1.0625rem;
+		line-height: 1.7;
+	}
+	.prose ul, .prose ol {
+		color: var(--mrs-fg);
+		padding-left: 1.25rem;
+		line-height: 1.7;
+	}
+	.prose a {
+		color: var(--mrs-accent);
+		text-decoration: none;
+		border-bottom: 1px solid var(--mrs-rule-strong);
+	}
+	.prose a:hover { border-bottom-color: var(--mrs-accent); }
+	.prose blockquote {
+		border-left: 2px solid var(--mrs-accent);
+		margin: 1.5rem 0;
+		padding: 0.5rem 0 0.5rem 1.5rem;
+		color: var(--mrs-fg-muted);
+		font-family: var(--font-mono);
+		font-size: 0.95rem;
+	}
+</style>

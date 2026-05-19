@@ -146,12 +146,13 @@ export async function settingsBlocks(
         ]
       : []),
     { type: "divider" },
-    { type: "header", text: "AI Spam Filter" },
+    { type: "header", text: "AI Spam Filter — Defaults" },
     tier === "pro"
       ? {
           type: "section",
           text:
-            "Score incoming submissions for spam likelihood using Claude Haiku. " +
+            "Default settings used by any form that doesn't define its own. " +
+            "Override per-form on the form's edit page. " +
             "Scores are stored alongside submissions; nothing is auto-rejected. " +
             "Use the MCP `archive_spam_submissions` tool (or the admin actions below) " +
             "to clean up flagged entries.",

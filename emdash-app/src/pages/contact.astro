@@ -1,0 +1,120 @@
+---
+import { getEmDashEntry, getSeoMeta, getSiteSettings } from "emdash";
+import { PortableText } from "emdash/ui";
+import Base from "../layouts/Base.astro";
+import FreeformForm from "../components/FreeformForm.astro";
+import FreeformChat from "../components/FreeformChat.astro";
+import { resolveStarterSiteIdentity } from "../utils/site-identity";
+
+const { entry: page, cacheHint } = await getEmDashEntry("pages", "contact");
+if (Astro.cache?.enabled && page) Astro.cache.set(cacheHint);
+const { siteTitle } = resolveStarterSiteIdentity(await getSiteSettings());
+
+const seo = page
+  ? getSeoMeta(page, { siteTitle, siteUrl: Astro.url.origin, path: "/contact" })
+  : { title: `Contact — ${siteTitle}`, ogTitle: null, description: null, canonical: null, ogImage: null };
+
+const salesContext = `Mars Rover Supply Co. (MRS) builds crew-rated and autonomous mobility platforms for surface operations on the Moon, Mars, and analog terrain.
+
+Key product lines:
+- Carriage Class: 4-crew pressurized rover for 14-day surface excursions. Argon-cycle ECLSS, 38 kWh hybrid power train.
+- Cartwright Heavy: 8-crew long-range pressurized rover, 90-day continuous operations envelope. First delivery Q4 2027.
+- Scout-7 Survey: solar-electric autonomous prospecting rover, 30 km/sol on Mars insolation, modular instrument bay (LIBS, GPR, neutron spectrometer).
+- Haulmaster-21: autonomous cargo rover, 2,100 kg payload, tele-op fallback.
+- Consumables & spares: ECLSS cassettes, drive-train assemblies, photovoltaic blankets, MRS-9100 qualified spec.
+
+Engineering services: mission-specific integration, autonomy stack tuning, full systems-engineering deliverables under DO-178C and NPR 7150.2. Typical engagement runs 14–22 months from PDR to flight delivery.
+
+Operations: Tharsis Yard (El Segundo, CA, 180k sq ft integration floor) · Bremen Assembly (ESA programs) · Atacama Long-Range Facility (11,000 km analog terrain, partner-test program available).
+
+Customers we work with: research institutions, commercial exploration, government/defense, sustainment contracts. We respond to every inbound within one business day.
+
+Tone: technically credible, calm, no fluff. A senior program engineer will follow up — you are gathering enough information for them to scope the conversation, not closing the deal yourself.`;
+---
+
+<Base
+  title={seo.title}
+  pageTitle={seo.ogTitle}
+  description={seo.description}
+  canonical={seo.canonical}
+  content={page ? { collection: "pages", id: page.data.id, slug: "contact" } : undefined}
+>
+  <article class="page contact">
+    <header class="page-header">
+      <div>
+        <div class="eyebrow">DOC · CONTACT</div>
+        <h1>{page?.data.title ?? "Contact"}</h1>
+      </div>
+      <div class="page-meta">RESPONSE SLA · 1 BUSINESS DAY</div>
+    </header>
+
+    {page && (
+      <div class="prose contact-lede">
+        <PortableText value={page.data.content} />
+      </div>
+    )}
+
+    <div class="contact-grid">
+      <section class="contact-col">
+        <div class="col-label mono">OPTION A · CONVERSATIONAL</div>
+        <h2>Talk to our concierge</h2>
+        <p class="col-blurb">
+          The fastest path. Tell our AI concierge what you're working on and it
+          will route you to the right person here. It can submit the contact
+          form on your behalf when it has what we need.
+        </p>
+        <FreeformChat
+          formHandle="contact"
+          siteName="Mars Rover Supply Co."
+          salesContext={salesContext}
+        />
+      </section>
+
+      <section class="contact-col">
+        <div class="col-label mono">OPTION B · FORM</div>
+        <h2>Or submit the form</h2>
+        <p class="col-blurb">
+          Prefer to fill out the fields yourself. Either way reaches the same
+          program engineer.
+        </p>
+        <FreeformForm formId="contact" />
+      </section>
+    </div>
+  </article>
+</Base>
+
+<style>
+  .contact-lede { margin-bottom: 3rem; }
+
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: start;
+  }
+  .contact-col { min-width: 0; }
+  .col-label {
+    font-size: 0.6875rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--mrs-accent);
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--mrs-rule);
+    margin-bottom: 1.25rem;
+  }
+  .contact-col h2 {
+    font-size: 1.5rem;
+    letter-spacing: 0.04em;
+    margin: 0 0 0.75rem;
+  }
+  .col-blurb {
+    font-size: 0.9375rem;
+    color: var(--mrs-fg-muted);
+    max-width: none;
+    margin: 0 0 1.5rem;
+  }
+
+  @media (max-width: 900px) {
+    .contact-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+  }
+</style>

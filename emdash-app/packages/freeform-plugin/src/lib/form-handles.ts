@@ -40,6 +40,21 @@ export async function isHandleTaken(
   return taken.has(candidate);
 }
 
+export async function isLabelTaken(
+  ctx: PluginContext,
+  candidate: string,
+  excludeFormId?: string,
+): Promise<boolean> {
+  const target = candidate.trim().toLowerCase();
+  if (!target) return false;
+  const { items } = await ctx.storage.forms.query({ limit: 10000 });
+  for (const f of items as Array<{ id: string; data: StoredForm }>) {
+    if (f.id === excludeFormId) continue;
+    if (f.data.name?.trim().toLowerCase() === target) return true;
+  }
+  return false;
+}
+
 async function collectHandles(
   ctx: PluginContext,
   excludeFormId?: string,

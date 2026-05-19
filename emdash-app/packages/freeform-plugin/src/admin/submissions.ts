@@ -1,6 +1,6 @@
 import type { PluginContext } from "emdash";
 import { resolveOptionLabels } from "../lib/options";
-import { getSpamSettings } from "../lib/spam-settings";
+import { effectiveSpamSettings, getSpamSettings } from "../lib/spam-settings";
 import type { StoredForm, StoredSubmission } from "../types";
 
 export async function submissionsBlocks(
@@ -15,14 +15,20 @@ export async function submissionsBlocks(
   });
 
   const subs = items as Array<{ id: string; data: StoredSubmission }>;
-  const spam = await getSpamSettings(ctx);
-  // Show spam columns when scoring is enabled OR any visible row already has a
-  // stored score (e.g. legacy rows scored before scoring was disabled again).
-  const showSpamColumn =
-    spam.enabled || subs.some((s) => typeof s.data.spamScore === "number");
+  const globalSpam = await getSpamSettings(ctx);
+  // Per-form view uses this form's effective settings to decide column
+  // visibility; the all-form view falls back to globals. Either way we still
+  // show the column whenever any visible row already has a stored score.
+  const anyScored = subs.some((s) => typeof s.data.spamScore === "number");
   const spamCell = (s: { data: StoredSubmission }) =>
     typeof s.data.spamScore === "number" ? String(s.data.spamScore) : "—";
   const spamReasonCell = (s: { data: StoredSubmission }) => s.data.spamReason || "—";
+
+  // AI brief surfaces as Intent + Urgency columns whenever any submission has
+  // a generated brief. Both are short strings well-suited to badge format.
+  const showBriefColumns = subs.some((s) => s.data.brief);
+  const intentCell = (s: { data: StoredSubmission }) => s.data.brief?.intent || "—";
+  const urgencyCell = (s: { data: StoredSubmission }) => s.data.brief?.urgency || "—";
 
   if (formId) {
     const formData = (await ctx.storage.forms.get(formId)) as StoredForm | null;
@@ -32,8 +38,16 @@ export async function submissionsBlocks(
         )
       : [];
     const formTitle = formData ? formData.name : formId;
+    const effective = effectiveSpamSettings(formData, globalSpam);
+    const showSpamColumn = effective.enabled || anyScored;
 
     const columns = [
+      ...(showBriefColumns
+        ? [
+            { key: "_intent", label: "Intent", format: "badge" },
+            { key: "_urgency", label: "Urgency", format: "badge" },
+          ]
+        : []),
       ...formFields.map((f) => ({ key: f.handle, label: f.label })),
       ...(showSpamColumn
         ? [
@@ -45,6 +59,7 @@ export async function submissionsBlocks(
     ];
 
     const rows = subs.map((s) => ({
+      ...(showBriefColumns ? { _intent: intentCell(s), _urgency: urgencyCell(s) } : {}),
       ...Object.fromEntries(
         formFields.map((f) => {
           const raw = s.data.data[f.handle];
@@ -80,14 +95,17 @@ export async function submissionsBlocks(
 
   // All-submissions view: per-form fields vary, so collapse to a preview string.
   // Labels aren't resolved here — the per-form view shows resolved labels.
+  const showSpamColumn = globalSpam.enabled || anyScored;
   const rows = subs.map((s) => ({
     form: s.data.formName ?? s.data.formId,
-    preview: Object.entries(s.data.data)
-      .map(([k, v]) => {
-        const flat = Array.isArray(v) ? v.join(", ") : String(v);
-        return `${k}: ${flat.slice(0, 40)}`;
-      })
-      .join("  ·  "),
+    ...(showBriefColumns ? { _intent: intentCell(s), _urgency: urgencyCell(s) } : {}),
+    preview: s.data.brief?.summary ||
+      Object.entries(s.data.data)
+        .map(([k, v]) => {
+          const flat = Array.isArray(v) ? v.join(", ") : String(v);
+          return `${k}: ${flat.slice(0, 40)}`;
+        })
+        .join("  ·  "),
     ...(showSpamColumn ? { _spam: spamCell(s) } : {}),
     date: s.data.createdAt,
   }));
@@ -114,7 +132,13 @@ export async function submissionsBlocks(
           type: "table",
           columns: [
             { key: "form", label: "Form", format: "badge" },
-            { key: "preview", label: "Submission" },
+            ...(showBriefColumns
+              ? [
+                  { key: "_intent", label: "Intent", format: "badge" },
+                  { key: "_urgency", label: "Urgency", format: "badge" },
+                ]
+              : []),
+            { key: "preview", label: showBriefColumns ? "Brief" : "Submission" },
             ...(showSpamColumn ? [{ key: "_spam", label: "Spam", format: "badge" }] : []),
             { key: "date", label: "Submitted", format: "relative_time" },
           ],

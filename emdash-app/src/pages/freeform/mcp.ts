@@ -184,7 +184,7 @@ const TOOLS = [
   {
     name: "list_submissions",
     description:
-      "List form submissions, most recent first. Includes spamScore (0-10, null if scoring disabled), spamReason (one-sentence rationale, null if no score), and archived flag. Optionally filter by form id and/or date range (ISO 8601). Archived submissions are excluded by default.",
+      "List form submissions, most recent first. Includes the AI-generated brief (intent, urgency low/medium/high, 1-2 sentence summary, key facts, suggested next action) and the visitor's pre-submission page journey when captured. Also includes spamScore (0-10, null if scoring disabled), spamReason, and archived flag. Optionally filter by form id and/or date range (ISO 8601). Archived submissions excluded by default.",
     inputSchema: {
       type: "object",
       properties: {
@@ -205,6 +205,31 @@ const TOOLS = [
       type: "object",
       properties: { id: { type: "string", description: "Form id or slug" } },
       required: ["id"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "export_submissions_csv",
+    description:
+      "Prepare a CSV download of submissions matching a filter. Returns a short-lived (15 min) signed URL the user can click in chat to download the file. Use this when the user wants a spreadsheet — e.g. after narrowing submissions in conversation, or for an ad-hoc report. Pass `submissionIds` to export an exact set you've already gathered; otherwise pass the same filter shape as `list_submissions` and the export route re-queries server-side. For a single form, columns are derived from the form's field handles; across forms, the row data is emitted as a JSON column. Archived submissions are excluded by default. If no rows match, the response has `rowCount: 0` and a null url — tell the user, don't fabricate a link.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        formId: { type: "string", description: "Limit to one form id (recommended — gives column-per-field output)" },
+        submissionIds: {
+          type: "array",
+          items: { type: "string" },
+          description: "Export exactly these submission ids (capped at 1000). Combines with other filters via AND.",
+        },
+        since: { type: "string", description: "ISO 8601 lower bound on createdAt" },
+        until: { type: "string", description: "ISO 8601 upper bound on createdAt" },
+        includeArchived: { type: "boolean", description: "Include archived submissions (default false)" },
+        minSpamScore: { type: "number", description: "Only include rows with spamScore >= this (0-10)" },
+        filename: {
+          type: "string",
+          description: "Optional override; default is `freeform-<form_handle>-<YYYY-MM-DD>.csv`",
+        },
+      },
       additionalProperties: false,
     },
   },
@@ -346,18 +371,35 @@ const TOOLS = [
   {
     name: "get_spam_settings",
     description:
-      "Get the current AI spam filter settings: whether scoring is enabled and the flag threshold (0-10). AI spam scoring requires a Pro license.",
-    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+      "Get AI spam filter settings. Without `formId`, returns the global defaults. With `formId`, returns that form's effective settings (override if set, otherwise the inherited global) plus the override state and the global defaults for reference. Pro license required for scoring to actually run.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        formId: {
+          type: "string",
+          description: "When provided, returns this form's effective settings + override state.",
+        },
+      },
+      additionalProperties: false,
+    },
   },
   {
     name: "set_spam_settings",
     description:
-      "Update AI spam filter settings. Pro license required. When enabled, every new submission is scored 0-10 by Claude Haiku and the score is stored alongside it.",
+      "Update AI spam filter settings. Pro license required. Without `formId`, writes the global defaults used by any form that doesn't override. With `formId`, writes a per-form override (`enabled` AND `threshold` both required). Pass `formId` with `clearOverride: true` to remove a per-form override and revert that form to inheriting the global. Submissions flagged at/above the effective threshold do NOT trigger notifications.",
     inputSchema: {
       type: "object",
       properties: {
+        formId: {
+          type: "string",
+          description: "Target a single form's override. Omit to set the global defaults.",
+        },
         enabled: { type: "boolean" },
         threshold: { type: "number", description: "0-10; submissions scoring >= this are considered spam-like" },
+        clearOverride: {
+          type: "boolean",
+          description: "When true (with formId), removes the form's override so it inherits the global.",
+        },
       },
       additionalProperties: false,
     },
@@ -540,6 +582,21 @@ async function runTool(
     if (!args?.id) throw new Error("Missing required argument: id");
     return callPluginRoute(fetcher, request, "get-form", { query: { id: String(args.id) } });
   }
+  if (name === "export_submissions_csv") {
+    return callPluginRoute(fetcher, request, "prepare-export", {
+      method: "POST",
+      body: {
+        formId: args?.formId,
+        submissionIds: Array.isArray(args?.submissionIds) ? args.submissionIds : undefined,
+        since: args?.since,
+        until: args?.until,
+        includeArchived: args?.includeArchived === true,
+        minSpamScore: typeof args?.minSpamScore === "number" ? args.minSpamScore : undefined,
+        filename: args?.filename,
+        origin: publicOrigin(request),
+      },
+    });
+  }
 
   // ── Form composition ──────────────────────────────
   if (name === "create_form") {
@@ -627,14 +684,18 @@ async function runTool(
 
   // ── Spam filter ───────────────────────────────────
   if (name === "get_spam_settings") {
-    return callPluginRoute(fetcher, request, "get-spam-settings");
+    const query: Record<string, string> = {};
+    if (args?.formId) query.formId = String(args.formId);
+    return callPluginRoute(fetcher, request, "get-spam-settings", { query });
   }
   if (name === "set_spam_settings") {
     return callPluginRoute(fetcher, request, "update-spam-settings", {
       method: "POST",
       body: {
+        formId: args?.formId,
         enabled: args?.enabled,
         threshold: args?.threshold,
+        clearOverride: args?.clearOverride === true,
       },
     });
   }

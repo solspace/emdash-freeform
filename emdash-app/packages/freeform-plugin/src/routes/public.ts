@@ -1,10 +1,11 @@
 import { PluginRouteError, type PluginContext } from "emdash";
 import { CSRF_FIELD, HONEYPOT_FIELD } from "../constants";
+import { generateBrief } from "../ai/brief";
 import { scoreSubmissionWithAI } from "../ai/spam";
 import { createCsrfToken, verifyCsrfToken } from "../lib/csrf";
 import { getTier } from "../lib/license";
 import { sendNotificationsForSubmission } from "../lib/notifications";
-import { getSpamSettings } from "../lib/spam-settings";
+import { effectiveSpamSettings, getSpamSettings } from "../lib/spam-settings";
 import { uid } from "../lib/handles";
 import type { StoredForm, StoredSubmission } from "../types";
 
@@ -50,7 +51,10 @@ export const publicRoutes = {
     public: true,
     handler: async (routeCtx: any, ctx: PluginContext) => {
       const body = routeCtx.input as Record<string, unknown>;
-      const { formId, ...rawData } = body;
+      const { formId, __ff_journey, ...rawData } = body;
+      const journey = Array.isArray(__ff_journey)
+        ? (__ff_journey as Array<{ url: string; title?: string | null; description?: string | null; visitedAt: string }>)
+        : undefined;
 
       if (!formId || typeof formId !== "string") {
         return { success: false, error: "Missing formId" };
@@ -92,9 +96,10 @@ export const publicRoutes = {
         data: cleanData,
         createdAt: new Date().toISOString(),
       };
+      if (journey && journey.length > 0) submission.journey = journey;
 
       const tier = await getTier(ctx);
-      const spam = await getSpamSettings(ctx);
+      const spam = effectiveSpamSettings(formData, await getSpamSettings(ctx));
       if (tier === "pro" && spam.enabled) {
         const result = await scoreSubmissionWithAI(formData.name, cleanData, ctx);
         if (result !== null) {
@@ -109,12 +114,17 @@ export const publicRoutes = {
       const scoredAsSpam =
         typeof submission.spamScore === "number" && submission.spamScore >= spam.threshold;
       if (scoredAsSpam) {
-        ctx.log.info("Notifications skipped: submission scored as spam", {
+        ctx.log.info("Notifications + brief skipped: submission scored as spam", {
           submissionId,
           spamScore: submission.spamScore,
           threshold: spam.threshold,
         });
       } else {
+        const brief = await generateBrief(ctx, formData, submission, journey);
+        if (brief) {
+          submission.brief = brief;
+          await ctx.storage.submissions.put(submissionId, submission);
+        }
         await sendNotificationsForSubmission(ctx, formData, submission, submissionId);
       }
 
