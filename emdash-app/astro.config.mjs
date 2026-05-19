@@ -6,58 +6,67 @@ import emdash from "emdash/astro";
 import { freeformPlugin } from "@local/freeform-plugin";
 
 export default defineConfig({
-	output: "server",
-	adapter: cloudflare(),
-	image: {
-		layout: "constrained",
-		responsiveStyles: true,
-	},
-	integrations: [
-		react(),
-		emdash({
-			database: d1({ binding: "DB", session: "auto" }),
-			storage: r2({ binding: "MEDIA" }),
-			// Marketplace plugins always run sandboxed via sandboxRunner.
-			// Runner ships as a subpath of @emdash-cms/cloudflare (already installed).
-			marketplace: "https://marketplace.emdashcms.com",
-			sandboxRunner: "@emdash-cms/cloudflare/sandbox",
-			// Use plugins[] for local dev (trusted mode).
-			// Switch to sandboxed[] when deploying to Cloudflare.
-			plugins: [freeformPlugin()],
-		}),
-		{
-			// Serve the Freeform MCP resource metadata at the RFC 9728 convention
-			// path so mcp-remote's deterministic discovery finds it (rather than
-			// falling back to EmDash's site-wide doc).
-			name: "freeform-mcp-routes",
-			hooks: {
-				"astro:config:setup": ({ injectRoute }) => {
-					injectRoute({
-						pattern: "/.well-known/oauth-protected-resource/freeform/mcp",
-						entrypoint: new URL("./src/freeform-resource-metadata.ts", import.meta.url).pathname,
-					});
-					injectRoute({
-						pattern: "/.well-known/freeform.json",
-						entrypoint: new URL("./src/freeform-actions-index.ts", import.meta.url).pathname,
-					});
-					injectRoute({
-						pattern: "/.well-known/freeform/[handle]",
-						entrypoint: new URL("./src/freeform-action-manifest.ts", import.meta.url).pathname,
-					});
-					injectRoute({
-						pattern: "/llms.txt",
-						entrypoint: new URL("./src/llms-txt.ts", import.meta.url).pathname,
-					});
-					// /robots.txt lives at src/pages/robots.txt.ts so it wins
-					// over EmDash's default injected /robots.txt route.
-				},
-			},
-		},
-	],
-	devToolbar: { enabled: false },
-	vite: {
-		server: {
-			allowedHosts: [".trycloudflare.com"],
-		},
-	},
+  output: "server",
+  adapter: cloudflare(),
+  image: {
+    layout: "constrained",
+    responsiveStyles: true,
+  },
+  integrations: [
+    react(),
+    emdash({
+      database: d1({ binding: "DB", session: "auto" }),
+      storage: r2({ binding: "MEDIA" }),
+      // Marketplace plugins always run sandboxed via sandboxRunner.
+      // Runner ships as a subpath of @emdash-cms/cloudflare (already installed).
+      marketplace: "https://marketplace.emdashcms.com",
+      sandboxRunner: "@emdash-cms/cloudflare/sandbox",
+      // Use plugins[] for local dev (trusted mode).
+      // Switch to sandboxed[] when deploying to Cloudflare.
+      plugins: [freeformPlugin()],
+    }),
+    {
+      // Serve the Freeform MCP resource metadata at the RFC 9728 convention
+      // path so mcp-remote's deterministic discovery finds it (rather than
+      // falling back to EmDash's site-wide doc).
+      name: "freeform-mcp-routes",
+      hooks: {
+        "astro:config:setup": ({ injectRoute }) => {
+          injectRoute({
+            pattern: "/.well-known/oauth-protected-resource/freeform/mcp",
+            entrypoint: new URL(
+              "./src/freeform-resource-metadata.ts",
+              import.meta.url,
+            ).pathname,
+          });
+          injectRoute({
+            pattern: "/.well-known/freeform.json",
+            entrypoint: new URL(
+              "./src/freeform-actions-index.ts",
+              import.meta.url,
+            ).pathname,
+          });
+          injectRoute({
+            pattern: "/.well-known/freeform/[handle]",
+            entrypoint: new URL(
+              "./src/freeform-action-manifest.ts",
+              import.meta.url,
+            ).pathname,
+          });
+          injectRoute({
+            pattern: "/llms.txt",
+            entrypoint: new URL("./src/llms-txt.ts", import.meta.url).pathname,
+          });
+          // /robots.txt lives at src/pages/robots.txt.ts so it wins
+          // over EmDash's default injected /robots.txt route.
+        },
+      },
+    },
+  ],
+  devToolbar: { enabled: false },
+  vite: {
+    server: {
+      allowedHosts: [".trycloudflare.com"],
+    },
+  },
 });
