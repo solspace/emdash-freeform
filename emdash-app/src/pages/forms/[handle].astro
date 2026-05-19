@@ -1,0 +1,66 @@
+---
+import { env } from "cloudflare:workers";
+import Base from "../../layouts/Base.astro";
+import FreeformForm from "../../components/FreeformForm.astro";
+
+// Canonical AI-prefill landing page for any Freeform form. The MCP tool
+// `get_form_prefill_url` and the per-form manifest both point Claude at
+// /forms/{handle}?<field>=<value>, so there is one stable URL per form
+// regardless of where the developer chose to embed the actual form.
+
+export const prerender = false;
+
+const handle = Astro.params.handle;
+if (!handle || typeof handle !== "string") {
+  return new Response("Missing form handle.", { status: 404 });
+}
+
+interface PublicForm {
+  id: string;
+  handle: string;
+  name: string;
+}
+
+let formMeta: PublicForm | null = null;
+const fetcher = (env as any).SELF ?? globalThis;
+try {
+  const res = await fetcher.fetch(
+    `${Astro.url.origin}/_emdash/api/plugins/freeform/list-public-forms`,
+  );
+  if (res.ok) {
+    const json = (await res.json()) as { data?: { forms?: PublicForm[] } };
+    formMeta = json.data?.forms?.find((f) => f.handle === handle) ?? null;
+  }
+} catch {
+  formMeta = null;
+}
+
+if (!formMeta) {
+  return new Response(`Form "${handle}" not found.`, { status: 404 });
+}
+
+const title = formMeta.name;
+const canonical = `${Astro.url.origin}/forms/${handle}`;
+---
+
+<Base title={title} canonical={canonical}>
+  <article class="page form-page">
+    <header class="page-header">
+      <div>
+        <div class="eyebrow">FORM</div>
+        <h1>{formMeta.name}</h1>
+      </div>
+    </header>
+
+    <FreeformForm formId={formMeta.id} />
+  </article>
+</Base>
+
+<style>
+  .form-page {
+    max-width: 720px;
+  }
+  .form-page .page-header {
+    margin-bottom: 2rem;
+  }
+</style>

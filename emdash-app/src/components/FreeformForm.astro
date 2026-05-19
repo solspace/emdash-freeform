@@ -47,9 +47,85 @@ interface FormData {
 interface Props {
   formId: string;
   class?: string;
+  /** Disable URL query-string prefill. */
+  disablePrefill?: boolean;
 }
 
-const { formId, class: className } = Astro.props;
+const { formId, class: className, disablePrefill } = Astro.props;
+
+const OPTION_TYPES = new Set(["checkbox_group", "radio", "select", "multi_select"]);
+const MULTI_TYPES = new Set(["checkbox_group", "multi_select"]);
+
+const truthyCheckboxValues = new Set(["1", "true", "yes", "on"]);
+
+// Caps for inbound prefill values. Astro auto-escapes interpolated values, so
+// raw HTML / attribute injection is already blocked. These caps stop URL-borne
+// abuse that escaping doesn't address: page-bloating with a multi-MB textarea
+// default, and weird-rendering control bytes mixed into label-adjacent UI.
+const MAX_VALUE_LENGTH = 2000;
+const MAX_MULTI_VALUES = 50;
+const MAX_PREFILL_PARAMS = 100;
+
+// Keep tab and newline; drop everything else below 0x20 plus the 0x7F DEL
+// byte. Carriage return is also dropped — browsers normalize CRLF in
+// textarea values anyway and it makes roundtrips noisy.
+const CONTROL_CHARS = /[\x00-\x08\x0B-\x1F\x7F]/g;
+
+function sanitizePrefillValue(raw: string): string {
+  const stripped = raw.replace(CONTROL_CHARS, "");
+  return stripped.length > MAX_VALUE_LENGTH
+    ? stripped.slice(0, MAX_VALUE_LENGTH)
+    : stripped;
+}
+
+function applyPrefill(rows: FormRow[], params: URLSearchParams): string[] {
+  const applied: string[] = [];
+  let honored = 0;
+  for (const row of rows) {
+    for (const field of row.fields) {
+      if (!params.has(field.handle)) continue;
+      if (honored >= MAX_PREFILL_PARAMS) return applied;
+      const allowed = field.options ? new Set(field.options.map((o) => o.value)) : null;
+      if (MULTI_TYPES.has(field.type)) {
+        // Accept ?h=a&h=b and ?h=a,b interchangeably. Multi-value AI clients
+        // tend to emit one, single-value clients the other.
+        const raw = params.getAll(field.handle).flatMap((v) => v.split(","));
+        const cleaned = raw
+          .map((v) => sanitizePrefillValue(v).trim())
+          .filter(Boolean)
+          .slice(0, MAX_MULTI_VALUES);
+        const filtered = allowed ? cleaned.filter((v) => allowed.has(v)) : cleaned;
+        if (filtered.length) {
+          field.defaultValue = filtered;
+          applied.push(field.handle);
+          honored += 1;
+        }
+        continue;
+      }
+      const value = sanitizePrefillValue(params.get(field.handle) ?? "").trim();
+      if (!value) continue;
+      if (field.type === "checkbox") {
+        if (truthyCheckboxValues.has(value.toLowerCase())) {
+          field.defaultValue = "true";
+          applied.push(field.handle);
+          honored += 1;
+        }
+        continue;
+      }
+      if (OPTION_TYPES.has(field.type)) {
+        if (allowed && !allowed.has(value)) continue;
+        field.defaultValue = value;
+        applied.push(field.handle);
+        honored += 1;
+        continue;
+      }
+      field.defaultValue = value;
+      applied.push(field.handle);
+      honored += 1;
+    }
+  }
+  return applied;
+}
 
 const apiUrl = new URL(
   `/_emdash/api/plugins/freeform/get-form?id=${encodeURIComponent(formId)}`,
@@ -72,6 +148,11 @@ try {
   }
 } catch {
   fetchError = "Could not connect to Freeform service.";
+}
+
+let prefilledFields: string[] = [];
+if (formData && !disablePrefill && Astro.url.searchParams.size > 0) {
+  prefilledFields = applyPrefill(formData.rows, Astro.url.searchParams);
 }
 
 // Agent discovery surfaces. Built only when the form loaded successfully so
@@ -104,6 +185,12 @@ const agentActionLd = formData
 ) : formData ? (
   <>
   <script type="application/ld+json" set:html={agentActionLd} />
+  {prefilledFields.length > 0 && (
+    <p class="ff-prefill-notice" role="status">
+      <strong>{prefilledFields.length} field{prefilledFields.length === 1 ? "" : "s"} pre-filled</strong>
+      {" "}from the link. Review the values below, then click Submit.
+    </p>
+  )}
   <form
     id={`ff-${formId}`}
     class:list={["ff-form", className]}
@@ -112,6 +199,7 @@ const agentActionLd = formData
     data-success={formData.successMessage}
     data-agent-endpoint={agentEndpoint}
     data-agent-schema={agentSchemaPath}
+    data-prefilled-fields={prefilledFields.join(",")}
     novalidate
   >
     {formData.rows.map((row) => (
@@ -323,6 +411,21 @@ const agentActionLd = formData
     padding: 0.75rem 1rem;
     background: var(--ff-bg);
     border-left: 3px solid var(--ff-accent);
+  }
+  .ff-prefill-notice {
+    margin: 0 0 1rem;
+    padding: 0.625rem 0.875rem;
+    border-left: 3px solid var(--ff-accent);
+    background: var(--ff-bg);
+    color: var(--ff-fg-muted);
+    font-family: var(--ff-font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    line-height: 1.5;
+  }
+  .ff-prefill-notice strong {
+    color: var(--ff-fg);
+    font-weight: 500;
   }
   .ff-form {
     display: flex;

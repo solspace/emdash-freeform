@@ -105,8 +105,32 @@ const {
     padding: 0.625rem 0.875rem;
     border: 1px solid var(--mrs-rule, #2a2622);
     max-width: 85%;
-    white-space: pre-wrap;
   }
+  .ffchat-msg--user .ffchat-bubble { white-space: pre-wrap; }
+  .ffchat-bubble :global(p) { margin: 0 0 0.6em; }
+  .ffchat-bubble :global(p:last-child) { margin-bottom: 0; }
+  .ffchat-bubble :global(ul),
+  .ffchat-bubble :global(ol) { margin: 0 0 0.6em; padding-left: 1.25rem; }
+  .ffchat-bubble :global(ul:last-child),
+  .ffchat-bubble :global(ol:last-child) { margin-bottom: 0; }
+  .ffchat-bubble :global(li) { margin: 0.15em 0; }
+  .ffchat-bubble :global(h3),
+  .ffchat-bubble :global(h4),
+  .ffchat-bubble :global(h5) {
+    font-size: 0.9375rem;
+    margin: 0.4em 0 0.3em;
+    letter-spacing: 0.02em;
+  }
+  .ffchat-bubble :global(strong) { font-weight: 600; color: var(--mrs-fg, #f0e9df); }
+  .ffchat-bubble :global(em) { font-style: italic; }
+  .ffchat-bubble :global(code) {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.8125rem;
+    padding: 0.05em 0.35em;
+    background: var(--mrs-bg-elev, #14110f);
+    border: 1px solid var(--mrs-rule, #2a2622);
+  }
+  .ffchat-bubble :global(a) { color: var(--mrs-accent, #c44010); text-decoration: underline; }
   .ffchat-msg--user .ffchat-bubble {
     background: var(--mrs-bg-elev, #14110f);
     border-color: var(--mrs-rule-strong, #423b34);
@@ -167,6 +191,88 @@ const {
     visitedAt: string;
   }
 
+  function escapeHtml(s: string): string {
+    return s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function safeHref(url: string): string | null {
+    const u = url.trim();
+    if (/^(https?:|mailto:|tel:)/i.test(u)) return u;
+    if (u.startsWith("/") || u.startsWith("#")) return u;
+    return null;
+  }
+
+  function renderInline(s: string): string {
+    let t = escapeHtml(s);
+    t = t.replace(/`([^`]+)`/g, "<code>$1</code>");
+    t = t.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    t = t.replace(/(^|[^*\w])\*([^*\n]+)\*(?!\w)/g, "$1<em>$2</em>");
+    t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label: string, url: string) => {
+      const href = safeHref(url);
+      return href
+        ? `<a href="${href}" target="_blank" rel="noopener">${label}</a>`
+        : label;
+    });
+    return t;
+  }
+
+  function renderMarkdown(src: string): string {
+    const lines = src.replace(/\r\n/g, "\n").split("\n");
+    const out: string[] = [];
+    let listType: "ul" | "ol" | null = null;
+    let para: string[] = [];
+
+    const flushPara = () => {
+      if (para.length) {
+        out.push(`<p>${renderInline(para.join(" "))}</p>`);
+        para = [];
+      }
+    };
+    const closeList = () => {
+      if (listType) {
+        out.push(`</${listType}>`);
+        listType = null;
+      }
+    };
+
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line) {
+        flushPara();
+        closeList();
+        continue;
+      }
+      const h = line.match(/^(#{1,6})\s+(.*)$/);
+      const ul = line.match(/^[-*]\s+(.*)$/);
+      const ol = line.match(/^\d+\.\s+(.*)$/);
+      if (h) {
+        flushPara();
+        closeList();
+        const lvl = Math.min(6, h[1].length + 2);
+        out.push(`<h${lvl}>${renderInline(h[2])}</h${lvl}>`);
+      } else if (ul) {
+        flushPara();
+        if (listType !== "ul") { closeList(); out.push("<ul>"); listType = "ul"; }
+        out.push(`<li>${renderInline(ul[1])}</li>`);
+      } else if (ol) {
+        flushPara();
+        if (listType !== "ol") { closeList(); out.push("<ol>"); listType = "ol"; }
+        out.push(`<li>${renderInline(ol[1])}</li>`);
+      } else {
+        closeList();
+        para.push(line);
+      }
+    }
+    flushPara();
+    closeList();
+    return out.join("\n");
+  }
+
   document.querySelectorAll<HTMLElement>(".ffchat").forEach((root) => {
     const log = root.querySelector<HTMLElement>(".ffchat-log")!;
     const form = root.querySelector<HTMLFormElement>(".ffchat-input")!;
@@ -191,7 +297,11 @@ const {
       r.textContent = role === "user" ? "You" : "Concierge";
       const b = document.createElement("div");
       b.className = "ffchat-bubble";
-      b.textContent = text;
+      if (role === "assistant") {
+        b.innerHTML = renderMarkdown(text);
+      } else {
+        b.textContent = text;
+      }
       wrap.appendChild(r);
       wrap.appendChild(b);
       log.appendChild(wrap);
@@ -218,6 +328,13 @@ const {
         return [];
       }
     }
+
+    ta.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+        e.preventDefault();
+        form.requestSubmit();
+      }
+    });
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();

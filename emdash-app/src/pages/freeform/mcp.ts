@@ -209,6 +209,31 @@ const TOOLS = [
     },
   },
   {
+    name: "get_form_prefill_url",
+    description:
+      "Compose a deep link the user can click to land on a form with values already filled in. Use this when the user wants help submitting a form but cannot or should not let an AI POST on their behalf — typical Claude Desktop flow. Pass field values keyed by handle (get the handle from `list_forms` or `get_form`). Values are validated against the form's options server-side; mismatches are reported in `dropped` but the URL is still returned with the valid subset. Hand the returned `url` to the user as a clickable link — DO NOT fetch it yourself. The user will review the prefilled form and press Submit.",
+    inputSchema: {
+      type: "object",
+      required: ["handle", "values"],
+      properties: {
+        handle: { type: "string", description: "Form handle (lowercase_snake_case)." },
+        values: {
+          type: "object",
+          description:
+            "Map of field handle → value. For checkbox_group / multi_select pass an array. For single checkbox pass true / 'true' to mark it checked.",
+          additionalProperties: {
+            oneOf: [
+              { type: "string" },
+              { type: "boolean" },
+              { type: "array", items: { type: "string" } },
+            ],
+          },
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
     name: "export_submissions_csv",
     description:
       "Prepare a CSV download of submissions matching a filter. Returns a short-lived (15 min) signed URL the user can click in chat to download the file. Use this when the user wants a spreadsheet — e.g. after narrowing submissions in conversation, or for an ad-hoc report. Pass `submissionIds` to export an exact set you've already gathered; otherwise pass the same filter shape as `list_submissions` and the export route re-queries server-side. For a single form, columns are derived from the form's field handles; across forms, the row data is emitted as a JSON column. Archived submissions are excluded by default. If no rows match, the response has `rowCount: 0` and a null url — tell the user, don't fabricate a link.",
@@ -581,6 +606,17 @@ async function runTool(
   if (name === "get_form") {
     if (!args?.id) throw new Error("Missing required argument: id");
     return callPluginRoute(fetcher, request, "get-form", { query: { id: String(args.id) } });
+  }
+  if (name === "get_form_prefill_url") {
+    if (!args?.handle) throw new Error("Missing required argument: handle");
+    return callPluginRoute(fetcher, request, "build-prefill-url", {
+      method: "POST",
+      body: {
+        handle: args.handle,
+        values: args.values ?? {},
+        origin: publicOrigin(request),
+      },
+    });
   }
   if (name === "export_submissions_csv") {
     return callPluginRoute(fetcher, request, "prepare-export", {

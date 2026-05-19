@@ -60,15 +60,22 @@ export const GET: APIRoute = async ({ request }) => {
 
 > ${siteTagline ?? "An EmDash-powered site with AI-agent-callable forms."}
 
-This site is built on EmDash and exposes a JSON API that lets AI agents submit forms directly, without installing an MCP connector.
+This site is built on EmDash and exposes two ways for AI agents to drive form submissions.
 
-## Form submission for AI agents
+## Path A — Prefilled link (recommended, no install)
 
-Catalog of submittable forms: ${origin}/.well-known/freeform.json
+Compose a deep link that lands the user on the form with values already filled in. The user reviews and clicks Submit. Works from any chat client that can render a clickable URL.
 
-Each catalog entry links to a per-form manifest at ${origin}/.well-known/freeform/{handle}.json, which describes the field schema (JSON Schema) and the submit endpoint.
+1. GET the catalog at ${origin}/.well-known/freeform.json to find the form by id or title.
+2. GET that form's manifest at ${origin}/.well-known/freeform/{handle}.json and read its \`prefill\` block.
+3. Compose a URL by appending field values as query string params to \`prefill.page_url\` (e.g. \`${origin}/forms/contact?first_name=Mitchell&email=foo%40bar.com\`).
+4. Give that URL to the user as a clickable link. Do NOT GET or POST it yourself — the user clicks, reviews the form, and presses Submit.
 
-To submit a form on behalf of a user:
+Encoding rules are documented in each manifest's \`prefill.notes\`. Unknown params and invalid option values are dropped silently by the renderer.
+
+## Path B — Direct POST (requires JSON capability)
+
+If your client can issue arbitrary HTTP requests, submit the form directly without user interaction.
 
 1. GET the catalog above to find the form by id or title.
 2. GET that form's manifest URL to read its \`request_schema\`.
@@ -76,7 +83,7 @@ To submit a form on behalf of a user:
 
 The response shape is \`{ success: boolean, message?: string, error?: string }\`.
 
-### Forms available
+## Forms available
 
 ${formLines}
 
