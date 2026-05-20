@@ -1,9 +1,5 @@
 import type { FieldType } from "./types";
 
-// PoC: hardcoded in source. In production, proxy through a Solspace license server.
-export const ANTHROPIC_API_KEY =
-  "REDACTED";
-
 export const ALL_FIELD_TYPES: FieldType[] = [
   "text",
   "email",

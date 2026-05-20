@@ -3,15 +3,113 @@ import { resolveOptionLabels } from "../lib/options";
 import { effectiveSpamSettings, getSpamSettings } from "../lib/spam-settings";
 import type { StoredForm, StoredSubmission } from "../types";
 
+const PAGE_SIZE = 25;
+
+export async function submissionDetailBlocks(
+  submissionId: string,
+  backFormId: string | null,
+  ctx: PluginContext,
+): Promise<object[]> {
+  const sub = (await ctx.storage.submissions.get(submissionId)) as StoredSubmission | null;
+  if (!sub) {
+    return [
+      { type: "banner", title: "Submission not found", variant: "error" },
+      {
+        type: "actions",
+        elements: [
+          {
+            type: "button",
+            label: "← Back",
+            action_id: backFormId ? `subs:${backFormId}` : "nav:forms",
+          },
+        ],
+      },
+    ];
+  }
+
+  const formData = (await ctx.storage.forms.get(sub.formId)) as StoredForm | null;
+  const formFields = formData
+    ? formData.rows.flatMap((r) => r.fields.map((f) => ({ handle: f.handle, label: f.label })))
+    : [];
+
+  // Build field value rows, resolving option labels where possible.
+  const fieldValueItems = formFields.length > 0
+    ? formFields.map((f) => {
+        const raw = sub.data[f.handle];
+        if (raw === undefined || raw === "") return { label: f.label, value: "—" };
+        const resolved = formData ? resolveOptionLabels(formData, f.handle, raw) : String(raw);
+        return { label: f.label, value: resolved };
+      })
+    : Object.entries(sub.data).map(([k, v]) => ({
+        label: k,
+        value: Array.isArray(v) ? v.join(", ") : String(v),
+      }));
+
+  const metaItems: Array<{ label: string; value: string }> = [
+    { label: "Submission ID", value: submissionId },
+    { label: "Form", value: sub.formName ?? sub.formId },
+    { label: "Submitted", value: new Date(sub.createdAt).toLocaleString() },
+    { label: "Status", value: sub.archived ? "Archived" : "Active" },
+  ];
+  if (typeof sub.spamScore === "number") {
+    metaItems.push({ label: "Spam score", value: `${sub.spamScore} / 10` });
+    if (sub.spamReason) metaItems.push({ label: "Spam reason", value: sub.spamReason });
+  }
+
+  const briefBlocks: object[] = sub.brief
+    ? [
+        { type: "divider" },
+        { type: "header", text: "AI Brief" },
+        {
+          type: "fields",
+          fields: [
+            { label: "Intent", value: sub.brief.intent },
+            { label: "Urgency", value: sub.brief.urgency },
+          ],
+        },
+        { type: "section", text: sub.brief.summary },
+        ...(sub.brief.keyFacts.length > 0
+          ? [{ type: "section", text: sub.brief.keyFacts.map((f) => `• ${f}`).join("\n") }]
+          : []),
+        ...(sub.brief.suggestedAction
+          ? [{ type: "context", text: `Next step: ${sub.brief.suggestedAction}` }]
+          : []),
+      ]
+    : [];
+
+  return [
+    { type: "header", text: "Submission Detail" },
+    {
+      type: "actions",
+      elements: [
+        {
+          type: "button",
+          label: "← Back to Submissions",
+          action_id: backFormId ? `subs:${backFormId}` : "nav:forms",
+        },
+      ],
+    },
+    { type: "divider" },
+    { type: "header", text: "Fields" },
+    { type: "fields", fields: fieldValueItems },
+    { type: "divider" },
+    { type: "header", text: "Metadata" },
+    { type: "fields", fields: metaItems },
+    ...briefBlocks,
+  ];
+}
+
 export async function submissionsBlocks(
   formId: string | null,
   ctx: PluginContext,
+  cursor?: string,
 ): Promise<object[]> {
   const where = formId ? { formId } : undefined;
-  const { items } = await ctx.storage.submissions.query({
+  const { items, cursor: nextCursor, hasMore } = await ctx.storage.submissions.query({
     where,
     orderBy: { createdAt: "desc" },
-    limit: 50,
+    limit: PAGE_SIZE,
+    cursor,
   });
 
   const subs = items as Array<{ id: string; data: StoredSubmission }>;
@@ -29,6 +127,24 @@ export async function submissionsBlocks(
   const showBriefColumns = subs.some((s) => s.data.brief);
   const intentCell = (s: { data: StoredSubmission }) => s.data.brief?.intent || "—";
   const urgencyCell = (s: { data: StoredSubmission }) => s.data.brief?.urgency || "—";
+
+  // Pagination nav — only rendered when there are results
+  const paginationBlocks = (prevCursor?: string): object[] => {
+    if (!hasMore && !prevCursor) return [];
+    return [
+      {
+        type: "actions",
+        elements: [
+          ...(prevCursor
+            ? [{ type: "button", label: "← Prev", action_id: formId ? `subs_prev:${formId}:${prevCursor}` : `all_subs_prev:${prevCursor}` }]
+            : []),
+          ...(hasMore && nextCursor
+            ? [{ type: "button", label: "Next →", action_id: formId ? `subs_next:${formId}:${nextCursor}` : `all_subs_next:${nextCursor}` }]
+            : []),
+        ],
+      },
+    ];
+  };
 
   if (formId) {
     const formData = (await ctx.storage.forms.get(formId)) as StoredForm | null;
@@ -71,6 +187,29 @@ export async function submissionsBlocks(
       _date: s.data.createdAt,
     }));
 
+    const detailSection: object[] =
+      subs.length > 0
+        ? [
+            { type: "divider" },
+            {
+              type: "form",
+              block_id: "view_submission",
+              fields: [
+                {
+                  type: "select",
+                  action_id: "sub_id",
+                  label: "View submission detail",
+                  options: subs.map((s, i) => ({
+                    label: `#${i + 1} — ${new Date(s.data.createdAt).toLocaleString()}`,
+                    value: s.id,
+                  })),
+                },
+              ],
+              submit: { label: "View", action_id: `sub_detail:${formId}` },
+            },
+          ]
+        : [];
+
     return [
       { type: "header", text: `${formTitle} — Submissions` },
       {
@@ -79,7 +218,7 @@ export async function submissionsBlocks(
       },
       {
         type: "stats",
-        items: [{ label: "Submissions", value: String(subs.length), description: "shown" }],
+        items: [{ label: "Submissions", value: String(subs.length), description: `shown (${PAGE_SIZE} per page)` }],
       },
       { type: "divider" },
       subs.length === 0
@@ -90,16 +229,18 @@ export async function submissionsBlocks(
             size: "base",
           }
         : { type: "table", columns, rows },
+      ...paginationBlocks(cursor),
+      ...detailSection,
     ];
   }
 
   // All-submissions view: per-form fields vary, so collapse to a preview string.
-  // Labels aren't resolved here — the per-form view shows resolved labels.
   const showSpamColumn = globalSpam.enabled || anyScored;
   const rows = subs.map((s) => ({
     form: s.data.formName ?? s.data.formId,
     ...(showBriefColumns ? { _intent: intentCell(s), _urgency: urgencyCell(s) } : {}),
-    preview: s.data.brief?.summary ||
+    preview:
+      s.data.brief?.summary ||
       Object.entries(s.data.data)
         .map(([k, v]) => {
           const flat = Array.isArray(v) ? v.join(", ") : String(v);
@@ -118,7 +259,7 @@ export async function submissionsBlocks(
     },
     {
       type: "stats",
-      items: [{ label: "Submissions", value: String(subs.length), description: "shown" }],
+      items: [{ label: "Submissions", value: String(subs.length), description: `shown (${PAGE_SIZE} per page)` }],
     },
     { type: "divider" },
     subs.length === 0
@@ -144,5 +285,6 @@ export async function submissionsBlocks(
           ],
           rows,
         },
+    ...paginationBlocks(cursor),
   ];
 }

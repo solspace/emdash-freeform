@@ -1,7 +1,8 @@
 import type { PluginContext } from "emdash";
 import { editFormWithAI } from "../ai/generate";
+import { getApiKey } from "../lib/ai-key";
 import { DEFAULT_SPAM_THRESHOLD } from "../constants";
-import { deleteFormAndSubmissions, removeField } from "../lib/field-ops";
+import { deleteFormAndSubmissions } from "../lib/field-ops";
 import {
   deriveUniqueFormHandle,
   isHandleTaken,
@@ -10,13 +11,11 @@ import {
 } from "../lib/form-handles";
 import { activateLicense, clearLicense, getTier } from "../lib/license";
 import { deleteTemplateAndDetach } from "../lib/notifications";
-import { isMultiType, isOptionType, parseOptionsInput } from "../lib/options";
+
 import { ensureDemoSeed } from "../lib/seed";
 import { setFormSpamOverride, setSpamSettings } from "../lib/spam-settings";
-import { uid, toHandle } from "../lib/handles";
+import { uid } from "../lib/handles";
 import type {
-  FieldType,
-  FormField,
   NotificationFormat,
   StoredAssignment,
   StoredForm,
@@ -24,7 +23,7 @@ import type {
 } from "../types";
 import { editorBlocks, listPageBlocks } from "./forms";
 import { settingsBlocks } from "./settings";
-import { submissionsBlocks } from "./submissions";
+import { submissionDetailBlocks, submissionsBlocks } from "./submissions";
 import { templateEditorBlocks, templatesPageBlocks } from "./templates";
 
 interface AdminInteraction {
@@ -121,6 +120,31 @@ export const adminRoute = {
       return { blocks: await submissionsBlocks(actionId.slice(5), ctx) };
     }
 
+    // Pagination: subs_next:<formId>:<cursor> / subs_prev:<formId>:<cursor>
+    if (actionId.startsWith("subs_next:") || actionId.startsWith("subs_prev:")) {
+      const rest = actionId.startsWith("subs_next:")
+        ? actionId.slice("subs_next:".length)
+        : actionId.slice("subs_prev:".length);
+      const colonIdx = rest.indexOf(":");
+      const fid = rest.slice(0, colonIdx);
+      const cur = rest.slice(colonIdx + 1);
+      return { blocks: await submissionsBlocks(fid, ctx, cur) };
+    }
+    if (actionId.startsWith("all_subs_next:") || actionId.startsWith("all_subs_prev:")) {
+      const cur = actionId.startsWith("all_subs_next:")
+        ? actionId.slice("all_subs_next:".length)
+        : actionId.slice("all_subs_prev:".length);
+      return { blocks: await submissionsBlocks(null, ctx, cur) };
+    }
+
+    // Submission detail
+    if (actionId.startsWith("sub_detail:")) {
+      const fid = actionId.slice("sub_detail:".length);
+      const subId = (values.sub_id as string) ?? "";
+      if (!subId) return { blocks: await submissionsBlocks(fid, ctx) };
+      return { blocks: await submissionDetailBlocks(subId, fid, ctx) };
+    }
+
     if (actionId.startsWith("save_meta:")) {
       const fid = actionId.slice("save_meta:".length);
       const form = (await ctx.storage.forms.get(fid)) as StoredForm | null;
@@ -128,11 +152,12 @@ export const adminRoute = {
 
       const newLabel = ((values.label as string) ?? "").trim();
       const newHandle = ((values.handle as string) ?? "").trim();
+      const newSuccessMessage = ((values.success_message as string) ?? "").trim();
 
       if (!newLabel) {
         return {
           blocks: await editorBlocks(fid, ctx),
-          toast: { message: "Label cannot be empty.", type: "error" },
+          toast: { message: "Form name cannot be empty.", type: "error" },
         };
       }
       if (!newHandle) {
@@ -144,12 +169,13 @@ export const adminRoute = {
 
       const labelChanged = newLabel !== form.name;
       const handleChanged = newHandle !== form.handle;
+      const successChanged = newSuccessMessage !== (form.successMessage ?? "");
 
       if (labelChanged && (await isLabelTaken(ctx, newLabel, fid))) {
         return {
           blocks: await editorBlocks(fid, ctx),
           toast: {
-            message: `Label "${newLabel}" is already in use by another form.`,
+            message: `Name "${newLabel}" is already in use by another form.`,
             type: "error",
           },
         };
@@ -177,7 +203,7 @@ export const adminRoute = {
         }
       }
 
-      if (!labelChanged && !handleChanged) {
+      if (!labelChanged && !handleChanged && !successChanged) {
         return { blocks: await editorBlocks(fid, ctx) };
       }
 
@@ -185,130 +211,16 @@ export const adminRoute = {
         ...form,
         name: newLabel,
         handle: newHandle,
+        successMessage: newSuccessMessage || "Thank you for your submission!",
         updatedAt: new Date().toISOString(),
       });
 
       const message = handleChanged
         ? `Saved. Handle is now "${newHandle}" — update any page references.`
-        : "Saved.";
+        : "Settings saved.";
       return {
         blocks: await editorBlocks(fid, ctx),
         toast: { message, type: "success" },
-      };
-    }
-
-    if (actionId.startsWith("show_add:")) {
-      return { blocks: await editorBlocks(actionId.slice(9), ctx, true) };
-    }
-    if (actionId.startsWith("cancel_add:")) {
-      return { blocks: await editorBlocks(actionId.slice(11), ctx) };
-    }
-
-    if (actionId.startsWith("add:")) {
-      const fid = actionId.slice(4);
-      const tier = await getTier(ctx);
-      const form = (await ctx.storage.forms.get(fid)) as StoredForm | null;
-      if (!form) return { blocks: await listPageBlocks(ctx) };
-
-      const fieldType = ((values.field_type as string) ?? "text") as FieldType;
-      if (fieldType === "email" && tier === "free") {
-        return {
-          blocks: await editorBlocks(fid, ctx, true),
-          toast: {
-            message:
-              "Email fields require a Pro license. Add your key in Settings to unlock them.",
-            type: "error",
-          },
-        };
-      }
-
-      const label = ((values.field_label as string) ?? "").trim() || "New Field";
-      const handle = ((values.field_handle as string) ?? "").trim() || toHandle(label);
-      const required = (values.field_required as boolean) ?? false;
-      const rowTarget = (values.field_row as string) ?? "new";
-
-      const options = isOptionType(fieldType)
-        ? parseOptionsInput((values.field_options as string) ?? "")
-        : undefined;
-      if (isOptionType(fieldType) && (!options || options.length < 2)) {
-        return {
-          blocks: await editorBlocks(fid, ctx, true),
-          toast: {
-            message:
-              "This field type needs at least two options. Use `value:label, value:label`.",
-            type: "error",
-          },
-        };
-      }
-
-      const defaultRaw = ((values.field_default as string) ?? "").trim();
-      let defaultValue: string | string[] | undefined;
-      if (defaultRaw) {
-        if (isMultiType(fieldType)) {
-          defaultValue = defaultRaw.split(",").map((v) => v.trim()).filter(Boolean);
-          if (defaultValue.length === 0) defaultValue = undefined;
-        } else {
-          defaultValue = defaultRaw;
-        }
-        if (options && defaultValue !== undefined) {
-          const valid = new Set(options.map((o) => o.value));
-          const check = Array.isArray(defaultValue) ? defaultValue : [defaultValue];
-          const bad = check.find((v) => !valid.has(v));
-          if (bad) {
-            return {
-              blocks: await editorBlocks(fid, ctx, true),
-              toast: {
-                message: `Default value "${bad}" is not one of the option values.`,
-                type: "error",
-              },
-            };
-          }
-        }
-      }
-
-      const newField: FormField = {
-        id: uid(),
-        type: fieldType,
-        label,
-        handle,
-        required,
-        ...(options ? { options } : {}),
-        ...(defaultValue !== undefined ? { defaultValue } : {}),
-      };
-      let rows = [...form.rows];
-
-      if (rowTarget === "new" || rows.length === 0) {
-        rows.push({ id: uid(), fields: [newField] });
-      } else {
-        rows = rows.map((r) =>
-          r.id === rowTarget ? { ...r, fields: [...r.fields, newField] } : r,
-        );
-      }
-
-      await ctx.storage.forms.put(fid, {
-        ...form,
-        rows,
-        updatedAt: new Date().toISOString(),
-      });
-      return {
-        blocks: await editorBlocks(fid, ctx),
-        toast: { message: `"${label}" added`, type: "success" },
-      };
-    }
-
-    if (actionId.startsWith("rm_field:")) {
-      const fid = actionId.slice("rm_field:".length);
-      const fieldId = (values.field_id as string) ?? "";
-      const form = (await ctx.storage.forms.get(fid)) as StoredForm | null;
-      if (!form) return { blocks: await listPageBlocks(ctx) };
-      await ctx.storage.forms.put(fid, {
-        ...form,
-        rows: removeField(form.rows, fieldId),
-        updatedAt: new Date().toISOString(),
-      });
-      return {
-        blocks: await editorBlocks(fid, ctx),
-        toast: { message: "Field removed", type: "success" },
       };
     }
 
@@ -322,13 +234,24 @@ export const adminRoute = {
         };
       }
 
+      const apiKey = await getApiKey(ctx);
+      if (!apiKey) {
+        return {
+          blocks: await editorBlocks(fid, ctx),
+          toast: {
+            message: "Anthropic API key not configured. Add it in Freeform → Settings.",
+            type: "error",
+          },
+        };
+      }
+
       const form = (await ctx.storage.forms.get(fid)) as StoredForm | null;
       if (!form) return { blocks: await listPageBlocks(ctx) };
 
       const tier = await getTier(ctx);
 
       try {
-        const { newForm, summary } = await editFormWithAI(description, tier, form, ctx);
+        const { newForm, summary } = await editFormWithAI(description, tier, form, ctx, apiKey);
         const anyChange =
           summary.added > 0 || summary.updated > 0 || summary.removed > 0;
         if (anyChange) await ctx.storage.forms.put(fid, newForm);
@@ -529,6 +452,32 @@ export const adminRoute = {
       return {
         blocks: await editorBlocks(a.formId, ctx),
         toast: { message: "Notification detached", type: "success" },
+      };
+    }
+
+    if (actionId === "save_api_key") {
+      const key = ((values.anthropic_key as string) ?? "").trim();
+      if (!key) {
+        return {
+          blocks: await settingsBlocks(ctx, siteOrigin),
+          toast: { message: "Please enter an API key.", type: "error" },
+        };
+      }
+      await ctx.kv.set("settings:anthropicApiKey", key);
+      return {
+        blocks: await settingsBlocks(ctx, siteOrigin),
+        toast: { message: "Anthropic API key saved.", type: "success" },
+      };
+    }
+
+    if (actionId === "remove_api_key") {
+      await ctx.kv.delete("settings:anthropicApiKey");
+      return {
+        blocks: await settingsBlocks(ctx, siteOrigin),
+        toast: {
+          message: "Anthropic API key removed. AI features are disabled.",
+          type: "info",
+        },
       };
     }
 

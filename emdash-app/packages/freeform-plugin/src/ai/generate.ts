@@ -1,7 +1,6 @@
 import type { PluginContext } from "emdash";
 import {
   ALL_FIELD_TYPES,
-  ANTHROPIC_API_KEY,
   FREE_FIELD_TYPES,
   MAX_NEW_FIELDS_PER_GENERATION,
   MAX_TOTAL_FIELDS_PER_FORM,
@@ -59,6 +58,7 @@ export async function editFormWithAI(
   tier: "free" | "pro",
   existingForm: StoredForm,
   ctx: PluginContext,
+  apiKey: string,
 ): Promise<EditResult> {
   const allowed = tier === "pro" ? ALL_FIELD_TYPES : FREE_FIELD_TYPES;
 
@@ -122,7 +122,7 @@ export async function editFormWithAI(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
+      "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({

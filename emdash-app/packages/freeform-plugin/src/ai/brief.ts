@@ -1,5 +1,4 @@
 import type { PluginContext } from "emdash";
-import { ANTHROPIC_API_KEY } from "../constants";
 import type { StoredForm, StoredSubmission, SubmissionBrief, VisitorPageView } from "../types";
 
 // Generates a structured sales-engineer brief for a submission, optionally
@@ -39,6 +38,7 @@ export async function generateBrief(
   ctx: PluginContext,
   form: StoredForm,
   submission: StoredSubmission,
+  apiKey: string,
   journey?: VisitorPageView[],
 ): Promise<SubmissionBrief | null> {
   const userMsg = `Form: ${form.name}
@@ -54,7 +54,7 @@ ${formatJourney(journey)}`;
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
+        "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({

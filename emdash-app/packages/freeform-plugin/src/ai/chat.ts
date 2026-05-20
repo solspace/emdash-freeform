@@ -1,5 +1,4 @@
 import type { PluginContext } from "emdash";
-import { ANTHROPIC_API_KEY } from "../constants";
 import { fieldToSchema } from "../routes/agent";
 import type { StoredForm } from "../types";
 
@@ -82,6 +81,7 @@ export async function runChatTurn(
   messages: ChatMessage[],
   siteName: string,
   salesContext: string,
+  apiKey: string,
 ): Promise<ChatTurnResult> {
   const system = buildSystem(form, siteName, salesContext);
   const tool = buildToolSpec(form);
@@ -90,7 +90,7 @@ export async function runChatTurn(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
+      "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({

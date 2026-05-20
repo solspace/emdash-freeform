@@ -1,4 +1,5 @@
 import type { PluginContext } from "emdash";
+import { hasApiKey } from "../lib/ai-key";
 import { getMaskedKey, getTier } from "../lib/license";
 import { getSpamSettings } from "../lib/spam-settings";
 
@@ -9,6 +10,7 @@ export async function settingsBlocks(
   const tier = await getTier(ctx);
   const maskedKey = await getMaskedKey(ctx);
   const hasKey = maskedKey.length > 0;
+  const apiKeyConfigured = await hasApiKey(ctx);
   const spam = await getSpamSettings(ctx);
 
   const mcpEndpoint = `${siteOrigin}/freeform/mcp`;
@@ -37,6 +39,66 @@ export async function settingsBlocks(
       type: "actions",
       elements: [{ type: "button", label: "← Back to Forms", action_id: "nav:forms" }],
     },
+    { type: "divider" },
+    { type: "header", text: "AI Configuration" },
+    {
+      type: "section",
+      text:
+        "Freeform uses the Anthropic API for form generation, spam scoring, lead briefs, and the AI chat widget. " +
+        "All AI features require a valid API key. Your key is stored securely in the plugin's KV store.",
+    },
+    apiKeyConfigured
+      ? {
+          type: "banner",
+          title: "API key configured",
+          description: "AI features are active. Replace the key below to update it.",
+          variant: "default",
+        }
+      : {
+          type: "banner",
+          title: "No API key set",
+          description:
+            "AI features are disabled. Enter your Anthropic API key below to enable them. " +
+            "Get a key at console.anthropic.com.",
+          variant: "default",
+        },
+    {
+      type: "form",
+      block_id: "ai_config",
+      fields: [
+        {
+          type: "secret_input",
+          action_id: "anthropic_key",
+          label: "Anthropic API Key",
+          placeholder: "sk-ant-api03-...",
+        },
+      ],
+      submit: {
+        label: apiKeyConfigured ? "Replace Key" : "Save Key",
+        action_id: "save_api_key",
+      },
+    },
+    ...(apiKeyConfigured
+      ? [
+          {
+            type: "actions",
+            elements: [
+              {
+                type: "button",
+                label: "Remove API Key",
+                action_id: "remove_api_key",
+                style: "danger",
+                confirm: {
+                  title: "Remove API key?",
+                  text: "All AI features (form generation, spam scoring, chat) will be disabled.",
+                  confirm: "Remove",
+                  deny: "Cancel",
+                },
+              },
+            ],
+          },
+        ]
+      : []),
     { type: "divider" },
     { type: "header", text: "MCP Access" },
     {

@@ -1,7 +1,7 @@
 import type { PluginContext } from "emdash";
 import { generateBrief } from "../ai/brief";
 import { scoreSubmissionWithAI } from "../ai/spam";
-import { getTier } from "./license";
+import { getApiKey } from "./ai-key";
 import { sendNotificationsForSubmission } from "./notifications";
 import { effectiveSpamSettings, getSpamSettings } from "./spam-settings";
 import { uid } from "./handles";
@@ -119,10 +119,10 @@ export async function runAgentSubmission(
   };
   if (journey && journey.length > 0) submission.journey = journey;
 
-  const tier = await getTier(ctx);
+  const apiKey = await getApiKey(ctx);
   const spam = effectiveSpamSettings(formData, await getSpamSettings(ctx));
-  if (tier === "pro" && spam.enabled) {
-    const result = await scoreSubmissionWithAI(formData.name, cleanData, ctx);
+  if (apiKey && spam.enabled) {
+    const result = await scoreSubmissionWithAI(formData.name, cleanData, ctx, apiKey);
     if (result !== null) {
       submission.spamScore = result.score;
       if (result.reason) submission.spamReason = result.reason;
@@ -137,10 +137,12 @@ export async function runAgentSubmission(
   if (!scoredAsSpam) {
     // Generate the AI brief synchronously and write it back. Failures here
     // don't block the submission — the brief is best-effort enrichment.
-    const brief = await generateBrief(ctx, formData, submission, journey);
-    if (brief) {
-      submission.brief = brief;
-      await ctx.storage.submissions.put(submissionId, submission);
+    if (apiKey) {
+      const brief = await generateBrief(ctx, formData, submission, apiKey, journey);
+      if (brief) {
+        submission.brief = brief;
+        await ctx.storage.submissions.put(submissionId, submission);
+      }
     }
     await sendNotificationsForSubmission(ctx, formData, submission, submissionId);
   } else {

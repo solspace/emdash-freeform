@@ -1,5 +1,4 @@
 import type { PluginContext } from "emdash";
-import { ANTHROPIC_API_KEY } from "../constants";
 
 export interface SpamScoreResult {
   score: number;
@@ -12,6 +11,7 @@ export async function scoreSubmissionWithAI(
   formName: string,
   data: Record<string, string | string[]>,
   ctx: PluginContext,
+  apiKey: string,
 ): Promise<SpamScoreResult | null> {
   const payload = Object.entries(data)
     .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
@@ -22,7 +22,7 @@ export async function scoreSubmissionWithAI(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
+        "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
