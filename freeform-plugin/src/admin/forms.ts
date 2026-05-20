@@ -182,6 +182,7 @@ export async function listPageBlocks(
 					action_id: "new_form",
 					style: "primary",
 				},
+				{ type: "button", label: "✉ Templates", action_id: "nav:templates" },
 				{ type: "button", label: "⚙ Settings", action_id: "nav:settings" },
 			],
 		},
