@@ -1,6 +1,10 @@
 packages:
-  - "packages/*"
+  - "freeform-plugin"
+  - "freeform-astro"
+  - "emdash-freeform-mcp"
+  - "emdash-app"
 
+# Native binary builds required by emdash-app
 allowBuilds:
   better-sqlite3: true
   esbuild: true

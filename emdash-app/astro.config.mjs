@@ -4,7 +4,7 @@ import { d1, r2 } from "@emdash-cms/cloudflare";
 import { defineConfig } from "astro/config";
 import emdash from "emdash/astro";
 import { freeformPlugin } from "@local/freeform-plugin";
-import freeformAstro from "@local/freeform-astro";
+import freeformAstro from "@solspace/freeform-astro";
 
 export default defineConfig({
   output: "server",

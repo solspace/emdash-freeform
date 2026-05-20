@@ -1,0 +1,22 @@
+{
+  "name": "@local/freeform-plugin",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsdown src/index.ts src/sandbox-entry.ts --format esm --outDir dist --dts false",
+    "build:watch": "tsdown src/index.ts src/sandbox-entry.ts --format esm --outDir dist --dts false --watch",
+    "bundle": "emdash plugin bundle",
+    "bundle:validate": "emdash plugin validate",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./sandbox": "./dist/sandbox-entry.js"
+  },
+  "peerDependencies": {
+    "emdash": "^0.12.0"
+  },
+  "devDependencies": {
+    "tsdown": "^0.12.0"
+  }
+}

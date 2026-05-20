@@ -1,0 +1,44 @@
+name: Publish freeform-plugin to EmDash Marketplace
+
+# Triggers on version tags scoped to freeform-plugin, e.g.
+#   git tag freeform-plugin/v1.0.0 && git push --tags
+on:
+  push:
+    tags:
+      - "freeform-plugin/v*"
+
+jobs:
+  publish:
+    name: Bundle and publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build plugin
+        working-directory: freeform-plugin
+        run: pnpm run build
+
+      - name: Bundle plugin
+        working-directory: freeform-plugin
+        run: pnpm run bundle
+
+      - name: Publish to marketplace
+        working-directory: freeform-plugin
+        env:
+          EMDASH_MARKETPLACE_TOKEN: ${{ secrets.EMDASH_MARKETPLACE_TOKEN }}
+        run: npx emdash plugin publish --tarball dist/$(ls dist/*.tar.gz | xargs basename) --no-wait

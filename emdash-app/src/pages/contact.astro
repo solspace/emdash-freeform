@@ -2,7 +2,7 @@
 import { getEmDashEntry, getSeoMeta, getSiteSettings } from "emdash";
 import { PortableText } from "emdash/ui";
 import Base from "../layouts/Base.astro";
-import { FreeformForm, FreeformChat } from "@local/freeform-astro/components";
+import { FreeformForm, FreeformChat } from "@solspace/freeform-astro/components";
 import { resolveStarterSiteIdentity } from "../utils/site-identity";
 
 const { entry: page, cacheHint } = await getEmDashEntry("pages", "contact");

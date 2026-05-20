@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 // at config-parse time, before Astro's Vite plugin or Cloudflare adapter shims
 // are active. It must only contain static imports that work in plain Node.js.
 //
-// - Components  → import from "@local/freeform-astro/components"
-// - Client utils → import from "@local/freeform-astro/client"
+// - Components  → import from "@solspace/freeform-astro/components"
+// - Client utils → import from "@solspace/freeform-astro/client"
 
 /**
  * Astro integration that injects all Freeform site-side routes automatically.
