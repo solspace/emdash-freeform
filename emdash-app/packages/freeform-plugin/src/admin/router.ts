@@ -2,20 +2,22 @@ import type { PluginContext } from "emdash";
 import { editFormWithAI } from "../ai/generate";
 import { getApiKey } from "../lib/ai-key";
 import { DEFAULT_SPAM_THRESHOLD } from "../constants";
-import { deleteFormAndSubmissions } from "../lib/field-ops";
+import { deleteFormAndSubmissions, removeField } from "../lib/field-ops";
 import {
   deriveUniqueFormHandle,
   isHandleTaken,
   isLabelTaken,
   isValidFormHandle,
 } from "../lib/form-handles";
+import { uid, toHandle } from "../lib/handles";
 import { activateLicense, clearLicense, getTier } from "../lib/license";
 import { deleteTemplateAndDetach } from "../lib/notifications";
-
+import { isMultiType, isOptionType, parseOptionsInput } from "../lib/options";
 import { ensureDemoSeed } from "../lib/seed";
 import { setFormSpamOverride, setSpamSettings } from "../lib/spam-settings";
-import { uid } from "../lib/handles";
 import type {
+  FieldType,
+  FormField,
   NotificationFormat,
   StoredAssignment,
   StoredForm,
@@ -221,6 +223,126 @@ export const adminRoute = {
       return {
         blocks: await editorBlocks(fid, ctx),
         toast: { message, type: "success" },
+      };
+    }
+
+    if (actionId.startsWith("show_add:")) {
+      return { blocks: await editorBlocks(actionId.slice(9), ctx, true) };
+    }
+    if (actionId.startsWith("cancel_add:")) {
+      return { blocks: await editorBlocks(actionId.slice(11), ctx, false) };
+    }
+
+    if (actionId.startsWith("rm_field:")) {
+      const fid = actionId.slice("rm_field:".length);
+      const fieldId = (values.field_id as string) ?? "";
+      const form = (await ctx.storage.forms.get(fid)) as StoredForm | null;
+      if (!form) return { blocks: await listPageBlocks(ctx) };
+      await ctx.storage.forms.put(fid, {
+        ...form,
+        rows: removeField(form.rows, fieldId),
+        updatedAt: new Date().toISOString(),
+      });
+      return {
+        blocks: await editorBlocks(fid, ctx),
+        toast: { message: "Field removed.", type: "success" },
+      };
+    }
+
+    if (actionId.startsWith("add:")) {
+      const fid = actionId.slice(4);
+      const tier = await getTier(ctx);
+      const form = (await ctx.storage.forms.get(fid)) as StoredForm | null;
+      if (!form) return { blocks: await listPageBlocks(ctx) };
+
+      const fieldType = ((values.field_type as string) ?? "text") as FieldType;
+      if (fieldType === "email" && tier === "free") {
+        return {
+          blocks: await editorBlocks(fid, ctx, true),
+          toast: {
+            message: "Email fields require a Pro license. Add your key in Settings.",
+            type: "error",
+          },
+        };
+      }
+
+      const label = ((values.field_label as string) ?? "").trim() || "New Field";
+      const handle =
+        ((values.field_handle as string) ?? "").trim() || toHandle(label);
+      const required = (values.field_required as boolean) ?? false;
+      const rowTarget = (values.field_row as string) ?? "new";
+
+      const options = isOptionType(fieldType)
+        ? parseOptionsInput((values.field_options as string) ?? "")
+        : undefined;
+      if (isOptionType(fieldType) && (!options || options.length < 2)) {
+        return {
+          blocks: await editorBlocks(fid, ctx, true),
+          toast: {
+            message:
+              "This field type needs at least two options. Use `value: Label, value: Label`.",
+            type: "error",
+          },
+        };
+      }
+
+      const defaultRaw = ((values.field_default as string) ?? "").trim();
+      let defaultValue: string | string[] | undefined;
+      if (defaultRaw) {
+        if (isMultiType(fieldType)) {
+          defaultValue = defaultRaw
+            .split(",")
+            .map((v) => v.trim())
+            .filter(Boolean);
+          if (defaultValue.length === 0) defaultValue = undefined;
+        } else {
+          defaultValue = defaultRaw;
+        }
+        if (options && defaultValue !== undefined) {
+          const valid = new Set(options.map((o) => o.value));
+          const check = Array.isArray(defaultValue)
+            ? defaultValue
+            : [defaultValue];
+          const bad = check.find((v) => !valid.has(v));
+          if (bad) {
+            return {
+              blocks: await editorBlocks(fid, ctx, true),
+              toast: {
+                message: `Default value "${bad}" is not in the options list.`,
+                type: "error",
+              },
+            };
+          }
+        }
+      }
+
+      const newField: FormField = {
+        id: uid(),
+        type: fieldType,
+        label,
+        handle,
+        required,
+        ...(options ? { options } : {}),
+        ...(defaultValue !== undefined ? { defaultValue } : {}),
+      };
+
+      let rows = [...form.rows];
+      if (rowTarget === "new" || rows.length === 0) {
+        rows.push({ id: uid(), fields: [newField] });
+      } else {
+        rows = rows.map((r) =>
+          r.id === rowTarget ? { ...r, fields: [...r.fields, newField] } : r,
+        );
+      }
+
+      await ctx.storage.forms.put(fid, {
+        ...form,
+        rows,
+        updatedAt: new Date().toISOString(),
+      });
+      return {
+        blocks: await editorBlocks(fid, ctx),
+        toast: { message: `"${label}" added.`, type: "success" },
       };
     }
 

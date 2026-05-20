@@ -1,4 +1,5 @@
 import type { PluginContext } from "emdash";
+import { ALL_FIELD_TYPES, FREE_FIELD_TYPES } from "../constants";
 import { ensureFormHandle } from "../lib/form-handles";
 import { getTier } from "../lib/license";
 import { effectiveSpamSettings, getSpamSettings } from "../lib/spam-settings";
@@ -192,6 +193,7 @@ export async function listPageBlocks(
 export async function editorBlocks(
 	formId: string,
 	ctx: PluginContext,
+	showAddField = false,
 ): Promise<object[]> {
 	const tier = await getTier(ctx);
 	let formData = (await ctx.storage.forms.get(formId)) as StoredForm | null;
@@ -208,6 +210,8 @@ export async function editorBlocks(
 
 	if (!formData.handle)
 		formData = await ensureFormHandle(ctx, formId, formData);
+
+	const flatFields = formData.rows.flatMap((row) => row.fields);
 
 	// ── Form preview ──────────────────────────────────────────────────────────
 	// Renders each row as a `fields` block (key = label+required, value = type +
@@ -315,6 +319,140 @@ export async function editorBlocks(
 			],
 			submit: { label: "✨ Apply with AI", action_id: `ai:${formId}` },
 		},
+		{ type: "divider" },
+
+		// ── Manual field controls ────────────────────────────────────────────────
+		{ type: "header", text: "Field Controls" },
+		...(flatFields.length > 0
+			? [
+					{
+						type: "form",
+						block_id: "remove_field",
+						fields: [
+							{
+								type: "select",
+								action_id: "field_id",
+								label: "Remove a field",
+								options: flatFields.map((f) => ({
+									label: `${f.label} (${f.type})`,
+									value: f.id,
+								})),
+							},
+						],
+						submit: {
+							label: "Remove",
+							action_id: `rm_field:${formId}`,
+							style: "danger",
+						},
+					},
+				]
+			: []),
+		...(showAddField
+			? [
+					{ type: "divider" },
+					{ type: "header", text: "Add Field" },
+					...(tier === "free"
+						? [
+								{
+									type: "context",
+									text: "Email fields require Pro. Add a license key in Settings to unlock them.",
+								},
+							]
+						: []),
+					{
+						type: "form",
+						block_id: "add_field",
+						fields: [
+							{
+								type: "select",
+								action_id: "field_type",
+								label: "Field Type",
+								options: (tier === "pro"
+									? ALL_FIELD_TYPES
+									: FREE_FIELD_TYPES
+								).map((t) => ({
+									label:
+										t
+											.replace(/_/g, " ")
+											.replace(/\b\w/g, (c) => c.toUpperCase()),
+									value: t,
+								})),
+								initial_value: "text",
+							},
+							{
+								type: "text_input",
+								action_id: "field_label",
+								label: "Label",
+								placeholder: "e.g. First Name",
+							},
+							{
+								type: "text_input",
+								action_id: "field_handle",
+								label: "Handle (optional)",
+								placeholder: "auto-derived from label",
+							},
+							{
+								type: "text_input",
+								action_id: "field_options",
+								label: "Options (for radio, select, multi_select, checkbox_group)",
+								placeholder: "us: United States, ca: Canada, mx: Mexico",
+							},
+							{
+								type: "text_input",
+								action_id: "field_default",
+								label: "Default value",
+								placeholder:
+									"checkbox: 'true' to pre-check · multi: comma-separated values",
+							},
+							{
+								type: "toggle",
+								action_id: "field_required",
+								label: "Required",
+								initial_value: false,
+							},
+							{
+								type: "select",
+								action_id: "field_row",
+								label: "Add to row",
+								options: [
+									{ label: "New row at the end", value: "new" },
+									...formData.rows.map((r, i) => ({
+										label: `Row ${i + 1} — alongside: ${r.fields.map((f) => f.label).join(", ")}`,
+										value: r.id,
+									})),
+								],
+								initial_value: "new",
+							},
+						],
+						submit: {
+							label: "Add Field",
+							action_id: `add:${formId}`,
+						},
+					},
+					{
+						type: "actions",
+						elements: [
+							{
+								type: "button",
+								label: "Cancel",
+								action_id: `cancel_add:${formId}`,
+							},
+						],
+					},
+				]
+			: [
+					{
+						type: "actions",
+						elements: [
+							{
+								type: "button",
+								label: "+ Add Field",
+								action_id: `show_add:${formId}`,
+								style: "primary",
+							},
+						],
+					},
+				]),
 		{ type: "divider" },
 
 		// ── Spam filter ─────────────────────────────────────────────────────────
