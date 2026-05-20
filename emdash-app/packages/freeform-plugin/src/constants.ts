@@ -11,10 +11,21 @@ export const ALL_FIELD_TYPES: FieldType[] = [
   "radio",
   "select",
   "multi_select",
+  "date",
+  "hidden",
+  "html",
 ];
 
 // Email is the only type gated behind Pro.
 export const FREE_FIELD_TYPES: FieldType[] = ALL_FIELD_TYPES.filter((t) => t !== "email");
+
+// Field types that accept per-field length/pattern validation.
+export const TEXT_VALIDATION_TYPES: FieldType[] = [
+  "text", "email", "textarea", "phone",
+];
+
+// Field types that accept min/max value validation.
+export const RANGE_VALIDATION_TYPES: FieldType[] = ["number", "date"];
 
 // Double-underscore prefix avoids collisions with user-defined handles,
 // which are snake_case derived from labels and cannot contain "__".

@@ -4,6 +4,8 @@ import {
   FREE_FIELD_TYPES,
   MAX_NEW_FIELDS_PER_GENERATION,
   MAX_TOTAL_FIELDS_PER_FORM,
+  RANGE_VALIDATION_TYPES,
+  TEXT_VALIDATION_TYPES,
 } from "../constants";
 import { toHandle, uid } from "../lib/handles";
 import { isMultiType, isOptionType } from "../lib/options";
@@ -11,7 +13,6 @@ import type {
   FieldOption,
   FieldType,
   FormField,
-  FormRow,
   StoredForm,
 } from "../types";
 
@@ -30,20 +31,18 @@ export interface EditResult {
   summary: ApplyResult;
 }
 
-type AIOp =
-  | { op: "add_row"; fields: AIField[] }
-  | {
-      op: "update_field";
-      handle: string;
-      label?: string;
-      required?: boolean;
-      placeholder?: string;
-      options?: FieldOption[];
-      defaultValue?: string | string[] | null;
-    }
-  | { op: "remove_field"; handle: string };
+// ── AI operation types ────────────────────────────────────────────
 
-interface AIField {
+interface AIValidation {
+  minLength?: number | null;
+  maxLength?: number | null;
+  pattern?: string | null;
+  patternError?: string | null;
+  min?: number | string | null;
+  max?: number | string | null;
+}
+
+interface AIField extends AIValidation {
   type: FieldType;
   label: string;
   handle?: string;
@@ -52,6 +51,121 @@ interface AIField {
   options?: FieldOption[];
   defaultValue?: string | string[];
 }
+
+type AIOp =
+  | { op: "add_row"; fields: AIField[] }
+  | ({
+      op: "update_field";
+      handle: string;
+      label?: string;
+      required?: boolean;
+      placeholder?: string;
+      options?: FieldOption[];
+      defaultValue?: string | string[] | null;
+    } & AIValidation)
+  | { op: "remove_field"; handle: string };
+
+// ── Helpers ────────────────────────────────────────────────────────
+
+// Build a compact one-line summary of a field's current validation state.
+function validationSummary(f: FormField): string {
+  const parts: string[] = [];
+  if (f.minLength != null) parts.push(`minLength=${f.minLength}`);
+  if (f.maxLength != null) parts.push(`maxLength=${f.maxLength}`);
+  if (f.pattern) parts.push(`pattern="${f.pattern}"`);
+  if (f.patternError) parts.push(`patternError="${f.patternError}"`);
+  if (f.min != null) parts.push(`min=${f.min}`);
+  if (f.max != null) parts.push(`max=${f.max}`);
+  return parts.join(" ");
+}
+
+// ── JSON Schema fragments ──────────────────────────────────────────
+
+const OPTION_ITEM_SCHEMA = {
+  type: "object",
+  required: ["value", "label"],
+  properties: {
+    value: { type: "string", description: "snake_case machine value" },
+    label: { type: "string", description: "Human-readable label" },
+  },
+} as const;
+
+const VALIDATION_SCHEMA_PROPS = {
+  minLength: {
+    oneOf: [{ type: "number" }, { type: "null" }],
+    description:
+      "Minimum character count. Applies to text, email, textarea, phone. Pass null to clear.",
+  },
+  maxLength: {
+    oneOf: [{ type: "number" }, { type: "null" }],
+    description:
+      "Maximum character count. Applies to text, email, textarea, phone. Pass null to clear.",
+  },
+  pattern: {
+    oneOf: [{ type: "string" }, { type: "null" }],
+    description:
+      "Regex validation pattern (HTML5 `pattern` attribute). Applies to text, email, textarea, phone. Pass null to clear.",
+  },
+  patternError: {
+    oneOf: [{ type: "string" }, { type: "null" }],
+    description:
+      "Message shown when the pattern does not match (rendered as HTML `title`). Applies to text, email, textarea, phone. Pass null to clear.",
+  },
+  min: {
+    oneOf: [{ type: "number" }, { type: "string" }, { type: "null" }],
+    description:
+      "Minimum value (number) or earliest allowed date in YYYY-MM-DD (date). Pass null to clear.",
+  },
+  max: {
+    oneOf: [{ type: "number" }, { type: "string" }, { type: "null" }],
+    description:
+      "Maximum value (number) or latest allowed date in YYYY-MM-DD (date). Pass null to clear.",
+  },
+} as const;
+
+function buildFieldInputSchema(allowedTypes: readonly FieldType[]) {
+  return {
+    type: "object",
+    required: ["type", "label"],
+    properties: {
+      type: { type: "string", enum: allowedTypes },
+      label: {
+        type: "string",
+        description:
+          "Human-readable label shown above the input. For `html`, this is an internal admin label only — not shown to users.",
+      },
+      handle: {
+        type: "string",
+        description: "snake_case identifier. Auto-derived from label if omitted.",
+      },
+      required: { type: "boolean" },
+      placeholder: {
+        type: "string",
+        description: "Hint text inside the input. Not applicable to html or hidden.",
+      },
+      options: {
+        type: "array",
+        description:
+          "Required for radio, select, multi_select, checkbox_group (≥ 2 entries). Omit for all other types.",
+        items: OPTION_ITEM_SCHEMA,
+      },
+      defaultValue: {
+        description:
+          "Pre-filled value. String for single-value types; array for checkbox_group/multi_select. " +
+          "For `checkbox` (single), use 'true' to default-checked. " +
+          "For `html`, this IS the HTML content to render (not a default value). " +
+          "For `hidden`, this is the fixed value submitted with the form.",
+        oneOf: [
+          { type: "string" },
+          { type: "array", items: { type: "string" } },
+        ],
+      },
+      ...VALIDATION_SCHEMA_PROPS,
+    },
+  } as const;
+}
+
+// ── Main entry point ───────────────────────────────────────────────
 
 export async function editFormWithAI(
   description: string,
@@ -62,61 +176,29 @@ export async function editFormWithAI(
 ): Promise<EditResult> {
   const allowed = tier === "pro" ? ALL_FIELD_TYPES : FREE_FIELD_TYPES;
 
-  const existingFields = existingForm.rows.flatMap((r) =>
-    r.fields.map((f) => ({
-      type: f.type,
-      label: f.label,
-      handle: f.handle,
-      required: f.required,
-      hasOptions: Array.isArray(f.options) && f.options.length > 0,
-    })),
-  );
-
+  // Build existing-fields summary with validation state so the AI knows
+  // what is already set and can reference handles correctly.
+  const existingFields = existingForm.rows.flatMap((r) => r.fields);
   const existingSummary =
     existingFields.length === 0
       ? "The form is empty."
       : existingFields
-          .map(
-            (f, i) =>
-              `  ${i + 1}. label="${f.label}" handle="${f.handle}" type=${f.type} required=${f.required}`,
-          )
+          .map((f, i) => {
+            const base = `  ${i + 1}. handle="${f.handle}" label="${f.label}" type=${f.type} required=${f.required}`;
+            const defaultPart =
+              f.type === "html"
+                ? ` content="${String(f.defaultValue ?? "").slice(0, 60).replace(/\n/g, " ")}…"`
+                : f.type === "hidden"
+                  ? ` value="${f.defaultValue ?? ""}"`
+                  : f.defaultValue !== undefined
+                    ? ` defaultValue=${JSON.stringify(f.defaultValue)}`
+                    : "";
+            const valPart = validationSummary(f);
+            return base + defaultPart + (valPart ? ` [${valPart}]` : "");
+          })
           .join("\n");
 
-  const FIELD_INPUT_SCHEMA = {
-    type: "object",
-    required: ["type", "label"],
-    properties: {
-      type: { type: "string", enum: allowed },
-      label: { type: "string" },
-      handle: {
-        type: "string",
-        description: "snake_case identifier derived from label",
-      },
-      required: { type: "boolean" },
-      placeholder: { type: "string" },
-      options: {
-        type: "array",
-        description:
-          "Choices for radio, select, multi_select, checkbox_group. Required for those types; omit otherwise.",
-        items: {
-          type: "object",
-          required: ["value", "label"],
-          properties: {
-            value: { type: "string" },
-            label: { type: "string" },
-          },
-        },
-      },
-      defaultValue: {
-        description:
-          "Optional pre-filled value. String for single-value types; array for checkbox_group/multi_select.",
-        oneOf: [
-          { type: "string" },
-          { type: "array", items: { type: "string" } },
-        ],
-      },
-    },
-  } as const;
+  const FIELD_INPUT_SCHEMA = buildFieldInputSchema(allowed);
 
   const res = await ctx.http!.fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -127,7 +209,7 @@ export async function editFormWithAI(
     },
     body: JSON.stringify({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 2048,
+      max_tokens: 4096,
       tools: [
         {
           name: "apply_form_edits",
@@ -151,47 +233,42 @@ export async function editFormWithAI(
                       type: "string",
                       enum: ["add_row", "update_field", "remove_field"],
                     },
-                    // add_row
+                    // ── add_row ──────────────────────────────────────
                     fields: {
                       type: "array",
                       minItems: 1,
                       maxItems: 4,
                       description:
-                        "For `add_row` only. Fields displayed side-by-side on the new row.",
+                        "For `add_row` only. Fields displayed side-by-side on the new row. " +
+                        "All field properties including validation are accepted here.",
                       items: FIELD_INPUT_SCHEMA,
                     },
-                    // update_field / remove_field
+                    // ── update_field / remove_field ──────────────────
                     handle: {
                       type: "string",
                       description:
-                        "For `update_field` and `remove_field`: the handle of an EXISTING field listed in the form summary.",
+                        "For `update_field` and `remove_field`: the handle of an EXISTING field listed in the form summary above.",
                     },
-                    // update_field only — partial update of an existing field
+                    // ── update_field partial props ───────────────────
                     label: { type: "string" },
                     required: { type: "boolean" },
                     placeholder: { type: "string" },
                     options: {
                       type: "array",
                       description:
-                        "For `update_field` on option-bearing types only: replacement options array.",
-                      items: {
-                        type: "object",
-                        required: ["value", "label"],
-                        properties: {
-                          value: { type: "string" },
-                          label: { type: "string" },
-                        },
-                      },
+                        "For `update_field` on option-bearing types only: full replacement options array (≥ 2 entries). Only include when the user wants the choice list changed.",
+                      items: OPTION_ITEM_SCHEMA,
                     },
                     defaultValue: {
                       description:
-                        "For `update_field`: new default value, or null to clear an existing default.",
+                        "For `update_field`: new default/content/value (same rules as add_row). Pass null to clear.",
                       oneOf: [
                         { type: "string" },
                         { type: "array", items: { type: "string" } },
                         { type: "null" },
                       ],
                     },
+                    ...VALIDATION_SCHEMA_PROPS,
                   },
                 },
               },
@@ -204,20 +281,44 @@ export async function editFormWithAI(
         {
           role: "user",
           content:
-            `You are editing an existing form. Pick the minimum set of operations that satisfies the user's request.\n\n` +
+            `You are editing an existing form. Emit the minimum operations to satisfy the request.\n\n` +
             `Existing fields:\n${existingSummary}\n\n` +
             `User request: "${description}"\n\n` +
-            `Rules:\n` +
-            `- Operations: \`add_row\` to append new fields, \`update_field\` to change properties of an existing field (by handle), \`remove_field\` to delete one (by handle).\n` +
-            `- "Make only the X field required" means: set required=true on X AND set required=false on every other currently-required field. Emit one update_field op per affected field.\n` +
-            `- Only refer to handles that appear in the "Existing fields" list above. Do not invent new handles for update_field/remove_field.\n` +
-            `- For add_row: do not duplicate existing fields. If the user asks to add a field that already exists by purpose, skip it.\n` +
-            `- Available field types: ${allowed.join(", ")}. Do not substitute with other types.\n` +
-            `- "checkbox" is a single yes/no field. "checkbox_group" lets the user pick any combination. "radio" picks exactly one. "select" is a dropdown. "multi_select" is a multi-pick dropdown. radio/select/multi_select/checkbox_group all REQUIRE an "options" array (≥ 2 entries) with snake_case "value" and human "label".\n` +
-            `- For update_field with options-bearing types, only include "options" if the user explicitly wants the choice list replaced.\n` +
-            `- For defaultValue: string for single-value types; array for checkbox_group and multi_select; pass null in update_field to clear a default.\n` +
-            `- Do not return operations that result in no observable change. If the request is already satisfied, return an empty operations array.\n` +
-            `- New handles (in add_row fields) must be unique snake_case and must not collide with any existing handle.`,
+            `## Rules\n\n` +
+            `### Operations\n` +
+            `- \`add_row\` — append new fields in a new row. Each row can hold 1–4 fields side-by-side.\n` +
+            `- \`update_field\` — patch an existing field by its handle. Only include properties that should change; omit everything else.\n` +
+            `- \`remove_field\` — delete an existing field by its handle.\n` +
+            `- Never invent handles for update_field/remove_field. Only use handles from the "Existing fields" list.\n` +
+            `- Do not duplicate existing fields in add_row. Skip if already present.\n` +
+            `- Return an empty operations array if the request is already satisfied.\n\n` +
+            `### Field types\n` +
+            `Available: ${allowed.join(", ")}\n` +
+            `- \`text\` — single-line text input.\n` +
+            `- \`email\` — email input (validated by browser).\n` +
+            `- \`textarea\` — multi-line text.\n` +
+            `- \`number\` — numeric input. Use min/max for range constraints.\n` +
+            `- \`phone\` — telephone input (type="tel").\n` +
+            `- \`date\` — date picker (type="date"). Use min/max for YYYY-MM-DD bounds.\n` +
+            `- \`checkbox\` — a single yes/no toggle. defaultValue "true" = pre-checked.\n` +
+            `- \`checkbox_group\` — multi-pick checkboxes. REQUIRES options array (≥ 2).\n` +
+            `- \`radio\` — pick exactly one. REQUIRES options array (≥ 2).\n` +
+            `- \`select\` — dropdown, pick one. REQUIRES options array (≥ 2).\n` +
+            `- \`multi_select\` — dropdown, pick many. REQUIRES options array (≥ 2).\n` +
+            `- \`hidden\` — invisible field submitted with the form. No label shown to users. Set defaultValue to the fixed submitted value.\n` +
+            `- \`html\` — a static HTML content block inside the form (instructions, headings, copy). No user input. label is an internal admin name only. Set defaultValue to the raw HTML string to display.\n\n` +
+            `### Validation (applies to specific types)\n` +
+            `- \`minLength\` / \`maxLength\` — character limits. Apply to: text, email, textarea, phone.\n` +
+            `- \`pattern\` — HTML5 regex pattern. Apply to: text, email, textarea, phone.\n` +
+            `- \`patternError\` — message shown on pattern mismatch (browser title attribute). Apply to: text, email, textarea, phone.\n` +
+            `- \`min\` / \`max\` — numeric range for number fields; YYYY-MM-DD date bounds for date fields.\n` +
+            `- Pass \`null\` for any validation prop in \`update_field\` to clear an existing rule.\n` +
+            `- Only set validation props when the user requests them. Do not invent constraints.\n\n` +
+            `### Other rules\n` +
+            `- "Make only X required" → set required=true on X AND required=false on all other currently-required fields. One op per affected field.\n` +
+            `- For defaultValue: string for single-value types; array for checkbox_group/multi_select.\n` +
+            `- New handles (in add_row) must be unique snake_case, not colliding with any existing handle.\n` +
+            `- Only include "options" in update_field when the user explicitly wants the choice list replaced.\n`,
         },
       ],
     }),
@@ -239,6 +340,51 @@ export async function editFormWithAI(
   return applyOps(existingForm, toolUse.input.operations);
 }
 
+// ── Apply operations ───────────────────────────────────────────────
+
+function applyValidationPatch(field: FormField, patch: AIValidation): boolean {
+  let changed = false;
+
+  const canText = TEXT_VALIDATION_TYPES.includes(field.type);
+  const canRange = RANGE_VALIDATION_TYPES.includes(field.type);
+
+  if (canText) {
+    if (patch.minLength !== undefined) {
+      if (patch.minLength === null) { if (field.minLength !== undefined) { delete field.minLength; changed = true; } }
+      else if (Number.isFinite(Number(patch.minLength)) && patch.minLength !== field.minLength) {
+        field.minLength = Number(patch.minLength); changed = true;
+      }
+    }
+    if (patch.maxLength !== undefined) {
+      if (patch.maxLength === null) { if (field.maxLength !== undefined) { delete field.maxLength; changed = true; } }
+      else if (Number.isFinite(Number(patch.maxLength)) && patch.maxLength !== field.maxLength) {
+        field.maxLength = Number(patch.maxLength); changed = true;
+      }
+    }
+    if (patch.pattern !== undefined) {
+      if (patch.pattern === null || patch.pattern === "") { if (field.pattern !== undefined) { delete field.pattern; changed = true; } }
+      else if (patch.pattern !== field.pattern) { field.pattern = patch.pattern; changed = true; }
+    }
+    if (patch.patternError !== undefined) {
+      if (patch.patternError === null || patch.patternError === "") { if (field.patternError !== undefined) { delete field.patternError; changed = true; } }
+      else if (patch.patternError !== field.patternError) { field.patternError = patch.patternError; changed = true; }
+    }
+  }
+
+  if (canRange) {
+    if (patch.min !== undefined) {
+      if (patch.min === null) { if (field.min !== undefined) { delete field.min; changed = true; } }
+      else if (patch.min !== field.min) { field.min = patch.min; changed = true; }
+    }
+    if (patch.max !== undefined) {
+      if (patch.max === null) { if (field.max !== undefined) { delete field.max; changed = true; } }
+      else if (patch.max !== field.max) { field.max = patch.max; changed = true; }
+    }
+  }
+
+  return changed;
+}
+
 function applyOps(form: StoredForm, ops: AIOp[]): EditResult {
   let rows = form.rows.map((r) => ({ id: r.id, fields: [...r.fields] }));
   const existingHandles = new Set(rows.flatMap((r) => r.fields.map((f) => f.handle)));
@@ -257,13 +403,11 @@ function applyOps(form: StoredForm, ops: AIOp[]): EditResult {
   const seenInThisGen = new Set<string>();
 
   for (const op of ops) {
+    // ── remove_field ─────────────────────────────────────────────
     if (op.op === "remove_field") {
       const handle = op.handle?.trim();
       if (!handle) continue;
-      if (!existingHandles.has(handle)) {
-        summary.notFound.push(handle);
-        continue;
-      }
+      if (!existingHandles.has(handle)) { summary.notFound.push(handle); continue; }
       let removed = false;
       rows = rows
         .map((r) => {
@@ -273,67 +417,50 @@ function applyOps(form: StoredForm, ops: AIOp[]): EditResult {
           return { ...r, fields: next };
         })
         .filter((r) => r.fields.length > 0);
-      if (removed) {
-        existingHandles.delete(handle);
-        totalFieldsNow--;
-        summary.removed++;
-      }
+      if (removed) { existingHandles.delete(handle); totalFieldsNow--; summary.removed++; }
       continue;
     }
 
+    // ── update_field ─────────────────────────────────────────────
     if (op.op === "update_field") {
       const handle = op.handle?.trim();
       if (!handle) continue;
-      if (!existingHandles.has(handle)) {
-        summary.notFound.push(handle);
-        continue;
-      }
+      if (!existingHandles.has(handle)) { summary.notFound.push(handle); continue; }
       let didChange = false;
       rows = rows.map((r) => ({
         ...r,
         fields: r.fields.map((f) => {
           if (f.handle !== handle) return f;
           const next: FormField = { ...f };
+
           if (typeof op.label === "string" && op.label.trim() && op.label !== f.label) {
-            next.label = op.label.trim();
-            didChange = true;
+            next.label = op.label.trim(); didChange = true;
           }
           if (typeof op.required === "boolean" && op.required !== f.required) {
-            next.required = op.required;
-            didChange = true;
+            next.required = op.required; didChange = true;
           }
           if (typeof op.placeholder === "string" && op.placeholder !== f.placeholder) {
-            next.placeholder = op.placeholder;
-            didChange = true;
+            next.placeholder = op.placeholder; didChange = true;
           }
           if (op.options !== undefined && isOptionType(f.type)) {
             const opts = Array.isArray(op.options)
               ? op.options.filter((o) => o?.value?.trim() && o?.label?.trim())
               : [];
-            if (opts.length >= 2) {
-              next.options = opts;
-              didChange = true;
-            }
+            if (opts.length >= 2) { next.options = opts; didChange = true; }
           }
           if (op.defaultValue !== undefined) {
             if (op.defaultValue === null) {
-              if (next.defaultValue !== undefined) {
-                delete next.defaultValue;
-                didChange = true;
-              }
+              if (next.defaultValue !== undefined) { delete next.defaultValue; didChange = true; }
             } else {
               const wantsArray = isMultiType(f.type);
-              const valid =
-                wantsArray === Array.isArray(op.defaultValue) ||
-                // single types accept string; array types accept array.
+              const shapeOk =
+                (wantsArray && Array.isArray(op.defaultValue)) ||
                 (!wantsArray && typeof op.defaultValue === "string");
-              if (valid) {
+              if (shapeOk) {
                 if (isOptionType(f.type) && next.options) {
-                  const validVals = new Set(next.options.map((o) => o.value));
-                  const check = Array.isArray(op.defaultValue)
-                    ? op.defaultValue
-                    : [op.defaultValue];
-                  if (check.every((v) => validVals.has(v))) {
+                  const valid = new Set(next.options.map((o) => o.value));
+                  const check = Array.isArray(op.defaultValue) ? op.defaultValue : [op.defaultValue];
+                  if (check.every((v) => valid.has(v))) {
                     next.defaultValue = op.defaultValue as string | string[];
                     didChange = true;
                   }
@@ -344,6 +471,10 @@ function applyOps(form: StoredForm, ops: AIOp[]): EditResult {
               }
             }
           }
+
+          // Validation fields
+          if (applyValidationPatch(next, op)) didChange = true;
+
           return next;
         }),
       }));
@@ -351,6 +482,7 @@ function applyOps(form: StoredForm, ops: AIOp[]): EditResult {
       continue;
     }
 
+    // ── add_row ───────────────────────────────────────────────────
     if (op.op === "add_row") {
       if (!Array.isArray(op.fields) || op.fields.length === 0) continue;
       const newFields: FormField[] = [];
@@ -374,7 +506,8 @@ function applyOps(form: StoredForm, ops: AIOp[]): EditResult {
         existingHandles.add(handle);
         totalFieldsNow++;
         summary.added++;
-        newFields.push({
+
+        const newField: FormField = {
           id: uid(),
           type: f.type,
           label: f.label,
@@ -383,7 +516,12 @@ function applyOps(form: StoredForm, ops: AIOp[]): EditResult {
           placeholder: f.placeholder,
           options: isOptionType(f.type) ? f.options : undefined,
           defaultValue: f.defaultValue,
-        });
+        };
+
+        // Apply any validation from the AI response.
+        applyValidationPatch(newField, f);
+
+        newFields.push(newField);
       }
       if (newFields.length > 0) {
         rows.push({ id: uid(), fields: newFields });
@@ -392,11 +530,7 @@ function applyOps(form: StoredForm, ops: AIOp[]): EditResult {
   }
 
   return {
-    newForm: {
-      ...form,
-      rows,
-      updatedAt: new Date().toISOString(),
-    },
+    newForm: { ...form, rows, updatedAt: new Date().toISOString() },
     summary,
   };
 }

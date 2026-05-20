@@ -8,7 +8,11 @@ export type FieldType =
   | "checkbox_group"
   | "radio"
   | "select"
-  | "multi_select";
+  | "multi_select"
+  // Phase 5 additions
+  | "date"      // <input type="date">
+  | "hidden"    // <input type="hidden"> — no UI, value from defaultValue
+  | "html";     // static HTML content block — no input, content from defaultValue
 
 // Field types that present a fixed list of choices to the user.
 // These fields require `options` on FormField; submissions store the option
@@ -43,7 +47,21 @@ export interface FormField {
   // types (checkbox_group, multi_select). For `checkbox` (single), "true"
   // means default-checked. For option-bearing types, must match an option
   // value or it is ignored at render time.
+  // For `html` type this holds the raw HTML content to render.
+  // For `hidden` type this holds the fixed submitted value.
   defaultValue?: string | string[];
+
+  // ── Per-field validation (rendered as HTML5 attributes) ─────────
+  // Applies to: text, email, textarea, phone
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;       // regex string; applied as the HTML `pattern` attribute
+  patternError?: string;  // shown via the `title` attribute on pattern mismatch
+
+  // Applies to: number, date
+  // For number: numeric value. For date: YYYY-MM-DD string.
+  min?: number | string;
+  max?: number | string;
 }
 
 export interface FormRow {

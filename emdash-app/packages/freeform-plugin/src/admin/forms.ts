@@ -397,23 +397,59 @@ export async function editorBlocks(
 								label: "Options (for radio, select, multi_select, checkbox_group)",
 								placeholder: "us: United States, ca: Canada, mx: Mexico",
 							},
-							{
-								type: "text_input",
-								action_id: "field_default",
-								label: "Default value",
-								placeholder:
-									"checkbox: 'true' to pre-check · multi: comma-separated values",
-							},
-							{
-								type: "toggle",
-								action_id: "field_required",
-								label: "Required",
-								initial_value: false,
-							},
-							{
-								type: "select",
-								action_id: "field_row",
-								label: "Add to row",
+						{
+							type: "text_input",
+							action_id: "field_default",
+							label: "Default value",
+							placeholder:
+								"checkbox: 'true' · multi: comma-sep values · html: paste HTML content · hidden: fixed submitted value",
+						},
+						{
+							type: "toggle",
+							action_id: "field_required",
+							label: "Required",
+							initial_value: false,
+						},
+						{
+							type: "text_input",
+							action_id: "field_min_length",
+							label: "Min length (text, email, textarea, phone — optional)",
+							placeholder: "e.g. 2",
+						},
+						{
+							type: "text_input",
+							action_id: "field_max_length",
+							label: "Max length (text, email, textarea, phone — optional)",
+							placeholder: "e.g. 255",
+						},
+						{
+							type: "text_input",
+							action_id: "field_pattern",
+							label: "Validation pattern (text fields — optional regex)",
+							placeholder: "e.g. [A-Za-z]+ for letters only",
+						},
+						{
+							type: "text_input",
+							action_id: "field_pattern_error",
+							label: "Pattern mismatch message (optional)",
+							placeholder: "e.g. Letters only, no spaces",
+						},
+						{
+							type: "text_input",
+							action_id: "field_min",
+							label: "Min value or date (number/date — optional)",
+							placeholder: "number: 0 · date: 2026-01-01",
+						},
+						{
+							type: "text_input",
+							action_id: "field_max",
+							label: "Max value or date (number/date — optional)",
+							placeholder: "number: 100 · date: 2099-12-31",
+						},
+						{
+							type: "select",
+							action_id: "field_row",
+							label: "Add to row",
 								options: [
 									{ label: "New row at the end", value: "new" },
 									...formData.rows.map((r, i) => ({

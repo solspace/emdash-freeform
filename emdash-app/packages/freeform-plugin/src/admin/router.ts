@@ -279,6 +279,22 @@ export const adminRoute = {
       const required = (values.field_required as boolean) ?? false;
       const rowTarget = (values.field_row as string) ?? "new";
 
+      // Validation fields — only stored when non-empty
+      const minLengthRaw = ((values.field_min_length as string) ?? "").trim();
+      const maxLengthRaw = ((values.field_max_length as string) ?? "").trim();
+      const patternRaw = ((values.field_pattern as string) ?? "").trim();
+      const patternErrorRaw = ((values.field_pattern_error as string) ?? "").trim();
+      const minRaw = ((values.field_min as string) ?? "").trim();
+      const maxRaw = ((values.field_max as string) ?? "").trim();
+      const minLength = minLengthRaw && Number.isFinite(Number(minLengthRaw))
+        ? Number(minLengthRaw) : undefined;
+      const maxLength = maxLengthRaw && Number.isFinite(Number(maxLengthRaw))
+        ? Number(maxLengthRaw) : undefined;
+      const pattern = patternRaw || undefined;
+      const patternError = patternErrorRaw || undefined;
+      const fieldMin = minRaw || undefined;
+      const fieldMax = maxRaw || undefined;
+
       const options = isOptionType(fieldType)
         ? parseOptionsInput((values.field_options as string) ?? "")
         : undefined;
@@ -331,6 +347,12 @@ export const adminRoute = {
         required,
         ...(options ? { options } : {}),
         ...(defaultValue !== undefined ? { defaultValue } : {}),
+        ...(minLength !== undefined ? { minLength } : {}),
+        ...(maxLength !== undefined ? { maxLength } : {}),
+        ...(pattern !== undefined ? { pattern } : {}),
+        ...(patternError !== undefined ? { patternError } : {}),
+        ...(fieldMin !== undefined ? { min: fieldMin } : {}),
+        ...(fieldMax !== undefined ? { max: fieldMax } : {}),
       };
 
       let rows = [...form.rows];

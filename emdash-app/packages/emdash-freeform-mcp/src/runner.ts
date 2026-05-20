@@ -160,6 +160,12 @@ export async function runTool(
         placeholder: args.placeholder,
         options: args.options,
         defaultValue: args.defaultValue,
+        minLength: args.minLength,
+        maxLength: args.maxLength,
+        pattern: args.pattern,
+        patternError: args.patternError,
+        min: args.min,
+        max: args.max,
       },
     });
   }

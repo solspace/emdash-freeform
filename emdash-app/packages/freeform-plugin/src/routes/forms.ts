@@ -1,5 +1,5 @@
 import { PluginRouteError, type PluginContext } from "emdash";
-import { MAX_TOTAL_FIELDS_PER_FORM } from "../constants";
+import { MAX_TOTAL_FIELDS_PER_FORM, RANGE_VALIDATION_TYPES, TEXT_VALIDATION_TYPES } from "../constants";
 import { deleteFormAndSubmissions, removeField } from "../lib/field-ops";
 import {
   deriveUniqueFormHandle,
@@ -17,6 +17,41 @@ import type {
   StoredForm,
   StoredSubmission,
 } from "../types";
+
+// Picks validation properties from an input object, only keeping those
+// applicable to the given field type. Returns only defined values.
+function pickValidation(
+  type: FieldType,
+  input: {
+    minLength?: number;
+    maxLength?: number;
+    pattern?: string;
+    patternError?: string;
+    min?: number | string;
+    max?: number | string;
+  },
+): Partial<FormField> {
+  const out: Partial<FormField> = {};
+  if (TEXT_VALIDATION_TYPES.includes(type)) {
+    if (input.minLength != null && Number.isFinite(Number(input.minLength))) {
+      out.minLength = Number(input.minLength);
+    }
+    if (input.maxLength != null && Number.isFinite(Number(input.maxLength))) {
+      out.maxLength = Number(input.maxLength);
+    }
+    if (typeof input.pattern === "string" && input.pattern.trim()) {
+      out.pattern = input.pattern.trim();
+    }
+    if (typeof input.patternError === "string" && input.patternError.trim()) {
+      out.patternError = input.patternError.trim();
+    }
+  }
+  if (RANGE_VALIDATION_TYPES.includes(type)) {
+    if (input.min != null) out.min = input.min;
+    if (input.max != null) out.max = input.max;
+  }
+  return out;
+}
 
 export const formsRoutes = {
   "list-forms": {
@@ -157,6 +192,12 @@ export const formsRoutes = {
           placeholder?: string;
           options?: FieldOption[];
           defaultValue?: string | string[];
+          minLength?: number;
+          maxLength?: number;
+          pattern?: string;
+          patternError?: string;
+          min?: number | string;
+          max?: number | string;
         };
         // "new" creates a new row at the end; a number appends to an existing
         // row; omit to default to "new".
@@ -251,6 +292,7 @@ export const formsRoutes = {
         placeholder: field.placeholder,
         ...(isOptionType(field.type) ? { options: field.options } : {}),
         ...(field.defaultValue !== undefined ? { defaultValue: field.defaultValue } : {}),
+        ...pickValidation(field.type, field),
       };
 
       let rows = [...form.rows];
@@ -303,6 +345,12 @@ export const formsRoutes = {
         placeholder?: string;
         options?: FieldOption[];
         defaultValue?: string | string[] | null;
+        minLength?: number | null;
+        maxLength?: number | null;
+        pattern?: string | null;
+        patternError?: string | null;
+        min?: number | string | null;
+        max?: number | string | null;
       };
       if (!input?.formId || !input?.fieldId) {
         throw PluginRouteError.badRequest("Missing formId or fieldId");
@@ -369,6 +417,31 @@ export const formsRoutes = {
               }
               next.defaultValue = input.defaultValue;
             }
+          }
+          // Validation fields — null clears, undefined leaves unchanged.
+          if (input.minLength !== undefined) {
+            if (input.minLength === null) delete next.minLength;
+            else next.minLength = Number(input.minLength);
+          }
+          if (input.maxLength !== undefined) {
+            if (input.maxLength === null) delete next.maxLength;
+            else next.maxLength = Number(input.maxLength);
+          }
+          if (input.pattern !== undefined) {
+            if (input.pattern === null || input.pattern === "") delete next.pattern;
+            else next.pattern = input.pattern;
+          }
+          if (input.patternError !== undefined) {
+            if (input.patternError === null || input.patternError === "") delete next.patternError;
+            else next.patternError = input.patternError;
+          }
+          if (input.min !== undefined) {
+            if (input.min === null) delete next.min;
+            else next.min = input.min;
+          }
+          if (input.max !== undefined) {
+            if (input.max === null) delete next.max;
+            else next.max = input.max;
           }
           found = next;
           return next;

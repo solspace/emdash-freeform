@@ -15,6 +15,9 @@ export const FIELD_TYPES = [
   "radio",
   "select",
   "multi_select",
+  "date",
+  "hidden",
+  "html",
 ] as const;
 
 export const OPTION_FIELD_TYPES = ["checkbox_group", "radio", "select", "multi_select"] as const;
@@ -49,11 +52,25 @@ const FIELD_SCHEMA = {
     },
     defaultValue: {
       description:
-        "Optional pre-filled value. For text/email/textarea/number/phone, a plain string. For 'checkbox' (single), use 'true' to default-checked. For radio/select, the chosen option's value. For checkbox_group/multi_select, an array of option values. Option-bearing types: must match available option values.",
+        "Optional pre-filled value. For text/email/textarea/number/phone/date, a plain string. For 'checkbox' (single), use 'true' to default-checked. For radio/select, the chosen option's value. For checkbox_group/multi_select, an array of option values. For 'html', the raw HTML content to render. For 'hidden', the fixed value submitted with the form.",
       oneOf: [
         { type: "string" },
         { type: "array", items: { type: "string" } },
       ],
+    },
+    // ── Validation (text, email, textarea, phone) ─────────────────
+    minLength: { type: "number", description: "Minimum character count. Applies to: text, email, textarea, phone." },
+    maxLength: { type: "number", description: "Maximum character count. Applies to: text, email, textarea, phone." },
+    pattern: { type: "string", description: "HTML5 pattern attribute (regex). Applies to: text, email, textarea, phone." },
+    patternError: { type: "string", description: "Message shown when pattern does not match (rendered as HTML title). Applies to: text, email, textarea, phone." },
+    // ── Range (number, date) ──────────────────────────────────────
+    min: {
+      description: "Minimum value (number) or earliest date in YYYY-MM-DD format. Applies to: number, date.",
+      oneOf: [{ type: "number" }, { type: "string" }],
+    },
+    max: {
+      description: "Maximum value (number) or latest date in YYYY-MM-DD format. Applies to: number, date.",
+      oneOf: [{ type: "number" }, { type: "string" }],
     },
   },
   additionalProperties: false,
@@ -264,7 +281,7 @@ export const TOOLS = [
   {
     name: "update_field",
     description:
-      "Update properties of an existing field. Only provided properties change; omitted ones are untouched. Prefer this over `update_form` for single-field edits — it avoids the risk of accidentally clobbering other form state. Field id, handle, and type are immutable (use remove_field + add_field to change those). Pass defaultValue: null to clear a default.",
+      "Update properties of an existing field. Only provided properties change; omitted ones are untouched. Prefer this over `update_form` for single-field edits — it avoids the risk of accidentally clobbering other form state. Field id, handle, and type are immutable (use remove_field + add_field to change those). Pass null for any property to clear it.",
     inputSchema: {
       type: "object",
       required: ["formId", "fieldId"],
@@ -282,13 +299,19 @@ export const TOOLS = [
         },
         defaultValue: {
           description:
-            "Pre-filled value (same shape rules as add_field). Pass null to clear an existing default.",
+            "Pre-filled value (same shape rules as add_field). Pass null to clear.",
           oneOf: [
             { type: "string" },
             { type: "array", items: { type: "string" } },
             { type: "null" },
           ],
         },
+        minLength: { oneOf: [{ type: "number" }, { type: "null" }], description: "Pass null to clear." },
+        maxLength: { oneOf: [{ type: "number" }, { type: "null" }], description: "Pass null to clear." },
+        pattern: { oneOf: [{ type: "string" }, { type: "null" }], description: "Pass null to clear." },
+        patternError: { oneOf: [{ type: "string" }, { type: "null" }], description: "Pass null to clear." },
+        min: { oneOf: [{ type: "number" }, { type: "string" }, { type: "null" }], description: "Pass null to clear." },
+        max: { oneOf: [{ type: "number" }, { type: "string" }, { type: "null" }], description: "Pass null to clear." },
       },
       additionalProperties: false,
     },

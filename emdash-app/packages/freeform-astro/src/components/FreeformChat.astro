@@ -52,13 +52,12 @@ const {
         <div data-freeform-chat-bubble>{initialGreeting}</div>
       </div>
     </div>
-    <form data-freeform-chat-input novalidate>
+    <form data-freeform-chat-input>
       <textarea
         rows="2"
         placeholder="Type a reply…"
         required
-        aria-label="Your message"
-      ></textarea>
+        aria-label="Your message"></textarea>
       <button type="submit">Send</button>
     </form>
   </div>
@@ -66,7 +65,10 @@ const {
 
 <script>
   type Role = "user" | "assistant";
-  interface Msg { role: Role; content: string; }
+  interface Msg {
+    role: Role;
+    content: string;
+  }
   interface JourneyEntry {
     url: string;
     title?: string | null;
@@ -95,12 +97,15 @@ const {
     t = t.replace(/`([^`]+)`/g, "<code>$1</code>");
     t = t.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
     t = t.replace(/(^|[^*\w])\*([^*\n]+)\*(?!\w)/g, "$1<em>$2</em>");
-    t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label: string, url: string) => {
-      const href = safeHref(url);
-      return href
-        ? `<a href="${href}" target="_blank" rel="noopener">${label}</a>`
-        : label;
-    });
+    t = t.replace(
+      /\[([^\]]+)\]\(([^)]+)\)/g,
+      (_m, label: string, url: string) => {
+        const href = safeHref(url);
+        return href
+          ? `<a href="${href}" target="_blank" rel="noopener">${label}</a>`
+          : label;
+      },
+    );
     return t;
   }
 
@@ -117,26 +122,42 @@ const {
       }
     };
     const closeList = () => {
-      if (listType) { out.push(`</${listType}>`); listType = null; }
+      if (listType) {
+        out.push(`</${listType}>`);
+        listType = null;
+      }
     };
 
     for (const raw of lines) {
       const line = raw.trim();
-      if (!line) { flushPara(); closeList(); continue; }
+      if (!line) {
+        flushPara();
+        closeList();
+        continue;
+      }
       const h = line.match(/^(#{1,6})\s+(.*)$/);
       const ul = line.match(/^[-*]\s+(.*)$/);
       const ol = line.match(/^\d+\.\s+(.*)$/);
       if (h) {
-        flushPara(); closeList();
+        flushPara();
+        closeList();
         const lvl = Math.min(6, h[1].length + 2);
         out.push(`<h${lvl}>${renderInline(h[2])}</h${lvl}>`);
       } else if (ul) {
         flushPara();
-        if (listType !== "ul") { closeList(); out.push("<ul>"); listType = "ul"; }
+        if (listType !== "ul") {
+          closeList();
+          out.push("<ul>");
+          listType = "ul";
+        }
         out.push(`<li>${renderInline(ul[1])}</li>`);
       } else if (ol) {
         flushPara();
-        if (listType !== "ol") { closeList(); out.push("<ol>"); listType = "ol"; }
+        if (listType !== "ol") {
+          closeList();
+          out.push("<ol>");
+          listType = "ol";
+        }
         out.push(`<li>${renderInline(ol[1])}</li>`);
       } else {
         closeList();
@@ -148,134 +169,141 @@ const {
     return out.join("\n");
   }
 
-  document.querySelectorAll<HTMLElement>("[data-freeform-chat]").forEach((root) => {
-    const log = root.querySelector<HTMLElement>("[data-freeform-chat-log]")!;
-    const form = root.querySelector<HTMLFormElement>("[data-freeform-chat-input]")!;
-    const ta = form.querySelector<HTMLTextAreaElement>("textarea")!;
-    const btn = form.querySelector<HTMLButtonElement>("button")!;
+  document
+    .querySelectorAll<HTMLElement>("[data-freeform-chat]")
+    .forEach((root) => {
+      const log = root.querySelector<HTMLElement>("[data-freeform-chat-log]")!;
+      const form = root.querySelector<HTMLFormElement>(
+        "[data-freeform-chat-input]",
+      )!;
+      const ta = form.querySelector<HTMLTextAreaElement>("textarea")!;
+      const btn = form.querySelector<HTMLButtonElement>("button")!;
 
-    const formHandle = root.dataset.formHandle!;
-    const siteName = root.dataset.siteName || "";
-    const salesContext = root.dataset.salesContext || "";
+      const formHandle = root.dataset.formHandle!;
+      const siteName = root.dataset.siteName || "";
+      const salesContext = root.dataset.salesContext || "";
 
-    // Seed history with the greeting already rendered server-side.
-    const initial = root.querySelector<HTMLElement>(
-      "[data-freeform-chat-role='assistant'] [data-freeform-chat-bubble]",
-    )!;
-    const history: Msg[] = [{ role: "assistant", content: initial.textContent || "" }];
-    let submitted = false;
+      // Seed history with the greeting already rendered server-side.
+      const initial = root.querySelector<HTMLElement>(
+        "[data-freeform-chat-role='assistant'] [data-freeform-chat-bubble]",
+      )!;
+      const history: Msg[] = [
+        { role: "assistant", content: initial.textContent || "" },
+      ];
+      let submitted = false;
 
-    function appendMsg(
-      role: Role,
-      text: string,
-      opts: { submitted?: boolean } = {},
-    ) {
-      const wrap = document.createElement("div");
-      wrap.setAttribute("data-freeform-chat-message", "");
-      wrap.setAttribute("data-freeform-chat-role", role);
-      if (opts.submitted) wrap.setAttribute("data-freeform-chat-submitted", "");
+      function appendMsg(
+        role: Role,
+        text: string,
+        opts: { submitted?: boolean } = {},
+      ) {
+        const wrap = document.createElement("div");
+        wrap.setAttribute("data-freeform-chat-message", "");
+        wrap.setAttribute("data-freeform-chat-role", role);
+        if (opts.submitted)
+          wrap.setAttribute("data-freeform-chat-submitted", "");
 
-      const r = document.createElement("div");
-      r.setAttribute("data-freeform-chat-label", "");
-      r.textContent = role === "user" ? "You" : "Concierge";
+        const r = document.createElement("div");
+        r.setAttribute("data-freeform-chat-label", "");
+        r.textContent = role === "user" ? "You" : "Concierge";
 
-      const b = document.createElement("div");
-      b.setAttribute("data-freeform-chat-bubble", "");
-      if (role === "assistant") {
-        b.innerHTML = renderMarkdown(text);
-      } else {
-        b.textContent = text;
-      }
+        const b = document.createElement("div");
+        b.setAttribute("data-freeform-chat-bubble", "");
+        if (role === "assistant") {
+          b.innerHTML = renderMarkdown(text);
+        } else {
+          b.textContent = text;
+        }
 
-      wrap.appendChild(r);
-      wrap.appendChild(b);
-      log.appendChild(wrap);
-      log.scrollTop = log.scrollHeight;
-    }
-
-    function setTyping(on: boolean) {
-      const existing = log.querySelector("[data-freeform-chat-typing]");
-      if (on && !existing) {
-        const el = document.createElement("div");
-        el.setAttribute("data-freeform-chat-typing", "");
-        el.textContent = "Concierge is typing…";
-        log.appendChild(el);
+        wrap.appendChild(r);
+        wrap.appendChild(b);
+        log.appendChild(wrap);
         log.scrollTop = log.scrollHeight;
       }
-      if (!on && existing) existing.remove();
-    }
 
-    function readJourney(): JourneyEntry[] {
-      try {
-        const raw = localStorage.getItem("ff_journey");
-        return raw ? JSON.parse(raw) : [];
-      } catch {
-        return [];
-      }
-    }
-
-    ta.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
-        e.preventDefault();
-        form.requestSubmit();
-      }
-    });
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      if (submitted) return;
-      const text = ta.value.trim();
-      if (!text) return;
-
-      appendMsg("user", text);
-      history.push({ role: "user", content: text });
-      ta.value = "";
-      btn.disabled = true;
-      setTyping(true);
-
-      try {
-        const res = await fetch("/api/freeform/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: history,
-            formHandle,
-            siteName,
-            salesContext,
-            journey: readJourney(),
-          }),
-        });
-        const json = ((await res.json()).data ?? {}) as {
-          kind?: "text" | "submitted";
-          reply?: string;
-          submission?: { success: boolean; message?: string; error?: string };
-          error?: string;
-        };
-
-        setTyping(false);
-        const reply = json.reply || "(no response)";
-
-        if (json.kind === "submitted") {
-          appendMsg("assistant", reply, { submitted: true });
-          history.push({ role: "assistant", content: reply });
-          if (json.submission?.success) {
-            submitted = true;
-            ta.disabled = true;
-            ta.placeholder = "Submitted — a human will follow up shortly.";
-          }
-        } else if (json.error) {
-          appendMsg("assistant", `Something went wrong: ${json.error}`);
-        } else {
-          appendMsg("assistant", reply);
-          history.push({ role: "assistant", content: reply });
+      function setTyping(on: boolean) {
+        const existing = log.querySelector("[data-freeform-chat-typing]");
+        if (on && !existing) {
+          const el = document.createElement("div");
+          el.setAttribute("data-freeform-chat-typing", "");
+          el.textContent = "Concierge is typing…";
+          log.appendChild(el);
+          log.scrollTop = log.scrollHeight;
         }
-      } catch {
-        setTyping(false);
-        appendMsg("assistant", "Network error — please try again.");
+        if (!on && existing) existing.remove();
       }
 
-      btn.disabled = false;
-      ta.focus();
+      function readJourney(): JourneyEntry[] {
+        try {
+          const raw = localStorage.getItem("ff_journey");
+          return raw ? JSON.parse(raw) : [];
+        } catch {
+          return [];
+        }
+      }
+
+      ta.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+          e.preventDefault();
+          form.requestSubmit();
+        }
+      });
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (submitted) return;
+        const text = ta.value.trim();
+        if (!text) return;
+
+        appendMsg("user", text);
+        history.push({ role: "user", content: text });
+        ta.value = "";
+        btn.disabled = true;
+        setTyping(true);
+
+        try {
+          const res = await fetch("/api/freeform/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messages: history,
+              formHandle,
+              siteName,
+              salesContext,
+              journey: readJourney(),
+            }),
+          });
+          const json = ((await res.json()).data ?? {}) as {
+            kind?: "text" | "submitted";
+            reply?: string;
+            submission?: { success: boolean; message?: string; error?: string };
+            error?: string;
+          };
+
+          setTyping(false);
+          const reply = json.reply || "(no response)";
+
+          if (json.kind === "submitted") {
+            appendMsg("assistant", reply, { submitted: true });
+            history.push({ role: "assistant", content: reply });
+            if (json.submission?.success) {
+              submitted = true;
+              ta.disabled = true;
+              ta.placeholder = "Submitted — a human will follow up shortly.";
+            }
+          } else if (json.error) {
+            appendMsg("assistant", `Something went wrong: ${json.error}`);
+          } else {
+            appendMsg("assistant", reply);
+            history.push({ role: "assistant", content: reply });
+          }
+        } catch {
+          setTyping(false);
+          appendMsg("assistant", "Network error — please try again.");
+        }
+
+        btn.disabled = false;
+        ta.focus();
+      });
     });
-  });
 </script>

@@ -37,6 +37,14 @@ interface FormField {
   placeholder?: string;
   options?: FieldOption[];
   defaultValue?: string | string[];
+  // Per-field validation (text/email/textarea/phone)
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  patternError?: string;
+  // Per-field range (number/date)
+  min?: number | string;
+  max?: number | string;
 }
 
 const asStringDefault = (v: string | string[] | undefined): string =>
@@ -72,7 +80,12 @@ interface Props {
 
 const { formId, class: className, disablePrefill } = Astro.props;
 
-const OPTION_TYPES = new Set(["checkbox_group", "radio", "select", "multi_select"]);
+const OPTION_TYPES = new Set([
+  "checkbox_group",
+  "radio",
+  "select",
+  "multi_select",
+]);
 const MULTI_TYPES = new Set(["checkbox_group", "multi_select"]);
 const truthyCheckboxValues = new Set(["1", "true", "yes", "on"]);
 
@@ -107,7 +120,9 @@ function applyPrefill(rows: FormRow[], params: URLSearchParams): string[] {
           .map((v) => sanitizePrefillValue(v).trim())
           .filter(Boolean)
           .slice(0, MAX_MULTI_VALUES);
-        const filtered = allowed ? cleaned.filter((v) => allowed.has(v)) : cleaned;
+        const filtered = allowed
+          ? cleaned.filter((v) => allowed.has(v))
+          : cleaned;
         if (filtered.length) {
           field.defaultValue = filtered;
           applied.push(field.handle);
@@ -189,278 +204,357 @@ const agentActionLd = formData
   : "";
 ---
 
-{fetchError ? (
-  <p data-freeform-error>{fetchError}</p>
-) : formData ? (
-  <>
-    <script type="application/ld+json" set:html={agentActionLd} />
-    {prefilledFields.length > 0 && (
-      <p data-freeform-prefill role="status">
-        <strong>{prefilledFields.length} field{prefilledFields.length === 1 ? "" : "s"} pre-filled</strong>
-        {" "}from the link. Review the values below, then click Submit.
-      </p>
-    )}
-    <form
-      id={`ff-${formId}`}
-      class={className}
-      data-freeform-form
-      data-freeform-handle={formData.handle}
-      data-form-id={formId}
-      data-resolved-id={formData.id}
-      data-success={formData.successMessage}
-      data-agent-endpoint={agentEndpoint}
-      data-agent-schema={agentSchemaPath}
-      data-prefilled-fields={prefilledFields.join(",")}
-      novalidate
-    >
-      {formData.rows.map((row) => (
-        <div
-          data-freeform-row
-          data-freeform-cols={row.fields.length}
-        >
-          {row.fields.map((field) => {
-            const isStandaloneCheckbox = field.type === "checkbox";
-            const isOptionGroup =
-              field.type === "radio" || field.type === "checkbox_group";
-            const showTopLabel = !isStandaloneCheckbox && !isOptionGroup;
-            const showGroupLabel = isOptionGroup;
-
-            return (
-              <div
-                data-freeform-field
-                data-freeform-type={field.type}
-                {...(field.required ? { "data-freeform-required": true } : {})}
-              >
-                {showTopLabel && (
-                  <label for={`ff-${formId}-${field.handle}`}>
-                    {field.label}
-                    {field.required && (
-                      <span data-freeform-required-mark aria-hidden="true"> *</span>
-                    )}
-                  </label>
-                )}
-                {showGroupLabel && (
-                  <span data-freeform-group-label>
-                    {field.label}
-                    {field.required && (
-                      <span data-freeform-required-mark aria-hidden="true"> *</span>
-                    )}
-                  </span>
-                )}
-
-                {field.type === "textarea" ? (
-                  <textarea
-                    id={`ff-${formId}-${field.handle}`}
-                    name={field.handle}
-                    required={field.required}
-                    placeholder={field.placeholder ?? ""}
-                    data-freeform-input
-                    rows={4}
-                  >{asStringDefault(field.defaultValue)}</textarea>
-                ) : field.type === "select" ? (
-                  (() => {
-                    const selected = asStringDefault(field.defaultValue);
-                    return (
-                      <select
-                        id={`ff-${formId}-${field.handle}`}
-                        name={field.handle}
-                        required={field.required}
-                        data-freeform-input
-                      >
-                        <option value="" selected={!selected}>— Select —</option>
-                        {(field.options ?? []).map((opt) => (
-                          <option value={opt.value} selected={opt.value === selected}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    );
-                  })()
-                ) : field.type === "multi_select" ? (
-                  (() => {
-                    const selected = asArrayDefault(field.defaultValue);
-                    return (
-                      <select
-                        id={`ff-${formId}-${field.handle}`}
-                        name={field.handle}
-                        required={field.required}
-                        multiple
-                        data-freeform-input
-                        data-freeform-multi
-                      >
-                        {(field.options ?? []).map((opt) => (
-                          <option value={opt.value} selected={selected.has(opt.value)}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    );
-                  })()
-                ) : field.type === "radio" ? (
-                  (() => {
-                    const selected = asStringDefault(field.defaultValue);
-                    return (
-                      <div data-freeform-options role="radiogroup">
-                        {(field.options ?? []).map((opt, i) => (
-                          <label data-freeform-option>
-                            <input
-                              type="radio"
-                              name={field.handle}
-                              value={opt.value}
-                              required={field.required && i === 0}
-                              checked={opt.value === selected}
-                            />
-                            <span>{opt.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    );
-                  })()
-                ) : field.type === "checkbox_group" ? (
-                  (() => {
-                    const selected = asArrayDefault(field.defaultValue);
-                    return (
-                      <div data-freeform-options>
-                        {(field.options ?? []).map((opt) => (
-                          <label data-freeform-option>
-                            <input
-                              type="checkbox"
-                              name={field.handle}
-                              value={opt.value}
-                              checked={selected.has(opt.value)}
-                            />
-                            <span>{opt.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    );
-                  })()
-                ) : field.type === "checkbox" ? (
-                  <label data-freeform-option data-freeform-option-single>
-                    <input
-                      id={`ff-${formId}-${field.handle}`}
-                      type="checkbox"
-                      name={field.handle}
-                      value="true"
-                      required={field.required}
-                      checked={asStringDefault(field.defaultValue) === "true"}
-                    />
-                    <span>
-                      {field.label}
-                      {field.required && (
-                        <span data-freeform-required-mark aria-hidden="true"> *</span>
-                      )}
-                    </span>
-                  </label>
-                ) : (
+{
+  fetchError ? (
+    <p data-freeform-error>{fetchError}</p>
+  ) : formData ? (
+    <>
+      <script type="application/ld+json" set:html={agentActionLd} />
+      {prefilledFields.length > 0 && (
+        <p data-freeform-prefill role="status">
+          <strong>
+            {prefilledFields.length} field
+            {prefilledFields.length === 1 ? "" : "s"} pre-filled
+          </strong>{" "}
+          from the link. Review the values below, then click Submit.
+        </p>
+      )}
+      <form
+        id={`ff-${formId}`}
+        class={className}
+        data-freeform-form
+        data-freeform-handle={formData.handle}
+        data-form-id={formId}
+        data-resolved-id={formData.id}
+        data-success={formData.successMessage}
+        data-agent-endpoint={agentEndpoint}
+        data-agent-schema={agentSchemaPath}
+        data-prefilled-fields={prefilledFields.join(",")}
+      >
+        {formData.rows.map((row) => (
+          <div data-freeform-row data-freeform-cols={row.fields.length}>
+            {row.fields.map((field) => {
+              // hidden: renders as a bare <input type="hidden"> — no wrapper, no label.
+              if (field.type === "hidden") {
+                return (
                   <input
-                    type={field.type === "phone" ? "tel" : field.type}
-                    id={`ff-${formId}-${field.handle}`}
+                    type="hidden"
                     name={field.handle}
-                    required={field.required}
-                    placeholder={field.placeholder ?? ""}
-                    data-freeform-input
                     value={asStringDefault(field.defaultValue)}
                   />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ))}
+                );
+              }
 
-      <input type="hidden" name="__ff_csrf" value={formData.csrfToken} />
+              // html: renders admin-supplied HTML content — no input, no label.
+              // Content is stored in defaultValue. Admin controls this so set:html is safe.
+              if (field.type === "html") {
+                return (
+                  <div
+                    data-freeform-field
+                    data-freeform-type="html"
+                    set:html={asStringDefault(field.defaultValue)}
+                  />
+                );
+              }
 
-      {/* Honeypot — visually hidden, still in DOM so bots fill it */}
-      <div data-freeform-hp aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;">
-        <label>
-          Leave this field empty
-          <input
-            type="text"
-            name="__ff_hp_url"
-            tabindex={-1}
-            autocomplete="off"
-            value=""
-          />
-        </label>
-      </div>
+              const isStandaloneCheckbox = field.type === "checkbox";
+              const isOptionGroup =
+                field.type === "radio" || field.type === "checkbox_group";
+              const showTopLabel = !isStandaloneCheckbox && !isOptionGroup;
+              const showGroupLabel = isOptionGroup;
 
-      <div data-freeform-footer>
-        <button type="submit" data-freeform-submit>Submit</button>
+              return (
+                <div
+                  data-freeform-field
+                  data-freeform-type={field.type}
+                  {...(field.required
+                    ? { "data-freeform-required": true }
+                    : {})}
+                >
+                  {showTopLabel && (
+                    <label for={`ff-${formId}-${field.handle}`}>
+                      {field.label}
+                      {field.required && (
+                        <span data-freeform-required-mark aria-hidden="true">
+                          {" "}
+                          *
+                        </span>
+                      )}
+                    </label>
+                  )}
+                  {showGroupLabel && (
+                    <span data-freeform-group-label>
+                      {field.label}
+                      {field.required && (
+                        <span data-freeform-required-mark aria-hidden="true">
+                          {" "}
+                          *
+                        </span>
+                      )}
+                    </span>
+                  )}
+
+                  {field.type === "textarea" ? (
+                    <textarea
+                      id={`ff-${formId}-${field.handle}`}
+                      name={field.handle}
+                      required={field.required}
+                      placeholder={field.placeholder ?? ""}
+                      data-freeform-input
+                      rows={4}
+                      {...(field.minLength
+                        ? { minlength: field.minLength }
+                        : {})}
+                      {...(field.maxLength
+                        ? { maxlength: field.maxLength }
+                        : {})}
+                      {...(field.pattern ? { pattern: field.pattern } : {})}
+                      {...(field.patternError
+                        ? { title: field.patternError }
+                        : {})}
+                    >
+                      {asStringDefault(field.defaultValue)}
+                    </textarea>
+                  ) : field.type === "select" ? (
+                    (() => {
+                      const selected = asStringDefault(field.defaultValue);
+                      return (
+                        <select
+                          id={`ff-${formId}-${field.handle}`}
+                          name={field.handle}
+                          required={field.required}
+                          data-freeform-input
+                        >
+                          <option value="" selected={!selected}>
+                            — Select —
+                          </option>
+                          {(field.options ?? []).map((opt) => (
+                            <option
+                              value={opt.value}
+                              selected={opt.value === selected}
+                            >
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      );
+                    })()
+                  ) : field.type === "multi_select" ? (
+                    (() => {
+                      const selected = asArrayDefault(field.defaultValue);
+                      return (
+                        <select
+                          id={`ff-${formId}-${field.handle}`}
+                          name={field.handle}
+                          required={field.required}
+                          multiple
+                          data-freeform-input
+                          data-freeform-multi
+                        >
+                          {(field.options ?? []).map((opt) => (
+                            <option
+                              value={opt.value}
+                              selected={selected.has(opt.value)}
+                            >
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      );
+                    })()
+                  ) : field.type === "radio" ? (
+                    (() => {
+                      const selected = asStringDefault(field.defaultValue);
+                      return (
+                        <div data-freeform-options role="radiogroup">
+                          {(field.options ?? []).map((opt, i) => (
+                            <label data-freeform-option>
+                              <input
+                                type="radio"
+                                name={field.handle}
+                                value={opt.value}
+                                required={field.required && i === 0}
+                                checked={opt.value === selected}
+                              />
+                              <span>{opt.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      );
+                    })()
+                  ) : field.type === "checkbox_group" ? (
+                    (() => {
+                      const selected = asArrayDefault(field.defaultValue);
+                      return (
+                        <div data-freeform-options>
+                          {(field.options ?? []).map((opt) => (
+                            <label data-freeform-option>
+                              <input
+                                type="checkbox"
+                                name={field.handle}
+                                value={opt.value}
+                                checked={selected.has(opt.value)}
+                              />
+                              <span>{opt.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      );
+                    })()
+                  ) : field.type === "checkbox" ? (
+                    <label data-freeform-option data-freeform-option-single>
+                      <input
+                        id={`ff-${formId}-${field.handle}`}
+                        type="checkbox"
+                        name={field.handle}
+                        value="true"
+                        required={field.required}
+                        checked={asStringDefault(field.defaultValue) === "true"}
+                      />
+                      <span>
+                        {field.label}
+                        {field.required && (
+                          <span data-freeform-required-mark aria-hidden="true">
+                            {" "}
+                            *
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  ) : (
+                    // Catches: text, email, number, phone, date + any future types
+                    <input
+                      type={field.type === "phone" ? "tel" : field.type}
+                      id={`ff-${formId}-${field.handle}`}
+                      name={field.handle}
+                      required={field.required}
+                      placeholder={field.placeholder ?? ""}
+                      data-freeform-input
+                      value={asStringDefault(field.defaultValue)}
+                      {...(field.minLength
+                        ? { minlength: field.minLength }
+                        : {})}
+                      {...(field.maxLength
+                        ? { maxlength: field.maxLength }
+                        : {})}
+                      {...(field.pattern ? { pattern: field.pattern } : {})}
+                      {...(field.patternError
+                        ? { title: field.patternError }
+                        : {})}
+                      {...(field.min != null ? { min: field.min } : {})}
+                      {...(field.max != null ? { max: field.max } : {})}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+
+        <input type="hidden" name="__ff_csrf" value={formData.csrfToken} />
+
+        {/* Honeypot — visually hidden, still in DOM so bots fill it */}
         <div
-          data-freeform-message
-          role="status"
-          aria-live="polite"
-          hidden
-        />
-      </div>
-    </form>
+          data-freeform-hp
+          aria-hidden="true"
+          style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"
+        >
+          <label>
+            Leave this field empty
+            <input
+              type="text"
+              name="__ff_hp_url"
+              tabindex={-1}
+              autocomplete="off"
+              value=""
+            />
+          </label>
+        </div>
 
-    <aside data-freeform-ai-cue aria-label="AI submission instructions">
-      <p data-freeform-ai-cue-headline>Your favorite AI can submit this form for you.</p>
-      <p data-freeform-ai-cue-spec>
-        AI agents: fetch <a href={agentSchemaPath}>{agentSchemaPath}</a> for the field schema,
-        then POST JSON to <a href={agentEndpoint}>{agentEndpoint}</a>.
-      </p>
-    </aside>
-  </>
-) : null}
+        <div data-freeform-footer>
+          <button type="submit" data-freeform-submit>
+            Submit
+          </button>
+          <div data-freeform-message role="status" aria-live="polite" hidden />
+        </div>
+      </form>
+
+      <aside data-freeform-ai-cue aria-label="AI submission instructions">
+        <p data-freeform-ai-cue-headline>
+          Your favorite AI can submit this form for you.
+        </p>
+        <p data-freeform-ai-cue-spec>
+          AI agents: fetch <a href={agentSchemaPath}>{agentSchemaPath}</a> for
+          the field schema, then POST JSON to{" "}
+          <a href={agentEndpoint}>{agentEndpoint}</a>.
+        </p>
+      </aside>
+    </>
+  ) : null
+}
 
 <script>
-  document.querySelectorAll<HTMLFormElement>("[data-freeform-form]").forEach((form) => {
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
+  document
+    .querySelectorAll<HTMLFormElement>("[data-freeform-form]")
+    .forEach((form) => {
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
 
-      const formId = form.dataset.formId!;
-      const resolvedId = form.dataset.resolvedId ?? formId;
-      const msgEl = form.querySelector<HTMLElement>("[data-freeform-message]")!;
-      const submitBtn = form.querySelector<HTMLButtonElement>("[data-freeform-submit]")!;
+        const formId = form.dataset.formId!;
+        const resolvedId = form.dataset.resolvedId ?? formId;
+        const msgEl = form.querySelector<HTMLElement>(
+          "[data-freeform-message]",
+        )!;
+        const submitBtn = form.querySelector<HTMLButtonElement>(
+          "[data-freeform-submit]",
+        )!;
 
-      submitBtn.disabled = true;
-      msgEl.hidden = true;
-      msgEl.removeAttribute("data-freeform-state");
+        submitBtn.disabled = true;
+        msgEl.hidden = true;
+        msgEl.removeAttribute("data-freeform-state");
 
-      // Collect field values. Keys appearing more than once (checkbox groups,
-      // <select multiple>) become arrays; everything else is a single string.
-      const fd = new FormData(form);
-      const payload: Record<string, unknown> = { formId: resolvedId };
-      for (const key of new Set(fd.keys())) {
-        const all = fd.getAll(key).map((v) => String(v));
-        payload[key] = all.length > 1 ? all : all[0];
-      }
-      try {
-        const raw = localStorage.getItem("ff_journey");
-        if (raw) payload.__ff_journey = JSON.parse(raw);
-      } catch {}
+        // Collect field values. Keys appearing more than once (checkbox groups,
+        // <select multiple>) become arrays; everything else is a single string.
+        const fd = new FormData(form);
+        const payload: Record<string, unknown> = { formId: resolvedId };
+        for (const key of new Set(fd.keys())) {
+          const all = fd.getAll(key).map((v) => String(v));
+          payload[key] = all.length > 1 ? all : all[0];
+        }
+        try {
+          const raw = localStorage.getItem("ff_journey");
+          if (raw) payload.__ff_journey = JSON.parse(raw);
+        } catch {}
 
-      try {
-        const res = await fetch("/_emdash/api/plugins/freeform/submit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+        try {
+          const res = await fetch("/_emdash/api/plugins/freeform/submit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
 
-        const json = ((await res.json()).data ?? {}) as {
-          success: boolean;
-          message?: string;
-          error?: string;
-        };
+          const json = ((await res.json()).data ?? {}) as {
+            success: boolean;
+            message?: string;
+            error?: string;
+          };
 
-        if (json.success) {
-          form.reset();
-          msgEl.textContent = json.message ?? "Thank you!";
-          msgEl.setAttribute("data-freeform-state", "success");
-        } else {
-          msgEl.textContent = json.error ?? "Submission failed. Please try again.";
+          if (json.success) {
+            form.reset();
+            msgEl.textContent = json.message ?? "Thank you!";
+            msgEl.setAttribute("data-freeform-state", "success");
+          } else {
+            msgEl.textContent =
+              json.error ?? "Submission failed. Please try again.";
+            msgEl.setAttribute("data-freeform-state", "error");
+          }
+        } catch {
+          msgEl.textContent = "Network error — please try again.";
           msgEl.setAttribute("data-freeform-state", "error");
         }
-      } catch {
-        msgEl.textContent = "Network error — please try again.";
-        msgEl.setAttribute("data-freeform-state", "error");
-      }
 
-      msgEl.hidden = false;
-      submitBtn.disabled = false;
+        msgEl.hidden = false;
+        submitBtn.disabled = false;
+      });
     });
-  });
 </script>

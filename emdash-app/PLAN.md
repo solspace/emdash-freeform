@@ -146,9 +146,9 @@ Layer B (route protocol convention between plugins) is deferred.
 
 ## Phase 5 — Form Builder Enhancements
 
-- [ ] New field types: `date`, `hidden`, `html` — add to `ALL_FIELD_TYPES`, render in `FreeformForm.astro`
-- [ ] Per-field validation: `minLength`/`maxLength`/`pattern`/`patternError` for text; `min`/`max` for number
-- [ ] Render validation rules as HTML5 attributes in `FreeformForm.astro`
+- [x] New field types: `date`, `hidden`, `html` — add to `ALL_FIELD_TYPES`, render in `FreeformForm.astro`
+- [x] Per-field validation: `minLength`/`maxLength`/`pattern`/`patternError` for text; `min`/`max` for number/date
+- [x] Render validation rules as HTML5 attributes in `FreeformForm.astro`
 
 ---
 
