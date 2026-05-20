@@ -1,0 +1,34 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  // ── Change these two values for your deployment ──────────────────────────
+  // `name` becomes the subdomain on workers.dev during `wrangler dev` and is
+  // used as a stable identifier for service bindings. Use something like
+  // "acme-freeform-mcp" so it doesn't clash with other customers.
+  "name": "emdash-freeform-mcp",
+
+  // workers_dev disabled — Anthropic's outbound POST allowlist blocks
+  // *.workers.dev domains. Map a custom domain route instead.
+  "workers_dev": false,
+  "routes": [
+    // Uncomment and set your own hostname:
+    // { "pattern": "freeform-mcp.example.com", "custom_domain": true }
+  ],
+
+  "main": "src/index.ts",
+  "compatibility_date": "2026-02-24",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Secrets (set via `wrangler secret put`; never commit values here):
+  //
+  //   EMDASH_SITE_URL   — The public base URL of the EmDash site this Worker
+  //                       proxies to, e.g. "https://emdash.example.com".
+  //                       Must NOT have a trailing slash.
+  //
+  //   SOLSPACE_PROXY_MODE (optional) — When set to any non-empty value, the
+  //                       Worker accepts an X-Freeform-Target-Site request
+  //                       header to override EMDASH_SITE_URL. Intended for
+  //                       the future Solspace-operated multi-tenant proxy;
+  //                       do NOT set this on customer self-deployments.
+  "vars": {}
+}

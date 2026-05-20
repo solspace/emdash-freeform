@@ -9,7 +9,7 @@ See `FREEFORM-POC.md` for architecture decisions, gotchas, and EmDash feature re
 
 - **Plugin format**: `standard` (marketplace-compatible, sandboxed V8 isolate on CF)
 - **Admin UI**: Block Kit only — no React, no drag-and-drop, no custom JS in browser
-- **Storage**: EmDash generic JSON+indexes KV API — no DDL, no raw SQL
+- **Storage**: EmDash generic JSON+indexes KV API — document storage, no DDL needed
 - **AI**: User-supplied Anthropic API key stored in plugin KV — no key, no AI features
 - **Licensing**: POC stub (`FF-*` keys = Pro). Real licensing deferred.
 - **MCP**: Standalone Cloudflare Worker (`emdash-freeform-mcp`), self-deployed per customer.
@@ -112,15 +112,16 @@ import { fetchForm } from "@solspace/freeform-astro/client"             // utili
 
 ## Phase 3 — `packages/emdash-freeform-mcp/` — Cloudflare Worker MCP Server
 
-- [ ] Scaffold `packages/emdash-freeform-mcp/` with `package.json`, `wrangler.jsonc`, `tsconfig.json`
-- [ ] `src/protocol.ts` — `rpcResult()`, `rpcError()`, `unauthorized()`
-- [ ] `src/client.ts` — `callPluginRoute()`, `publicOrigin()`, `getTargetSiteUrl()`
-- [ ] `src/tools.ts` — all 25 TOOLS definitions + schemas (ported from `mcp.ts`)
-- [ ] `src/runner.ts` — `runTool()` dispatch (ported from `mcp.ts`)
-- [ ] `src/index.ts` — Worker entry point, routes POST /mcp, rejects GET with 405
-- [ ] `README.md` — customer setup guide (deploy steps, `wrangler secret` commands)
-- [ ] Deprecate `src/pages/freeform/mcp.ts` with redirect comment
+- [x] Scaffold `packages/emdash-freeform-mcp/` with `package.json`, `wrangler.jsonc`, `tsconfig.json`
+- [x] `src/protocol.ts` — `rpcResult()`, `rpcError()`, `unauthorized()`
+- [x] `src/client.ts` — `callPluginRoute()`, `getTargetSiteUrl()`
+- [x] `src/tools.ts` — all 25 TOOLS definitions + schemas (ported from `mcp.ts`)
+- [x] `src/runner.ts` — `runTool()` dispatch (ported from `mcp.ts`)
+- [x] `src/index.ts` — Worker entry point, routes POST /mcp, rejects GET with 405
+- [x] `README.md` — customer setup guide (deploy steps, `wrangler secret` commands)
+- [x] Deprecate `src/pages/freeform/mcp.ts` with deprecation banner comment
 - [ ] Update `/.well-known/oauth-protected-resource/freeform/mcp` resource URL → Worker URL
+  (TODO in resource-metadata.ts: read `mcpWorkerUrl` from plugin KV when set)
 
 ### Deployment model
 

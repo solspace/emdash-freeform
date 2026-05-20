@@ -37,27 +37,6 @@ It's called from two places:
 
 ---
 
-## Update (2026-05-18): Why we don't get our own DB tables
-
-You'll want per-form DB tables (the Craft Freeform model — `freeform_submissions_<handle>` with a column per field). We can't have them, at least not in sandboxed plugins. Logging the reasoning here so it doesn't get re-litigated.
-
-**The constraint.** EmDash plugin storage is a generic JSON+indexed-fields key/value API. It exposes `get` / `put` / `delete` / `query` over declared collections (`forms`, `submissions`, ...) and indexes on the fields you name in the descriptor. There is **no DDL surface** — no `CREATE TABLE`, no `ALTER TABLE`, no migrations. The underlying SQLite/D1 tables belong to the host (`_emdash_plugin_storage` and friends), and EmDash core owns their migration history. Plugins write JSON blobs into those host-owned tables, period.
-
-**Why not bypass it.** Three options exist if you really want bespoke tables, and none are good:
-
-1. **Run DDL from the plugin** — breaks the sandbox model. The whole point of `format: "standard"` is that the plugin can't touch arbitrary host state. EmDash also can't audit a plugin's schema during marketplace review if the plugin mutates schema at runtime.
-2. **Run a parallel DB just for Freeform** — operational mess on Cloudflare. We'd need our own D1 binding (or external Postgres), backup story, migration runner, and we lose the unified backup/restore the EmDash host already gives us. Defeats the point of being a plugin.
-3. **Lobby EmDash for a "structured collections" plugin API** — the right product answer, but a long timeline and scope creep into the host. Worth filing as a feature request; not worth blocking on.
-
-**What we lose.** Native SQL queries over submission data. Per-field indexes Gustavs would want for reporting. Schema-level type guarantees. The comfortable "open the table in TablePlus" workflow.
-
-**What we get back.** Schema-free field changes (add/rename/delete fields without migrations). Unified backup/restore. Works identically on local SQLite and D1. Plugin sandbox stays clean.
-
-**The mitigation we just built.** CSV export over MCP. The `export_submissions_csv` MCP tool returns a short-lived signed URL that streams a CSV of any filtered submission set; the AI hands the link to the user in chat, they click, browser downloads. That gives Gustavs (and any human running a real report) the spreadsheet-shaped data without forking the storage layer. Per-form exports get a column per field handle; multi-form exports fall back to a JSON column. See the `Export endpoint` section below for the implementation.
-
-**If we ever truly need column-per-field storage.** The cleanest path is a *materialized-view* sync — an opt-in setting that, on each submission write, also inserts a row into a `freeform_<handle>` table the plugin "owns" via a privileged migration. That requires EmDash to grow either a plugin-DDL escape hatch or a structured-collections API. Not now.
-
----
 
 ## Update (2026-05-15): EmDash is built for AI, not for GUIs
 
