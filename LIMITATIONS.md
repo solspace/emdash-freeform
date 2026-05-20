@@ -22,7 +22,7 @@ All Cloudflare Workers are served at `<name>.workers.dev` by default. Anthropic 
 **The full customer setup checklist today:**
 1. Have a Cloudflare account with Workers enabled.
 2. Install Wrangler CLI.
-3. Clone or download the `packages/emdash-freeform-mcp/` directory.
+3. Clone or download the `emdash-freeform-mcp/` directory.
 4. Run `pnpm install`.
 5. Edit `wrangler.jsonc` — change `name`, uncomment and fill in the `routes` entry.
 6. Run `wrangler secret put EMDASH_SITE_URL`.
@@ -49,10 +49,10 @@ This is a developer-grade setup experience for what will eventually be a markete
 **The problem.** Every plugin route handler return value is unconditionally wrapped by EmDash in `{ data: ... }` before being sent to the client. The plugin has no escape hatch to return a raw `Response` with custom status codes, `Content-Type`, or custom headers.
 
 **What this blocks:**
-- **MCP server inside the plugin** — MCP Streamable HTTP requires `Content-Type: application/json` (not wrapped), custom status codes (202 for notifications, 405 for GET), and `WWW-Authenticate` on 401s. None of these are possible inside a plugin route today. This is why the MCP server is a separate Cloudflare Worker (`packages/emdash-freeform-mcp/`) instead of a plugin route.
+- **MCP server inside the plugin** — MCP Streamable HTTP requires `Content-Type: application/json` (not wrapped), custom status codes (202 for notifications, 405 for GET), and `WWW-Authenticate` on 401s. None of these are possible inside a plugin route today. This is why the MCP server is a separate Cloudflare Worker (`emdash-freeform-mcp/`) instead of a plugin route.
 - **Webhooks** — outbound webhook delivery is fine (plugin calls out), but any inbound webhook receiver (e.g. Stripe payment confirmation, Zapier push) needs to return a bare `200 OK` with no JSON wrapping.
 - **OAuth callbacks** — an OAuth redirect handler needs to return `302 Location: ...` which the wrapper breaks.
-- **CSV download endpoint** — `Content-Type: text/csv` with `Content-Disposition: attachment` cannot come from a plugin route. This is why the CSV download endpoint lives in `packages/freeform-astro/src/routes/export-token.ts` as an injected Astro route, not inside the plugin.
+- **CSV download endpoint** — `Content-Type: text/csv` with `Content-Disposition: attachment` cannot come from a plugin route. This is why the CSV download endpoint lives in `freeform-astro/src/routes/export-token.ts` as an injected Astro route, not inside the plugin.
 
 **The workaround we shipped.** Any protocol or file-delivery endpoint that needs raw `Response` control lives outside the plugin, either as an Astro route (injected via `freeformAstro()`) or as a standalone Worker. This works but means the "plugin" is really a three-package system (plugin + freeform-astro + mcp worker) rather than a single installable unit.
 
@@ -95,7 +95,7 @@ Until this is resolved, MCP auth is PAT-only — a single static admin identity.
 
 **What this blocks:** Distributing Freeform as a single installable unit. Today customers must install two things: the plugin from the marketplace, and the `@solspace/freeform-astro` npm package which injects the Astro routes via `freeformAstro()` in their `astro.config.mjs`.
 
-**The workaround we shipped.** `packages/freeform-astro/` is a companion Astro integration package. It injects all six Freeform-specific Astro routes via `injectRoute()` calls in its `astro:config:setup` hook. The site author adds `freeformAstro()` to their `astro.config.mjs` alongside `emdash()`.
+**The workaround we shipped.** `freeform-astro/` is a companion Astro integration package. It injects all six Freeform-specific Astro routes via `injectRoute()` calls in its `astro:config:setup` hook. The site author adds `freeformAstro()` to their `astro.config.mjs` alongside `emdash()`.
 
 **Feature request to EmDash:** Let plugin descriptors declare Astro routes that the EmDash integration auto-injects into the host, similar to how `injectRoute` works but driven by the plugin manifest. This would collapse the two-package install into one.
 
@@ -154,15 +154,17 @@ These are known gaps that are not blocked on anything external — they are deli
 | Conditional logic (show/hide fields based on values) | Out of scope. AI-driven form design is the primary path. |
 | Multi-step / wizard forms | Out of scope for v1. |
 | File upload field type | Not built. Would require R2 binding + signed upload URLs. |
-| Front-end validation beyond `required` | Not built. `minLength`, `maxLength`, `pattern` are Phase 5. |
 | Rate limiting on the submit endpoint | Not built. Rely on Cloudflare WAF for now. |
-| CSRF protection | Honeypot only. The submit endpoint accepts any POST from any origin. |
 | Field reordering in the admin | Deliberately omitted — AI-driven field management via MCP is the intended path. |
 | Spam protection beyond AI scoring | No reCAPTCHA / Turnstile integration. |
-| Webhooks / outbound integrations | Phase 4 — not started. |
-| `date`, `hidden`, `html` field types | Phase 5 — not started. |
 | Accessibility audit on rendered forms | Not done. |
 | `llms.txt` in `freeform-astro` package | Too site-specific. Kept as a template in the demo site. |
+
+**Implemented — removed from this table:**
+- **CSRF protection** — HMAC-SHA256 signed tokens issued per `get-form` call, embedded as a hidden field, verified with timing-safe comparison on submit. 2-hour expiry. (`lib/csrf.ts`)
+- **Front-end validation beyond `required`** — `minLength`, `maxLength`, `pattern`, `patternError`, `min`, `max` all stored on fields and rendered as HTML5 attributes. (Phase 5)
+- **Webhooks / outbound integrations** — HMAC-signed outbound POST on every submission, retry with 1/5/15 min backoff, delivery log, admin UI. (Phase 4)
+- **`date`, `hidden`, `html` field types** — all three implemented and rendered in `FreeformForm.astro`. (Phase 5)
 
 ---
 
@@ -170,6 +172,6 @@ These are known gaps that are not blocked on anything external — they are deli
 
 **The problem.** The RFC 9728 metadata at `/.well-known/oauth-protected-resource/freeform/mcp` currently has `resource: "${siteOrigin}/freeform/mcp"` — pointing at the deprecated in-process Astro route. Once a customer deploys the standalone MCP Worker at their own custom domain, this URL is wrong. Strict MCP clients that validate the `resource` field against the URL they're connecting to will see a mismatch.
 
-**The fix (not yet implemented).** A plugin KV setting `mcpWorkerUrl` should store the customer's deployed Worker URL. `resource-metadata.ts` should read this setting via the plugin API and use it as the `resource` field when set. The TODO is noted in `packages/freeform-astro/src/routes/resource-metadata.ts`.
+**The fix (not yet implemented).** A plugin KV setting `mcpWorkerUrl` should store the customer's deployed Worker URL. `resource-metadata.ts` should read this setting via the plugin API and use it as the `resource` field when set. The TODO is noted in `freeform-astro/src/routes/resource-metadata.ts`.
 
 **In practice.** For auth discovery (finding the authorization server), `mcp-remote` uses the `authorization_servers` field, not `resource`. The mismatch causes no functional problem with PAT auth or with `mcp-remote`-based clients — it would only matter for a strict OAuth client that validates token audience against the `resource` URL.
