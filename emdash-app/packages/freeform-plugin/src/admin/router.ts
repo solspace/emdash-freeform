@@ -15,6 +15,8 @@ import { deleteTemplateAndDetach } from "../lib/notifications";
 import { isMultiType, isOptionType, parseOptionsInput } from "../lib/options";
 import { ensureDemoSeed } from "../lib/seed";
 import { setFormSpamOverride, setSpamSettings } from "../lib/spam-settings";
+import { generateWebhookSecret } from "../lib/webhooks";
+import { ensureRetryCronScheduled } from "../routes/webhooks";
 import type {
   FieldType,
   FormField,
@@ -22,9 +24,14 @@ import type {
   StoredAssignment,
   StoredForm,
   StoredTemplate,
+  StoredWebhook,
 } from "../types";
 import { editorBlocks, listPageBlocks } from "./forms";
-import { settingsBlocks } from "./settings";
+import {
+  clearWebhookSecretReveal,
+  setWebhookSecretReveal,
+  settingsBlocks,
+} from "./settings";
 import { submissionDetailBlocks, submissionsBlocks } from "./submissions";
 import { templateEditorBlocks, templatesPageBlocks } from "./templates";
 
@@ -708,6 +715,133 @@ export const adminRoute = {
       return {
         blocks: await settingsBlocks(ctx, siteOrigin),
         toast: { message: "License removed. Reverted to free plan.", type: "info" },
+      };
+    }
+
+    // ── Webhook actions ───────────────────────────────────────────
+
+    if (actionId === "add_webhook") {
+      const name = ((values.webhook_name as string) ?? "").trim();
+      const url = ((values.webhook_url as string) ?? "").trim();
+      const formScope = ((values.webhook_form as string) ?? "__all__").trim();
+
+      if (!name) {
+        return {
+          blocks: await settingsBlocks(ctx, siteOrigin),
+          toast: { message: "Webhook name is required.", type: "error" },
+        };
+      }
+      if (!url) {
+        return {
+          blocks: await settingsBlocks(ctx, siteOrigin),
+          toast: { message: "Webhook URL is required.", type: "error" },
+        };
+      }
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(url);
+      } catch {
+        return {
+          blocks: await settingsBlocks(ctx, siteOrigin),
+          toast: { message: "Webhook URL is not a valid URL.", type: "error" },
+        };
+      }
+      if (parsedUrl.protocol !== "https:") {
+        return {
+          blocks: await settingsBlocks(ctx, siteOrigin),
+          toast: { message: "Webhook URL must use HTTPS.", type: "error" },
+        };
+      }
+
+      const secret = generateWebhookSecret();
+      const now = new Date().toISOString();
+      const wid = uid();
+      await ctx.storage.webhooks.put(wid, {
+        name,
+        url,
+        secret,
+        enabled: true,
+        formId: formScope === "__all__" ? undefined : formScope,
+        createdAt: now,
+        updatedAt: now,
+      } as StoredWebhook);
+
+      await ensureRetryCronScheduled(ctx);
+      await setWebhookSecretReveal(ctx, {
+        webhookId: wid,
+        webhookName: name,
+        secret,
+        action: "created",
+      });
+
+      return {
+        blocks: await settingsBlocks(ctx, siteOrigin),
+        toast: {
+          message: `Webhook "${name}" created. Copy the signing secret from the Settings panel.`,
+          type: "success",
+        },
+      };
+    }
+
+    if (actionId === "hide_webhook_secret") {
+      await clearWebhookSecretReveal(ctx);
+      return {
+        blocks: await settingsBlocks(ctx, siteOrigin),
+        toast: { message: "Webhook secret hidden.", type: "success" },
+      };
+    }
+
+    if (actionId.startsWith("toggle_webhook:")) {
+      const wid = actionId.slice("toggle_webhook:".length);
+      const wh = (await ctx.storage.webhooks.get(wid)) as StoredWebhook | null;
+      if (!wh) return { blocks: await settingsBlocks(ctx, siteOrigin) };
+      await ctx.storage.webhooks.put(wid, {
+        ...wh,
+        enabled: !wh.enabled,
+        updatedAt: new Date().toISOString(),
+      });
+      return {
+        blocks: await settingsBlocks(ctx, siteOrigin),
+        toast: { message: wh.enabled ? "Webhook paused." : "Webhook enabled.", type: "success" },
+      };
+    }
+
+    if (actionId.startsWith("del_webhook:")) {
+      const wid = actionId.slice("del_webhook:".length);
+      await ctx.storage.webhooks.delete(wid);
+      return {
+        blocks: await settingsBlocks(ctx, siteOrigin),
+        toast: { message: "Webhook deleted.", type: "success" },
+      };
+    }
+
+    if (actionId.startsWith("log_webhook:")) {
+      const wid = actionId.slice("log_webhook:".length);
+      return { blocks: await settingsBlocks(ctx, siteOrigin, wid) };
+    }
+
+    if (actionId.startsWith("rotate_webhook_secret:")) {
+      const wid = actionId.slice("rotate_webhook_secret:".length);
+      const wh = (await ctx.storage.webhooks.get(wid)) as StoredWebhook | null;
+      if (!wh) return { blocks: await settingsBlocks(ctx, siteOrigin) };
+      const secret = generateWebhookSecret();
+      await ctx.storage.webhooks.put(wid, {
+        ...wh,
+        secret,
+        updatedAt: new Date().toISOString(),
+      });
+      await setWebhookSecretReveal(ctx, {
+        webhookId: wid,
+        webhookName: wh.name,
+        secret,
+        action: "rotated",
+      });
+      return {
+        blocks: await settingsBlocks(ctx, siteOrigin),
+        toast: {
+          message: `Secret rotated for "${wh.name}". Copy it from the Settings panel.`,
+          type: "success",
+        },
       };
     }
 

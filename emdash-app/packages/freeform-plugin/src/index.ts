@@ -6,13 +6,17 @@ export function freeformPlugin(): PluginDescriptor {
     version: "1.0.0",
     format: "standard",
     entrypoint: "@local/freeform-plugin/sandbox",
-    capabilities: ["network:request", "email:send"],
-    allowedHosts: ["api.anthropic.com"],
+    // network:request:unrestricted is required for webhook delivery to
+    // arbitrary customer-supplied URLs. It implies network:request, so
+    // allowedHosts is removed — the Anthropic API is reachable under the
+    // broader capability.
+    capabilities: ["network:request:unrestricted", "email:send"],
     storage: {
       forms: { indexes: ["createdAt"] },
       submissions: { indexes: ["formId", "createdAt"] },
       templates: { indexes: ["createdAt"] },
       notificationAssignments: { indexes: ["formId"] },
+      webhooks: { indexes: ["createdAt"] },
     },
     adminPages: [
       { path: "/forms", label: "Forms", icon: "edit" },

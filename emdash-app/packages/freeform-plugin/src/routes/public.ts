@@ -6,6 +6,7 @@ import { getApiKey } from "../lib/ai-key";
 import { createCsrfToken, verifyCsrfToken } from "../lib/csrf";
 import { sendNotificationsForSubmission } from "../lib/notifications";
 import { effectiveSpamSettings, getSpamSettings } from "../lib/spam-settings";
+import { deliverWebhooks } from "../lib/webhooks";
 import { uid } from "../lib/handles";
 import type { StoredForm, StoredSubmission } from "../types";
 
@@ -129,6 +130,10 @@ export const publicRoutes = {
         }
         await sendNotificationsForSubmission(ctx, formData, submission, submissionId);
       }
+
+      // Deliver webhooks. Errors are caught internally and queued for retry —
+      // they never prevent a success response from reaching the submitter.
+      await deliverWebhooks(ctx, formId, formData.handle, submission, submissionId);
 
       return {
         success: true,

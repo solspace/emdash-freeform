@@ -134,12 +134,13 @@ Each customer deploys their own Worker. `EMDASH_SITE_URL` Worker secret points a
 
 Layer B (route protocol convention between plugins) is deferred.
 
-- [ ] Add `webhooks` storage collection to plugin descriptor
-- [ ] Webhook management UI in Settings page (list, add, remove, delivery log)
-- [ ] Webhook delivery on submit (non-blocking, HMAC-signed `X-Freeform-Signature`)
-- [ ] KV delivery log: `webhooks:log:<webhookId>:<deliveryId>`
-- [ ] `cron` hook: retry failed deliveries up to 3× (1 min, 5 min, 15 min backoff)
-- [ ] Add `network:request:unrestricted` capability to plugin descriptor
+- [x] Add `webhooks` storage collection to plugin descriptor
+- [x] Webhook management UI in Settings page (list, add, remove, delivery log)
+- [x] Copyable, short-lived webhook secret reveal after create/rotate (modal fallback: inline Settings panel)
+- [x] Webhook delivery on submit (HMAC-signed `X-Freeform-Signature`)
+- [x] KV delivery log: `webhooks:log:<webhookId>` (ring buffer, last 20 per webhook)
+- [x] `cron` hook: retry failed deliveries up to 3× (1 min, 5 min, 15 min backoff)
+- [x] Add `network:request:unrestricted` capability to plugin descriptor
 
 ---
 

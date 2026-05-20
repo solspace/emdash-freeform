@@ -105,6 +105,48 @@ export interface SpamSettings {
   threshold: number;
 }
 
+// ── Webhooks ─────────────────────────────────────────────────────
+
+export interface StoredWebhook {
+  name: string;
+  url: string;
+  // HMAC-SHA256 signing secret, auto-generated on creation.
+  // Shown once in the admin on creation; can be rotated via admin action.
+  secret: string;
+  enabled: boolean;
+  // When set, only deliveries for this formId are sent to the webhook.
+  // When absent, deliveries are sent for all form submissions.
+  formId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// One entry in the per-webhook delivery log (KV ring buffer).
+export interface WebhookDeliveryRecord {
+  id: string;
+  submissionId: string;
+  formId: string;
+  status: "success" | "failed";
+  attempts: number;
+  statusCode?: number;
+  error?: string;
+  deliveredAt: string;
+}
+
+// An item in the KV retry queue (`webhooks:retry:queue`).
+// Written on delivery failure; consumed and updated by the cron handler.
+export interface RetryItem {
+  id: string;           // delivery ID (webhookId:submissionId:timestamp)
+  webhookId: string;
+  url: string;
+  secret: string;
+  submissionId: string;
+  formId: string;
+  payload: string;      // pre-serialized JSON webhook body
+  attempts: number;     // total attempts so far (1 = failed on first try)
+  nextRetryAt: string;  // ISO 8601
+}
+
 export type NotificationFormat = "text" | "html";
 
 export interface StoredTemplate {
