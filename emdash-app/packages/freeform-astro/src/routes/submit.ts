@@ -1,13 +1,16 @@
 import type { APIRoute } from "astro";
-import { env } from "cloudflare:workers";
+import { getFetcher } from "../lib/client";
 
 export const prerender = false;
 
-const PLUGIN_ENDPOINT = "/_emdash/api/plugins/freeform/chat";
+// Public alias for the plugin's submit-agent endpoint. Lives outside /_emdash/
+// so EmDash's default robots.txt (which disallows /_emdash/*) doesn't block
+// well-behaved AI agents from POSTing here.
+const PLUGIN_ENDPOINT = "/_emdash/api/plugins/freeform/submit-agent";
 
 export const POST: APIRoute = async ({ request }) => {
   const origin = new URL(request.url).origin;
-  const fetcher = (env as any).SELF ?? globalThis;
+  const fetcher = getFetcher();
 
   const headers = new Headers(request.headers);
   headers.delete("host");
@@ -26,7 +29,7 @@ export const POST: APIRoute = async ({ request }) => {
     });
   } catch {
     return new Response(
-      JSON.stringify({ error: "Chat service unavailable" }),
+      JSON.stringify({ success: false, error: "Submit service unavailable" }),
       { status: 502, headers: { "Content-Type": "application/json" } },
     );
   }

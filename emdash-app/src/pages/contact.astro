@@ -2,8 +2,7 @@
 import { getEmDashEntry, getSeoMeta, getSiteSettings } from "emdash";
 import { PortableText } from "emdash/ui";
 import Base from "../layouts/Base.astro";
-import FreeformForm from "../components/FreeformForm.astro";
-import FreeformChat from "../components/FreeformChat.astro";
+import { FreeformForm, FreeformChat } from "@local/freeform-astro/components";
 import { resolveStarterSiteIdentity } from "../utils/site-identity";
 
 const { entry: page, cacheHint } = await getEmDashEntry("pages", "contact");
@@ -116,5 +115,364 @@ Tone: technically credible, calm, no fluff. A senior program engineer will follo
 
   @media (max-width: 900px) {
     .contact-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+  }
+</style>
+
+<!-- ── Freeform form styles ──────────────────────────────────────────────── -->
+<style is:global>
+  /* Shared tokens */
+  [data-freeform-form],
+  [data-freeform-ai-cue],
+  [data-freeform-error] {
+    --ff-bg: var(--mrs-bg-elev, #14110f);
+    --ff-fg: var(--mrs-fg, #f0e9df);
+    --ff-fg-muted: var(--mrs-fg-muted, #a39d92);
+    --ff-fg-dim: var(--mrs-fg-dim, #6b665e);
+    --ff-rule: var(--mrs-rule-strong, #423b34);
+    --ff-accent: var(--mrs-accent, #c44010);
+    --ff-font-body: var(--font-body, system-ui, sans-serif);
+    --ff-font-mono: var(--font-mono, ui-monospace, monospace);
+  }
+
+  [data-freeform-error] {
+    color: var(--ff-fg);
+    font-family: var(--ff-font-mono);
+    font-size: 0.8125rem;
+    padding: 0.75rem 1rem;
+    background: var(--ff-bg);
+    border-left: 3px solid var(--ff-accent);
+  }
+
+  [data-freeform-prefill] {
+    margin: 0 0 1rem;
+    padding: 0.625rem 0.875rem;
+    border-left: 3px solid var(--ff-accent);
+    background: var(--ff-bg);
+    color: var(--ff-fg-muted);
+    font-family: var(--ff-font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    line-height: 1.5;
+  }
+  [data-freeform-prefill] strong {
+    color: var(--ff-fg);
+    font-weight: 500;
+  }
+
+  [data-freeform-form] {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 640px;
+    font-family: var(--ff-font-body);
+  }
+
+  [data-freeform-row] {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  [data-freeform-field] {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  [data-freeform-field] label,
+  [data-freeform-group-label] {
+    font-family: var(--ff-font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ff-fg-muted);
+  }
+
+  [data-freeform-required-mark] {
+    color: var(--ff-accent);
+    margin-left: 0.1em;
+  }
+
+  [data-freeform-input] {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--ff-rule);
+    border-radius: 2px;
+    font-size: 0.875rem;
+    color: var(--ff-fg);
+    background: var(--ff-bg);
+    box-sizing: border-box;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: var(--ff-font-body);
+  }
+  [data-freeform-input]::placeholder { color: var(--ff-fg-dim); }
+  [data-freeform-input]:focus {
+    outline: none;
+    border-color: var(--ff-accent);
+    box-shadow: 0 0 0 2px rgba(196, 64, 16, 0.18);
+  }
+
+  textarea[data-freeform-input] {
+    resize: vertical;
+    min-height: 7rem;
+    line-height: 1.5;
+  }
+
+  select[data-freeform-input] {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23a39d92' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    padding-right: 2.5rem;
+  }
+
+  select[data-freeform-multi] {
+    background-image: none;
+    padding-right: 0.75rem;
+    min-height: 7rem;
+  }
+
+  [data-freeform-options] {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding-top: 0.1rem;
+  }
+
+  [data-freeform-option] {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--ff-fg);
+    cursor: pointer;
+  }
+  [data-freeform-option] input {
+    margin: 0;
+    accent-color: var(--ff-accent);
+  }
+  [data-freeform-option-single] { padding-top: 0.25rem; }
+
+  [data-freeform-footer] {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 0.25rem;
+  }
+
+  [data-freeform-submit] {
+    padding: 0.625rem 1.5rem;
+    background: var(--ff-accent);
+    color: var(--ff-fg);
+    border: none;
+    border-radius: 2px;
+    font-family: var(--ff-font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: filter 0.15s;
+  }
+  [data-freeform-submit]:hover:not(:disabled) { filter: brightness(1.1); }
+  [data-freeform-submit]:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  [data-freeform-message] {
+    font-family: var(--ff-font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    border-radius: 2px;
+    padding: 0.5rem 0.875rem;
+    border: 1px solid transparent;
+  }
+  [data-freeform-message][data-freeform-state="success"] {
+    background: rgba(34, 197, 94, 0.08);
+    color: #86efac;
+    border-color: rgba(34, 197, 94, 0.25);
+  }
+  [data-freeform-message][data-freeform-state="error"] {
+    background: rgba(196, 64, 16, 0.12);
+    color: #f0e9df;
+    border-color: rgba(196, 64, 16, 0.4);
+  }
+
+  [data-freeform-ai-cue] {
+    max-width: 640px;
+    margin-top: 1rem;
+    padding: 0.875rem 1rem;
+    border-left: 3px solid var(--ff-accent);
+    background: var(--ff-bg);
+  }
+  [data-freeform-ai-cue-headline] {
+    margin: 0;
+    font-family: var(--ff-font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ff-fg);
+  }
+  [data-freeform-ai-cue-spec] {
+    margin: 0.35rem 0 0;
+    font-family: var(--ff-font-mono);
+    font-size: 0.75rem;
+    color: var(--ff-fg-muted);
+    line-height: 1.5;
+  }
+  [data-freeform-ai-cue-spec] a {
+    color: var(--ff-fg);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  [data-freeform-ai-cue-spec] a:hover { color: var(--ff-accent); }
+</style>
+
+<!-- ── Freeform chat styles ──────────────────────────────────────────────── -->
+<style is:global>
+  [data-freeform-chat] { max-width: 640px; }
+
+  [data-freeform-chat-frame] {
+    border: 1px solid var(--mrs-rule-strong, #423b34);
+    background: var(--mrs-bg-elev, #14110f);
+    display: flex;
+    flex-direction: column;
+    min-height: 360px;
+  }
+
+  [data-freeform-chat-header] {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.6875rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--mrs-fg-muted, #a39d92);
+    padding: 0.625rem 1rem;
+    border-bottom: 1px solid var(--mrs-rule, #2a2622);
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  [data-freeform-chat-log] {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 220px;
+    max-height: 480px;
+  }
+
+  [data-freeform-chat-message] {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  [data-freeform-chat-message][data-freeform-chat-role="user"] {
+    align-items: flex-end;
+  }
+
+  [data-freeform-chat-label] {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.625rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--mrs-fg-dim, #6b665e);
+  }
+
+  [data-freeform-chat-bubble] {
+    font-family: var(--font-body, system-ui);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--mrs-fg, #f0e9df);
+    background: var(--mrs-bg, #0a0908);
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--mrs-rule, #2a2622);
+    max-width: 85%;
+  }
+  [data-freeform-chat-message][data-freeform-chat-role="user"] [data-freeform-chat-bubble] {
+    white-space: pre-wrap;
+    background: var(--mrs-bg-elev, #14110f);
+    border-color: var(--mrs-rule-strong, #423b34);
+  }
+  [data-freeform-chat-message][data-freeform-chat-submitted] [data-freeform-chat-bubble] {
+    border-left: 3px solid var(--mrs-accent, #c44010);
+  }
+
+  /* Markdown content rendered inside bubbles */
+  [data-freeform-chat-bubble] p { margin: 0 0 0.6em; }
+  [data-freeform-chat-bubble] p:last-child { margin-bottom: 0; }
+  [data-freeform-chat-bubble] ul,
+  [data-freeform-chat-bubble] ol { margin: 0 0 0.6em; padding-left: 1.25rem; }
+  [data-freeform-chat-bubble] ul:last-child,
+  [data-freeform-chat-bubble] ol:last-child { margin-bottom: 0; }
+  [data-freeform-chat-bubble] li { margin: 0.15em 0; }
+  [data-freeform-chat-bubble] h3,
+  [data-freeform-chat-bubble] h4,
+  [data-freeform-chat-bubble] h5 {
+    font-size: 0.9375rem;
+    margin: 0.4em 0 0.3em;
+    letter-spacing: 0.02em;
+  }
+  [data-freeform-chat-bubble] strong {
+    font-weight: 600;
+    color: var(--mrs-fg, #f0e9df);
+  }
+  [data-freeform-chat-bubble] em { font-style: italic; }
+  [data-freeform-chat-bubble] code {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.8125rem;
+    padding: 0.05em 0.35em;
+    background: var(--mrs-bg-elev, #14110f);
+    border: 1px solid var(--mrs-rule, #2a2622);
+  }
+  [data-freeform-chat-bubble] a {
+    color: var(--mrs-accent, #c44010);
+    text-decoration: underline;
+  }
+
+  [data-freeform-chat-input] {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    border-top: 1px solid var(--mrs-rule, #2a2622);
+  }
+  [data-freeform-chat-input] textarea {
+    border: 0;
+    background: transparent;
+    color: var(--mrs-fg, #f0e9df);
+    font-family: var(--font-body, system-ui);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    padding: 0.75rem 1rem;
+    resize: vertical;
+    outline: none;
+  }
+  [data-freeform-chat-input] textarea:focus {
+    background: var(--mrs-bg, #0a0908);
+  }
+  [data-freeform-chat-input] button {
+    border: 0;
+    border-left: 1px solid var(--mrs-rule, #2a2622);
+    background: transparent;
+    color: var(--mrs-fg, #f0e9df);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0 1.5rem;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+  }
+  [data-freeform-chat-input] button:hover {
+    background: var(--mrs-accent, #c44010);
+    color: var(--mrs-fg, #f0e9df);
+  }
+  [data-freeform-chat-input] button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  [data-freeform-chat-typing] {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    color: var(--mrs-fg-dim, #6b665e);
+    letter-spacing: 0.1em;
   }
 </style>

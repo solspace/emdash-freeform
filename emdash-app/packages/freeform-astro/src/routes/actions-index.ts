@@ -1,23 +1,10 @@
 import type { APIRoute } from "astro";
-import { env } from "cloudflare:workers";
+import { getFetcher, publicOrigin } from "../lib/client";
 
 export const prerender = false;
 
-// Public catalog of agent-callable forms, served at /.well-known/freeform.json.
-// Lets any AI agent reading any page on the site discover that submittable
-// forms exist here and how to find each form's action manifest.
-
-function publicOrigin(request: Request): string {
-  const url = new URL(request.url);
-  const proto =
-    request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ??
-    url.protocol.replace(":", "");
-  const host =
-    request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ??
-    request.headers.get("host") ??
-    url.host;
-  return `${proto}://${host}`;
-}
+// Public catalog of agent-callable forms at /.well-known/freeform.json.
+// Lets any AI agent reading any page on the site discover submittable forms.
 
 interface PublicForm {
   id: string;
@@ -28,12 +15,13 @@ interface PublicForm {
 
 export const GET: APIRoute = async ({ request }) => {
   const origin = publicOrigin(request);
-  const apiUrl = `${origin}/_emdash/api/plugins/freeform/list-public-forms`;
-  const fetcher = (env as any).SELF ?? globalThis;
+  const fetcher = getFetcher();
 
   let forms: PublicForm[] = [];
   try {
-    const res = await fetcher.fetch(apiUrl);
+    const res = await fetcher.fetch(
+      `${origin}/_emdash/api/plugins/freeform/list-public-forms`,
+    );
     if (res.ok) {
       const json = (await res.json()) as { data?: { forms?: PublicForm[] } };
       forms = json.data?.forms ?? [];

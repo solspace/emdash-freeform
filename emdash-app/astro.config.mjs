@@ -4,6 +4,7 @@ import { d1, r2 } from "@emdash-cms/cloudflare";
 import { defineConfig } from "astro/config";
 import emdash from "emdash/astro";
 import { freeformPlugin } from "@local/freeform-plugin";
+import freeformAstro from "@local/freeform-astro";
 
 export default defineConfig({
   output: "server",
@@ -25,40 +26,17 @@ export default defineConfig({
       // Switch to sandboxed[] when deploying to Cloudflare.
       plugins: [freeformPlugin()],
     }),
+    freeformAstro(),
     {
-      // Serve the Freeform MCP resource metadata at the RFC 9728 convention
-      // path so mcp-remote's deterministic discovery finds it (rather than
-      // falling back to EmDash's site-wide doc).
-      name: "freeform-mcp-routes",
+      // /llms.txt is site-specific (uses getSiteSettings + site identity).
+      // Keep it here until it can be made configurable in freeform-astro.
+      name: "freeform-llms-txt",
       hooks: {
         "astro:config:setup": ({ injectRoute }) => {
-          injectRoute({
-            pattern: "/.well-known/oauth-protected-resource/freeform/mcp",
-            entrypoint: new URL(
-              "./src/freeform-resource-metadata.ts",
-              import.meta.url,
-            ).pathname,
-          });
-          injectRoute({
-            pattern: "/.well-known/freeform.json",
-            entrypoint: new URL(
-              "./src/freeform-actions-index.ts",
-              import.meta.url,
-            ).pathname,
-          });
-          injectRoute({
-            pattern: "/.well-known/freeform/[handle]",
-            entrypoint: new URL(
-              "./src/freeform-action-manifest.ts",
-              import.meta.url,
-            ).pathname,
-          });
           injectRoute({
             pattern: "/llms.txt",
             entrypoint: new URL("./src/llms-txt.ts", import.meta.url).pathname,
           });
-          // /robots.txt lives at src/pages/robots.txt.ts so it wins
-          // over EmDash's default injected /robots.txt route.
         },
       },
     },

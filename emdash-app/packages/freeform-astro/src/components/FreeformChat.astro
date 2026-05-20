@@ -1,7 +1,21 @@
 ---
-// Embeddable AI concierge chat. The page passes a salesContext slot or prop
-// describing the company; the AI uses that + the form's field schema to
-// gather an inquiry conversationally and submit on the visitor's behalf.
+/**
+ * FreeformChat — embeddable AI concierge chat widget for EmDash Freeform.
+ *
+ * Collects a visitor's enquiry conversationally and submits the form on their
+ * behalf once the AI has enough information. Fully unstyled — target the
+ * data-freeform-chat-* attributes in your own stylesheet:
+ *
+ *   [data-freeform-chat]              — root wrapper div
+ *   [data-freeform-chat-frame]        — inner frame (border, background)
+ *   [data-freeform-chat-header]       — optional header strip
+ *   [data-freeform-chat-log]          — scrollable message log
+ *   [data-freeform-chat-message]      — a single message wrapper
+ *   [data-freeform-chat-role]         — "user" or "assistant" on message
+ *   [data-freeform-chat-bubble]       — message bubble
+ *   [data-freeform-chat-input]        — <form> wrapping the textarea + send button
+ *   [data-freeform-chat-typing]       — "typing…" indicator (added/removed by JS)
+ */
 interface Props {
   formHandle: string;
   siteName?: string;
@@ -20,26 +34,25 @@ const {
 ---
 
 <div
-  class:list={["ffchat", className]}
+  class={className}
+  data-freeform-chat
   data-form-handle={formHandle}
   data-site-name={siteName ?? ""}
   data-sales-context={salesContext}
 >
-  <div class="ffchat-frame">
-    <div class="ffchat-strip" aria-hidden="true">
-      <span>CONCIERGE</span>
-      <span class="sep">·</span>
-      <span>AI-ASSISTED INTAKE</span>
-      <span class="sep">·</span>
-      <span class="live">● LIVE</span>
+  <div data-freeform-chat-frame>
+    <div data-freeform-chat-header aria-hidden="true">
+      <span>Concierge</span>
+      <span aria-hidden="true">·</span>
+      <span>AI-assisted intake</span>
     </div>
-    <div class="ffchat-log" role="log" aria-live="polite">
-      <div class="ffchat-msg ffchat-msg--assistant">
-        <div class="ffchat-role">Concierge</div>
-        <div class="ffchat-bubble">{initialGreeting}</div>
+    <div data-freeform-chat-log role="log" aria-live="polite">
+      <div data-freeform-chat-message data-freeform-chat-role="assistant">
+        <div data-freeform-chat-label>Concierge</div>
+        <div data-freeform-chat-bubble>{initialGreeting}</div>
       </div>
     </div>
-    <form class="ffchat-input" novalidate>
+    <form data-freeform-chat-input novalidate>
       <textarea
         rows="2"
         placeholder="Type a reply…"
@@ -50,136 +63,6 @@ const {
     </form>
   </div>
 </div>
-
-<style>
-  .ffchat {
-    max-width: 640px;
-  }
-  .ffchat-frame {
-    border: 1px solid var(--mrs-rule-strong, #423b34);
-    background: var(--mrs-bg-elev, #14110f);
-    display: flex;
-    flex-direction: column;
-    min-height: 360px;
-  }
-  .ffchat-strip {
-    font-family: var(--font-mono, monospace);
-    font-size: 0.6875rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--mrs-fg-muted, #a39d92);
-    padding: 0.625rem 1rem;
-    border-bottom: 1px solid var(--mrs-rule, #2a2622);
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-  }
-  .ffchat-strip .sep { color: var(--mrs-fg-dim, #6b665e); }
-  .ffchat-strip .live { color: var(--mrs-accent, #c44010); margin-left: auto; }
-
-  .ffchat-log {
-    flex: 1;
-    padding: 1rem;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    min-height: 220px;
-    max-height: 480px;
-  }
-  .ffchat-msg { display: flex; flex-direction: column; gap: 0.25rem; }
-  .ffchat-msg--user { align-items: flex-end; }
-  .ffchat-role {
-    font-family: var(--font-mono, monospace);
-    font-size: 0.625rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--mrs-fg-dim, #6b665e);
-  }
-  .ffchat-bubble {
-    font-family: var(--font-body, system-ui);
-    font-size: 0.9375rem;
-    line-height: 1.55;
-    color: var(--mrs-fg, #f0e9df);
-    background: var(--mrs-bg, #0a0908);
-    padding: 0.625rem 0.875rem;
-    border: 1px solid var(--mrs-rule, #2a2622);
-    max-width: 85%;
-  }
-  .ffchat-msg--user .ffchat-bubble { white-space: pre-wrap; }
-  .ffchat-bubble :global(p) { margin: 0 0 0.6em; }
-  .ffchat-bubble :global(p:last-child) { margin-bottom: 0; }
-  .ffchat-bubble :global(ul),
-  .ffchat-bubble :global(ol) { margin: 0 0 0.6em; padding-left: 1.25rem; }
-  .ffchat-bubble :global(ul:last-child),
-  .ffchat-bubble :global(ol:last-child) { margin-bottom: 0; }
-  .ffchat-bubble :global(li) { margin: 0.15em 0; }
-  .ffchat-bubble :global(h3),
-  .ffchat-bubble :global(h4),
-  .ffchat-bubble :global(h5) {
-    font-size: 0.9375rem;
-    margin: 0.4em 0 0.3em;
-    letter-spacing: 0.02em;
-  }
-  .ffchat-bubble :global(strong) { font-weight: 600; color: var(--mrs-fg, #f0e9df); }
-  .ffchat-bubble :global(em) { font-style: italic; }
-  .ffchat-bubble :global(code) {
-    font-family: var(--font-mono, monospace);
-    font-size: 0.8125rem;
-    padding: 0.05em 0.35em;
-    background: var(--mrs-bg-elev, #14110f);
-    border: 1px solid var(--mrs-rule, #2a2622);
-  }
-  .ffchat-bubble :global(a) { color: var(--mrs-accent, #c44010); text-decoration: underline; }
-  .ffchat-msg--user .ffchat-bubble {
-    background: var(--mrs-bg-elev, #14110f);
-    border-color: var(--mrs-rule-strong, #423b34);
-  }
-  .ffchat-msg--submitted .ffchat-bubble {
-    border-left: 3px solid var(--mrs-accent, #c44010);
-  }
-
-  .ffchat-input {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 0;
-    border-top: 1px solid var(--mrs-rule, #2a2622);
-  }
-  .ffchat-input textarea {
-    border: 0;
-    background: transparent;
-    color: var(--mrs-fg, #f0e9df);
-    font-family: var(--font-body, system-ui);
-    font-size: 0.9375rem;
-    line-height: 1.5;
-    padding: 0.75rem 1rem;
-    resize: vertical;
-    outline: none;
-  }
-  .ffchat-input textarea:focus { background: var(--mrs-bg, #0a0908); }
-  .ffchat-input button {
-    border: 0;
-    border-left: 1px solid var(--mrs-rule, #2a2622);
-    background: transparent;
-    color: var(--mrs-fg, #f0e9df);
-    font-family: var(--font-mono, monospace);
-    font-size: 0.75rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    padding: 0 1.5rem;
-    cursor: pointer;
-    transition: background 0.18s, color 0.18s;
-  }
-  .ffchat-input button:hover { background: var(--mrs-accent, #c44010); color: var(--mrs-fg, #f0e9df); }
-  .ffchat-input button:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  .ffchat-typing {
-    font-family: var(--font-mono, monospace);
-    font-size: 0.75rem;
-    color: var(--mrs-fg-dim, #6b665e);
-    letter-spacing: 0.1em;
-  }
-</style>
 
 <script>
   type Role = "user" | "assistant";
@@ -234,25 +117,17 @@ const {
       }
     };
     const closeList = () => {
-      if (listType) {
-        out.push(`</${listType}>`);
-        listType = null;
-      }
+      if (listType) { out.push(`</${listType}>`); listType = null; }
     };
 
     for (const raw of lines) {
       const line = raw.trim();
-      if (!line) {
-        flushPara();
-        closeList();
-        continue;
-      }
+      if (!line) { flushPara(); closeList(); continue; }
       const h = line.match(/^(#{1,6})\s+(.*)$/);
       const ul = line.match(/^[-*]\s+(.*)$/);
       const ol = line.match(/^\d+\.\s+(.*)$/);
       if (h) {
-        flushPara();
-        closeList();
+        flushPara(); closeList();
         const lvl = Math.min(6, h[1].length + 2);
         out.push(`<h${lvl}>${renderInline(h[2])}</h${lvl}>`);
       } else if (ul) {
@@ -273,9 +148,9 @@ const {
     return out.join("\n");
   }
 
-  document.querySelectorAll<HTMLElement>(".ffchat").forEach((root) => {
-    const log = root.querySelector<HTMLElement>(".ffchat-log")!;
-    const form = root.querySelector<HTMLFormElement>(".ffchat-input")!;
+  document.querySelectorAll<HTMLElement>("[data-freeform-chat]").forEach((root) => {
+    const log = root.querySelector<HTMLElement>("[data-freeform-chat-log]")!;
+    const form = root.querySelector<HTMLFormElement>("[data-freeform-chat-input]")!;
     const ta = form.querySelector<HTMLTextAreaElement>("textarea")!;
     const btn = form.querySelector<HTMLButtonElement>("button")!;
 
@@ -283,25 +158,35 @@ const {
     const siteName = root.dataset.siteName || "";
     const salesContext = root.dataset.salesContext || "";
 
-    // Seed conversation history with the greeting already rendered server-side
-    // so the model has continuity from turn one.
-    const initial = root.querySelector<HTMLElement>(".ffchat-msg--assistant .ffchat-bubble")!;
+    // Seed history with the greeting already rendered server-side.
+    const initial = root.querySelector<HTMLElement>(
+      "[data-freeform-chat-role='assistant'] [data-freeform-chat-bubble]",
+    )!;
     const history: Msg[] = [{ role: "assistant", content: initial.textContent || "" }];
     let submitted = false;
 
-    function appendMsg(role: Role, text: string, opts: { submitted?: boolean } = {}) {
+    function appendMsg(
+      role: Role,
+      text: string,
+      opts: { submitted?: boolean } = {},
+    ) {
       const wrap = document.createElement("div");
-      wrap.className = `ffchat-msg ffchat-msg--${role}${opts.submitted ? " ffchat-msg--submitted" : ""}`;
+      wrap.setAttribute("data-freeform-chat-message", "");
+      wrap.setAttribute("data-freeform-chat-role", role);
+      if (opts.submitted) wrap.setAttribute("data-freeform-chat-submitted", "");
+
       const r = document.createElement("div");
-      r.className = "ffchat-role";
+      r.setAttribute("data-freeform-chat-label", "");
       r.textContent = role === "user" ? "You" : "Concierge";
+
       const b = document.createElement("div");
-      b.className = "ffchat-bubble";
+      b.setAttribute("data-freeform-chat-bubble", "");
       if (role === "assistant") {
         b.innerHTML = renderMarkdown(text);
       } else {
         b.textContent = text;
       }
+
       wrap.appendChild(r);
       wrap.appendChild(b);
       log.appendChild(wrap);
@@ -309,10 +194,10 @@ const {
     }
 
     function setTyping(on: boolean) {
-      const existing = log.querySelector(".ffchat-typing");
+      const existing = log.querySelector("[data-freeform-chat-typing]");
       if (on && !existing) {
         const el = document.createElement("div");
-        el.className = "ffchat-typing";
+        el.setAttribute("data-freeform-chat-typing", "");
         el.textContent = "Concierge is typing…";
         log.appendChild(el);
         log.scrollTop = log.scrollHeight;
@@ -360,7 +245,7 @@ const {
             journey: readJourney(),
           }),
         });
-        const json = ((await res.json()).data ?? (await {})) as {
+        const json = ((await res.json()).data ?? {}) as {
           kind?: "text" | "submitted";
           reply?: string;
           submission?: { success: boolean; message?: string; error?: string };
@@ -388,6 +273,7 @@ const {
         setTyping(false);
         appendMsg("assistant", "Network error — please try again.");
       }
+
       btn.disabled = false;
       ta.focus();
     });

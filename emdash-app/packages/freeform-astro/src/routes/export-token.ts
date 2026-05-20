@@ -1,27 +1,24 @@
 import type { APIRoute } from "astro";
-import { env } from "cloudflare:workers";
+import { getFetcher } from "../lib/client";
 
 export const prerender = false;
 
-// Public CSV download for Freeform submissions. The `token` path segment is an
+// CSV download for Freeform submissions. The `token` path segment is an
 // HMAC-signed filter blob issued by the plugin's `prepare-export` route via
 // the MCP `export_submissions_csv` tool. The token authenticates the download
-// on its own — no EmDash session needed — so the AI can hand the link to a
-// user in chat and they can click it directly.
-
+// on its own — no EmDash session required.
 const PLUGIN_BASE = "/_emdash/api/plugins/freeform";
-
-type Fetcher = { fetch: typeof fetch };
 
 export const GET: APIRoute = async ({ params, request }) => {
   const token = params.token;
   if (!token) return new Response("Missing token", { status: 400 });
 
-  const fetcher: Fetcher = (env as any).SELF ?? globalThis;
+  const fetcher = getFetcher();
   const url = new URL(`${PLUGIN_BASE}/export-csv`, new URL(request.url).origin);
   url.searchParams.set("token", token);
 
-  const upstream = await fetcher.fetch(url, { method: "GET" });
+  const upstream = await fetcher.fetch(url.toString(), { method: "GET" });
+
   if (upstream.status === 401) {
     return new Response("Link expired or invalid.", { status: 401 });
   }

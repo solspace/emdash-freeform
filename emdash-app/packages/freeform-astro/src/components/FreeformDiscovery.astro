@@ -1,0 +1,10 @@
+---
+// Injects a <link> discovery hint so AI agents reading any page on the site
+// can find the catalog of submittable Freeform forms at /.well-known/freeform.json.
+// Place this inside <head> via your layout's <EmDashHead> or directly.
+---
+<link
+  rel="https://emdash.dev/rel/actions"
+  type="application/json"
+  href="/.well-known/freeform.json"
+/>

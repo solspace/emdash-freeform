@@ -36,21 +36,21 @@ See `FREEFORM-POC.md` for architecture decisions, gotchas, and EmDash feature re
 Extract all Freeform site-side infrastructure from the demo app into a proper publishable package.
 The demo app becomes a clean example of how to consume the package.
 
-- [ ] Scaffold `packages/freeform-astro/` with `package.json`, `tsconfig.json`
-- [ ] `src/lib/client.ts` — `getFetcher()`, `publicOrigin()`, `fetchForm()`
-- [ ] `src/components/FreeformForm.astro` — move from demo site, strip all styles, add `data-freeform-*` attributes
-- [ ] `src/components/FreeformChat.astro` — move from demo site, strip all styles
-- [ ] `src/components/FreeformDiscovery.astro` — move from demo site (no styles to strip)
-- [ ] `src/routes/submit.ts` — move from `src/pages/api/freeform/submit.ts`
-- [ ] `src/routes/chat.ts` — move from `src/pages/api/freeform/chat.ts`
-- [ ] `src/routes/export-token.ts` — move from `src/pages/freeform/export/[token].ts`
-- [ ] `src/routes/resource-metadata.ts` — move from `src/freeform-resource-metadata.ts`
-- [ ] `src/routes/actions-index.ts` — move from `src/freeform-actions-index.ts`
-- [ ] `src/routes/action-manifest.ts` — move from `src/freeform-action-manifest.ts`
-- [ ] `src/index.ts` — `freeformAstro()` integration (calls `injectRoute` for all routes) + component re-exports
-- [ ] Update demo `astro.config.mjs` — replace inline integration with `freeformAstro()`
-- [ ] Update demo pages — import components from `@local/freeform-astro`
-- [ ] Delete moved files from demo `src/`
+- [x] Scaffold `packages/freeform-astro/` with `package.json`, `tsconfig.json`
+- [x] `src/lib/client.ts` — `getFetcher()`, `publicOrigin()`, `fetchForm()`
+- [x] `src/components/FreeformForm.astro` — moved, styles stripped, `data-freeform-*` attributes added
+- [x] `src/components/FreeformChat.astro` — moved, styles stripped, `data-freeform-chat-*` attributes added
+- [x] `src/components/FreeformDiscovery.astro` — moved
+- [x] `src/routes/submit.ts` — moved from `src/pages/api/freeform/submit.ts`
+- [x] `src/routes/chat.ts` — moved from `src/pages/api/freeform/chat.ts`
+- [x] `src/routes/export-token.ts` — moved from `src/pages/freeform/export/[token].ts`
+- [x] `src/routes/resource-metadata.ts` — moved from `src/freeform-resource-metadata.ts`
+- [x] `src/routes/actions-index.ts` — moved from `src/freeform-actions-index.ts`
+- [x] `src/routes/action-manifest.ts` — moved from `src/freeform-action-manifest.ts`
+- [x] `src/index.ts` — `freeformAstro()` integration + component re-exports
+- [x] Update demo `astro.config.mjs` — inline integration replaced with `freeformAstro()`
+- [x] Update demo pages — imports updated to `@local/freeform-astro`
+- [x] Delete moved files from demo `src/`
 
 ### Styling: fully unstyled
 
@@ -75,6 +75,28 @@ Components ship with no styles. Semantic HTML with `data-freeform-*` attributes:
 | Future publish name | `@solspace/freeform-astro` |
 | Location | `packages/freeform-astro/` |
 | Peer deps | `astro`, `emdash` |
+
+### Three entry points (important)
+
+`"."` → `src/index.ts` — integration factory **only**. No `.astro` imports, no `cloudflare:workers`
+imports. This entry is loaded by `astro.config.mjs` at config-parse time, before Astro's Vite
+plugin or Cloudflare adapter shims are active. Any import that pulls in `cloudflare:workers` here
+will crash Astro config loading.
+
+`"./components"` → `src/components.ts` — component barrel (`FreeformForm`, `FreeformChat`,
+`FreeformDiscovery`). Safe to import in `.astro` pages and layouts (request-time context).
+
+`"./client"` → `src/client.ts` — utility functions (`fetchForm`, `publicOrigin`, `getFetcher`).
+Safe to import in `.astro` pages and API routes (request-time context).
+
+```ts
+// astro.config.mjs
+import freeformAstro from "@solspace/freeform-astro"                    // integration
+
+// any .astro page or layout
+import { FreeformForm } from "@solspace/freeform-astro/components"      // components
+import { fetchForm } from "@solspace/freeform-astro/client"             // utilities
+```
 
 ### What stays in the demo site
 
