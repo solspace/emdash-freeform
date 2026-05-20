@@ -5,10 +5,16 @@ import type { StoredForm } from "../types";
 // Idempotent: writes a default Contact form and default license tier on the
 // first call against a clean install, and no-ops on subsequent calls.
 //
-// Why this isn't in the `plugin:install` hook: EmDash's trusted-plugin boot
-// path (`plugins: [freeformPlugin()]` in astro.config.mjs) does not invoke
-// `plugin:install` — only marketplace-installed plugins receive it.
-// `hooks/install.ts` is kept for the marketplace path and just delegates here.
+// Called from three places:
+//   - hooks/install.ts            — marketplace install path
+//   - admin/router.ts page_load   — admin first opens the Freeform section
+//   - public/agent routes         — visitor or AI hits the form before admin
+//
+// The trusted-plugin boot path (`plugins: [freeformPlugin()]` in
+// astro.config.mjs) never fires `plugin:install`, and customers can embed
+// <FreeformForm formId="contact" /> on their site before opening the admin,
+// so the public routes need to seed lazily too. The KV-flag guard makes
+// every call after the first one effectively free (one KV read).
 export async function ensureDemoSeed(ctx: PluginContext): Promise<void> {
   // Cheap guard: a single KV key marks the seed as already run for this
   // install, so we don't pay the storage query cost on every admin page load.

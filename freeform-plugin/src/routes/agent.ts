@@ -1,6 +1,7 @@
 import { PluginRouteError, type PluginContext } from "emdash";
 import { findFormByHandle, runAgentSubmission } from "../lib/agent-submit";
 import { isMultiType, isOptionType } from "../lib/options";
+import { ensureDemoSeed } from "../lib/seed";
 import type { FormField, StoredForm, VisitorPageView } from "../types";
 
 // Routes that let an AI agent discover and submit forms without an MCP install.
@@ -142,6 +143,9 @@ export const agentRoutes = {
   "list-public-forms": {
     public: true,
     handler: async (_routeCtx: any, ctx: PluginContext) => {
+      // See note in routes/public.ts get-form: ensures the default Contact form
+      // exists before an agent's first lookup of /.well-known/freeform.json.
+      await ensureDemoSeed(ctx);
       const { items } = await ctx.storage.forms.query({ orderBy: { createdAt: "desc" } });
       return {
         forms: (items as Array<{ id: string; data: StoredForm }>).map((f) => ({
@@ -157,6 +161,8 @@ export const agentRoutes = {
   "get-form-manifest": {
     public: true,
     handler: async (routeCtx: any, ctx: PluginContext) => {
+      await ensureDemoSeed(ctx);
+
       const url = new URL(routeCtx.request.url);
       const handle = url.searchParams.get("handle");
       const origin = url.searchParams.get("origin") ?? "";

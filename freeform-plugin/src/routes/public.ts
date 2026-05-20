@@ -5,6 +5,7 @@ import { scoreSubmissionWithAI } from "../ai/spam";
 import { getApiKey } from "../lib/ai-key";
 import { createCsrfToken, verifyCsrfToken } from "../lib/csrf";
 import { sendNotificationsForSubmission } from "../lib/notifications";
+import { ensureDemoSeed } from "../lib/seed";
 import { effectiveSpamSettings, getSpamSettings } from "../lib/spam-settings";
 import { deliverWebhooks } from "../lib/webhooks";
 import { uid } from "../lib/handles";
@@ -14,6 +15,12 @@ export const publicRoutes = {
   "get-form": {
     public: true,
     handler: async (routeCtx: any, ctx: PluginContext) => {
+      // Lazy first-run seed: a customer can embed <FreeformForm formId="contact" />
+      // on their site and visit it before ever opening the Freeform admin, which
+      // would otherwise render "Failed to load form." The seed is idempotent and
+      // costs a single KV read after the first run.
+      await ensureDemoSeed(ctx);
+
       const id = new URL(routeCtx.request.url).searchParams.get("id");
       if (!id) throw PluginRouteError.badRequest("Missing ?id=");
 
