@@ -1,7 +1,7 @@
 import type { PluginContext } from "emdash";
 import { ensureFormHandle } from "../../lib/form-handles";
 import { createFormAiModalBlocks, isCreateFormAiModalOpen } from "../create-form-ai";
-import { formGridBlocks, formsListToolbar, freePlanProBanner } from "../layout";
+import { formGridBlocks, formsPageHeader, freeformNavBlocks } from "../layout";
 import type { StoredForm, StoredSubmission } from "../../types";
 
 export async function listPageBlocks(ctx: PluginContext): Promise<object[]> {
@@ -24,13 +24,12 @@ export async function listPageBlocks(ctx: PluginContext): Promise<object[]> {
     if (!f.data.handle) f.data = await ensureFormHandle(ctx, f.id, f.data);
   }
 
-  const proBanner = await freePlanProBanner(ctx);
-  const toolbar = await formsListToolbar(ctx);
+  const header = await formsPageHeader(ctx);
 
   if (formItems.length === 0) {
     return [
-      ...proBanner,
-      ...toolbar,
+      ...(await freeformNavBlocks(ctx, "forms")),
+      ...header,
       ...createAiModal,
       {
         type: "empty",
@@ -41,5 +40,10 @@ export async function listPageBlocks(ctx: PluginContext): Promise<object[]> {
     ];
   }
 
-  return [...proBanner, ...toolbar, ...createAiModal, ...formGridBlocks(formItems, subCountMap)];
+  return [
+    ...(await freeformNavBlocks(ctx, "forms")),
+    ...header,
+    ...createAiModal,
+    ...formGridBlocks(formItems, subCountMap),
+  ];
 }

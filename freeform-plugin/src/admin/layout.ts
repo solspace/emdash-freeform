@@ -5,6 +5,59 @@ import { getTier } from "../lib/license";
 
 export const FORMS_PER_ROW = 3;
 
+export type FreeformNavSection = "forms" | "submissions" | "templates" | "settings";
+
+/** In-plugin section nav + plan label on the right (one Plugins sidebar entry). */
+export async function freeformNavBlocks(
+  ctx: PluginContext,
+  active: FreeformNavSection,
+): Promise<object[]> {
+  const tier = await getTier(ctx);
+  const planLine = tier === "pro" ? "Pro plan" : "Free plan";
+
+  const items: Array<{
+    section: FreeformNavSection;
+    label: string;
+    action_id: string;
+  }> = [
+    { section: "forms", label: "Forms", action_id: "nav:forms" },
+    { section: "submissions", label: "Submissions", action_id: "nav:submissions" },
+    { section: "templates", label: "Templates", action_id: "nav:templates" },
+    { section: "settings", label: "Settings", action_id: "nav:settings" },
+  ];
+
+  const navButtons = items.map(({ section, label, action_id }) => ({
+    type: "button",
+    label,
+    action_id,
+    style: section === active ? "primary" : "secondary",
+  }));
+
+  return [
+    {
+      type: "columns",
+      columns: [
+        [{ type: "actions", elements: navButtons }],
+        [
+          {
+            type: "actions",
+            align: "end",
+            elements: [
+              {
+                type: "button",
+                label: planLine,
+                action_id: "nav:settings",
+                style: "secondary",
+              },
+            ],
+          },
+        ],
+      ],
+    },
+    { type: "divider" },
+  ];
+}
+
 export function shortDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
     month: "short",
@@ -70,27 +123,9 @@ export function editorTopActions(formId: string): object {
   };
 }
 
-/** Settings page top bar — title, plan line, back to forms. */
-export async function settingsPageToolbar(ctx: PluginContext): Promise<object[]> {
-  const tier = await getTier(ctx);
-  const planLine = tier === "pro" ? "Pro plan" : "Free plan";
-
-  return [
-    { type: "header", text: "Settings" },
-    { type: "section", text: planLine },
-    {
-      type: "actions",
-      elements: [
-        {
-          type: "button",
-          label: "Back to forms",
-          action_id: "nav:forms",
-          style: "secondary",
-        },
-      ],
-    },
-    { type: "divider" },
-  ];
+/** Settings page title (plan is on {@link freeformNavBlocks}). */
+export function settingsPageToolbar(): object[] {
+  return [{ type: "header", text: "Settings" }, { type: "divider" }];
 }
 
 const WEBHOOKS_PER_ROW = 2;
@@ -219,48 +254,49 @@ export async function freePlanProBanner(
   ];
 }
 
-/** Forms list top bar: title (left), all buttons in one row (right). */
-export async function formsListToolbar(ctx: PluginContext): Promise<object[]> {
-  const tier = await getTier(ctx);
-  const planLine = tier === "pro" ? "Pro plan" : "Free plan";
+/** Forms page title + create actions on the right. */
+export async function formsPageHeader(ctx: PluginContext): Promise<object[]> {
   const apiKeyConfigured = await hasApiKey(ctx);
 
-  const toolbarActions: object[] = [settingsNavButton()];
+  const createFormButton = {
+    type: "button",
+    label: "Create form",
+    action_id: "new_form",
+    style: "secondary",
+  };
 
-  if (apiKeyConfigured) {
-    toolbarActions.push({
-      type: "button",
-      label: "Create form with AI",
-      action_id: "new_form_ai",
-      style: "primary",
-    });
-  } else {
-    toolbarActions.push(
-      {
-        type: "button",
-        label: "Enable AI",
-        action_id: "enable_ai",
-        style: "primary",
-      },
-      {
-        type: "button",
-        label: "Create new form",
-        action_id: "new_form",
-        style: "secondary",
-      },
-    );
-  }
-
-  return [
+  const blocks: object[] = [
     {
-      type: "columns",
-      columns: [
-        [{ type: "header", text: "Forms" }, { type: "section", text: planLine }],
-        [{ type: "actions", elements: toolbarActions }],
-      ],
+      type: "section",
+      text: "Forms",
+      ...(!apiKeyConfigured && {
+        accessory: {
+          type: "button",
+          label: "Enable AI",
+          action_id: "enable_ai",
+          style: "primary",
+        },
+      }),
     },
-    { type: "divider" },
+    {
+      type: "actions",
+      align: "end",
+      elements: apiKeyConfigured
+        ? [
+            {
+              type: "button",
+              label: "Create form with AI",
+              action_id: "new_form_ai",
+              style: "primary",
+            },
+            createFormButton,
+          ]
+        : [createFormButton],
+    },
   ];
+
+  blocks.push({ type: "divider" });
+  return blocks;
 }
 
 /** Delete confirm dialog for a form card. */

@@ -2,7 +2,12 @@ import type { PluginContext } from "emdash";
 import { resolveOptionLabels } from "../lib/options";
 import { effectiveSpamSettings, getSpamSettings } from "../lib/spam-settings";
 import type { StoredForm, StoredSubmission } from "../types";
-import { backToFormsButton, pageHeader, sectionHeader, settingsNavButton } from "./layout";
+import {
+  backToFormsButton,
+  freeformNavBlocks,
+  pageHeader,
+  sectionHeader,
+} from "./layout";
 
 const PAGE_SIZE = 25;
 
@@ -300,8 +305,8 @@ export async function submissionsBlocks(
   }));
 
   return [
+    ...(await freeformNavBlocks(ctx, "submissions")),
     ...pageHeader("All submissions", "Open a form’s submissions for all field columns."),
-    { type: "actions", elements: [settingsNavButton()] },
     {
       type: "stats",
       items: [

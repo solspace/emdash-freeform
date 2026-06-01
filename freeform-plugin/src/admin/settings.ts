@@ -13,7 +13,7 @@ import {
 } from "../lib/mcp-settings";
 import { getSpamSettings } from "../lib/spam-settings";
 import { getDeliveryLog } from "../lib/webhooks";
-import { freePlanProBanner, settingsPageToolbar } from "./layout";
+import { freeformNavBlocks, freePlanProBanner, settingsPageToolbar } from "./layout";
 import {
   aiPanelBlocks,
   licensePanelBlocks,
@@ -138,9 +138,10 @@ export async function settingsBlocks(
   const activeTab = focusWebhookLog ? SETTINGS_TAB_WEBHOOKS : defaultTab;
 
   const proBanner = await freePlanProBanner(ctx, "settings");
-  const toolbar = await settingsPageToolbar(ctx);
+  const toolbar = settingsPageToolbar();
 
   return [
+    ...(await freeformNavBlocks(ctx, "settings")),
     ...proBanner,
     ...toolbar,
     {

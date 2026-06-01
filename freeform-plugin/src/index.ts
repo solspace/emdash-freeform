@@ -18,12 +18,8 @@ export function freeformPlugin(): PluginDescriptor {
       notificationAssignments: { indexes: ["formId"] },
       webhooks: { indexes: ["createdAt"] },
     },
-    adminPages: [
-      { path: "/forms", label: "Forms", icon: "edit" },
-      { path: "/submissions", label: "Submissions", icon: "list" },
-      { path: "/templates", label: "Templates", icon: "mail" },
-      { path: "/settings", label: "Settings", icon: "settings" },
-    ],
+    // One sidebar entry — section nav is inside the plugin (see freeformNavBlocks).
+    adminPages: [{ path: "/forms", label: "Freeform", icon: "edit" }],
     adminWidgets: [
       { id: "stats", title: "Freeform", size: "third" },
     ],

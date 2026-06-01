@@ -1,6 +1,6 @@
 import type { PluginContext } from "emdash";
 import type { StoredTemplate } from "../types";
-import { pageHeader, settingsNavButton, shortDate } from "./layout";
+import { freeformNavBlocks, pageHeader, shortDate } from "./layout";
 
 export const TEMPLATE_VARIABLE_REFERENCE =
   "Variables: {{ form_name }}, {{ submission_id }}, {{ submitted_at }}, {{ all_fields }}, {{ field_handle }}";
@@ -13,8 +13,8 @@ export async function templatesPageBlocks(ctx: PluginContext): Promise<object[]>
 
   if (templates.length === 0) {
     return [
+      ...(await freeformNavBlocks(ctx, "templates")),
       ...pageHeader("Templates"),
-      { type: "actions", elements: [settingsNavButton()] },
       {
         type: "empty",
         title: "No templates yet",
@@ -69,11 +69,11 @@ export async function templatesPageBlocks(ctx: PluginContext): Promise<object[]>
   ]);
 
   return [
+    ...(await freeformNavBlocks(ctx, "templates")),
     ...pageHeader("Templates", "Edit a template or create a new one."),
     {
       type: "actions",
       elements: [
-        settingsNavButton(),
         {
           type: "button",
           label: "Create template",
