@@ -82,6 +82,8 @@ export interface StoredForm {
   // Per-form override of the global spam scoring settings. When absent, the
   // form inherits the global defaults from KV (`spam:enabled` / `spam:threshold`).
   spam?: SpamSettings;
+  /** Card icon on the forms list (`auto` = infer from name and fields). */
+  cardIcon?: string;
 }
 
 export interface VisitorPageView {

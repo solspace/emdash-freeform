@@ -2,6 +2,16 @@
 
 Form builder plugin for [EmDash CMS](https://emdashcms.com) — monorepo.
 
+**Every day — two terminals:**
+
+```bash
+# 1 — demo site → http://localhost:4321/demo
+cd emdash-app && pnpm run dev:clean
+
+# 2 — plugin rebuild on save (optional)
+cd freeform-plugin && pnpm run build:watch
+```
+
 ---
 
 ## Repository layout
@@ -38,14 +48,7 @@ pnpm run build          # compile src/ → dist/
 pnpm run bundle         # produces dist/freeform-x.x.x.tar.gz
 ```
 
-**Development** (alongside the demo site):
-```bash
-# Terminal 1 — recompile plugin on change
-cd freeform-plugin && pnpm run build:watch
-
-# Terminal 2 — demo site
-cd emdash-app && npx emdash dev
-```
+**Development:** see [Daily dev — start here every time](#daily-dev--start-here-every-time) in Development setup.
 
 **Publish to marketplace:**
 ```bash
@@ -105,34 +108,61 @@ See `emdash-freeform-mcp/README.md` for full setup instructions including Claude
 
 Mars Rover Supply — a demo EmDash site that consumes all three packages. Used for development and as a reference implementation.
 
-```bash
-cd emdash-app
-npx emdash dev   # starts at http://localhost:4321
-```
-
 The demo site is NOT published. It exists to validate the packages and demonstrate real-world usage.
 
 ---
 
 ## Development setup
 
+**Requirements:** Node.js ≥ 22.12, pnpm ≥ 11 (see root `package.json`).
+
+### First time (clone)
+
 ```bash
-# Clone and install everything from the repo root
 git clone https://github.com/solspace/emdash-freeform
 cd emdash-freeform
 pnpm install
 
-# Build the plugin (required before starting the demo)
-pnpm run build --filter freeform-plugin
-
-# Start the demo dev server
-cd emdash-app && npx emdash dev
+# Build the plugin once (required before the demo site can load Freeform)
+cd freeform-plugin && pnpm run build
 ```
 
-For live plugin recompilation while the dev server is running:
+### Daily dev — start here every time
+
+Use **two terminals** from the repo root.
+
+**Terminal 1 — demo site (keep running)**
+
 ```bash
-# In a separate terminal
-pnpm run build:watch --filter freeform-plugin
+cd emdash-app
+pnpm run dev:clean
+```
+
+`dev:clean` clears Vite’s cache and runs `npx emdash dev` (migrations + Astro on port **4321**). Wait until you see `astro … ready`, then open:
+
+| URL | What |
+|-----|------|
+| http://localhost:4321/demo | Freeform POC (contact form) |
+| http://localhost:4321/contact | Styled form example |
+| http://localhost:4321/_emdash/admin | EmDash admin → **Freeform** |
+
+On the **first start** after a cache clear, the terminal may log one `emdash/middleware` optimize + `program reload` — that’s normal. If a page shows `Astro is not defined`, wait a few seconds and refresh once.
+
+**Terminal 2 — plugin watch (while editing `freeform-plugin/`)**
+
+```bash
+cd freeform-plugin
+pnpm run build:watch
+```
+
+Rebuilds `dist/` on save; refresh the browser or admin after changes.
+
+**If the dev server acts up** (wrong port, stale errors): stop all dev processes, then run `pnpm run dev:clean` again in `emdash-app`. Only one server should use port 4321.
+
+**Plain start** (no cache clear — use when yesterday’s dev session was fine):
+
+```bash
+cd emdash-app && npx emdash dev
 ```
 
 ---

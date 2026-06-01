@@ -8,6 +8,18 @@ export function isValidFormHandle(handle: string): boolean {
   return HANDLE_RE.test(handle);
 }
 
+/** Fallback display name when AI omits `form_name` on a blank form. */
+export function inferFormTitleFromDescription(description: string): string {
+  let text = description.trim().split(/\n/)[0]?.trim() ?? "";
+  text = text.split(/[.!?]/)[0]?.trim() ?? text;
+  text = text
+    .replace(/^(please\s+)?(create|build|make|add|design|i need)\s+(me\s+)?(a|an)?\s+/i, "")
+    .trim();
+  if (!text) return "New Form";
+  const capped = text.length > 60 ? `${text.slice(0, 57)}...` : text;
+  return capped.charAt(0).toUpperCase() + capped.slice(1);
+}
+
 // Build the lowercase snake_case base from a free-form name, then suffix with
 // _2, _3, ... if the base collides with an existing handle.
 export async function deriveUniqueFormHandle(

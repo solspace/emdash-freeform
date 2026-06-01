@@ -1,4 +1,6 @@
 import type { PluginContext } from "emdash";
+import type { AiCredentials } from "../lib/ai-config";
+import { callToolUse } from "./llm";
 import {
   ALL_FIELD_TYPES,
   FREE_FIELD_TYPES,
@@ -7,6 +9,10 @@ import {
   RANGE_VALIDATION_TYPES,
   TEXT_VALIDATION_TYPES,
 } from "../constants";
+import {
+  inferFormTitleFromDescription,
+  isValidFormHandle,
+} from "../lib/form-handles";
 import { toHandle, uid } from "../lib/handles";
 import { isMultiType, isOptionType } from "../lib/options";
 import type {
@@ -172,7 +178,7 @@ export async function editFormWithAI(
   tier: "free" | "pro",
   existingForm: StoredForm,
   ctx: PluginContext,
-  apiKey: string,
+  creds: AiCredentials,
 ): Promise<EditResult> {
   const allowed = tier === "pro" ? ALL_FIELD_TYPES : FREE_FIELD_TYPES;
 
@@ -199,145 +205,186 @@ export async function editFormWithAI(
           .join("\n");
 
   const FIELD_INPUT_SCHEMA = buildFieldInputSchema(allowed);
+  const applyFormMeta = shouldApplyAiFormMeta(existingForm, existingFields.length);
+  const formMetaHint = applyFormMeta
+    ? `Current form name: "${existingForm.name || "(none)"}" · handle: "${existingForm.handle || "(none)"}"\n\n`
+    : `Current form name: "${existingForm.name}" · handle: "${existingForm.handle}" (do not change unless the user asks to rename)\n\n`;
 
-  const res = await ctx.http!.fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 4096,
-      tools: [
-        {
-          name: "apply_form_edits",
-          description:
-            "Apply a batch of edits to the existing form. Each operation is one of: " +
-            "`add_row` (append a new row of one or more fields), " +
-            "`update_field` (change properties of an existing field referenced by handle), " +
-            "or `remove_field` (delete an existing field by handle). " +
-            "Use the minimum number of operations needed to satisfy the user's request.",
-          input_schema: {
-            type: "object",
-            required: ["operations"],
-            properties: {
-              operations: {
-                type: "array",
-                items: {
-                  type: "object",
-                  required: ["op"],
-                  properties: {
-                    op: {
-                      type: "string",
-                      enum: ["add_row", "update_field", "remove_field"],
-                    },
-                    // ── add_row ──────────────────────────────────────
-                    fields: {
-                      type: "array",
-                      minItems: 1,
-                      maxItems: 4,
-                      description:
-                        "For `add_row` only. Fields displayed side-by-side on the new row. " +
-                        "All field properties including validation are accepted here.",
-                      items: FIELD_INPUT_SCHEMA,
-                    },
-                    // ── update_field / remove_field ──────────────────
-                    handle: {
-                      type: "string",
-                      description:
-                        "For `update_field` and `remove_field`: the handle of an EXISTING field listed in the form summary above.",
-                    },
-                    // ── update_field partial props ───────────────────
-                    label: { type: "string" },
-                    required: { type: "boolean" },
-                    placeholder: { type: "string" },
-                    options: {
-                      type: "array",
-                      description:
-                        "For `update_field` on option-bearing types only: full replacement options array (≥ 2 entries). Only include when the user wants the choice list changed.",
-                      items: OPTION_ITEM_SCHEMA,
-                    },
-                    defaultValue: {
-                      description:
-                        "For `update_field`: new default/content/value (same rules as add_row). Pass null to clear.",
-                      oneOf: [
-                        { type: "string" },
-                        { type: "array", items: { type: "string" } },
-                        { type: "null" },
-                      ],
-                    },
-                    ...VALIDATION_SCHEMA_PROPS,
-                  },
+  const { toolInput } = await callToolUse(ctx, creds, {
+    tier: "fast",
+    tool: {
+      name: "apply_form_edits",
+      description:
+        "Apply a batch of edits to the existing form. Each operation is one of: " +
+        "`add_row` (append a new row of one or more fields), " +
+        "`update_field` (change properties of an existing field referenced by handle), " +
+        "or `remove_field` (delete an existing field by handle). " +
+        "Use the minimum number of operations needed to satisfy the user's request.",
+      input_schema: {
+        type: "object",
+        required: applyFormMeta
+          ? ["operations", "form_name", "form_handle"]
+          : ["operations"],
+        properties: {
+          form_name: {
+            type: "string",
+            description:
+              "Display name for the form (e.g. Contact Us, Job Application). " +
+              "Required when the form has no fields yet.",
+          },
+          form_handle: {
+            type: "string",
+            description:
+              "URL slug: lowercase snake_case, starts with a letter (e.g. contact_us). " +
+              "Required when the form has no fields yet. Must not collide with field handles.",
+          },
+          operations: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["op"],
+              properties: {
+                op: {
+                  type: "string",
+                  enum: ["add_row", "update_field", "remove_field"],
                 },
+                fields: {
+                  type: "array",
+                  minItems: 1,
+                  maxItems: 4,
+                  description:
+                    "For `add_row` only. Fields displayed side-by-side on the new row. " +
+                    "All field properties including validation are accepted here.",
+                  items: FIELD_INPUT_SCHEMA,
+                },
+                handle: {
+                  type: "string",
+                  description:
+                    "For `update_field` and `remove_field`: the handle of an EXISTING field listed in the form summary above.",
+                },
+                label: { type: "string" },
+                required: { type: "boolean" },
+                placeholder: { type: "string" },
+                options: {
+                  type: "array",
+                  description:
+                    "For `update_field` on option-bearing types only: full replacement options array (≥ 2 entries). Only include when the user wants the choice list changed.",
+                  items: OPTION_ITEM_SCHEMA,
+                },
+                defaultValue: {
+                  description:
+                    "For `update_field`: new default/content/value (same rules as add_row). Pass null to clear.",
+                  oneOf: [
+                    { type: "string" },
+                    { type: "array", items: { type: "string" } },
+                    { type: "null" },
+                  ],
+                },
+                ...VALIDATION_SCHEMA_PROPS,
               },
             },
           },
         },
-      ],
-      tool_choice: { type: "tool", name: "apply_form_edits" },
-      messages: [
-        {
-          role: "user",
-          content:
-            `You are editing an existing form. Emit the minimum operations to satisfy the request.\n\n` +
-            `Existing fields:\n${existingSummary}\n\n` +
-            `User request: "${description}"\n\n` +
-            `## Rules\n\n` +
-            `### Operations\n` +
-            `- \`add_row\` — append new fields in a new row. Each row can hold 1–4 fields side-by-side.\n` +
-            `- \`update_field\` — patch an existing field by its handle. Only include properties that should change; omit everything else.\n` +
-            `- \`remove_field\` — delete an existing field by its handle.\n` +
-            `- Never invent handles for update_field/remove_field. Only use handles from the "Existing fields" list.\n` +
-            `- Do not duplicate existing fields in add_row. Skip if already present.\n` +
-            `- Return an empty operations array if the request is already satisfied.\n\n` +
-            `### Field types\n` +
-            `Available: ${allowed.join(", ")}\n` +
-            `- \`text\` — single-line text input.\n` +
-            `- \`email\` — email input (validated by browser).\n` +
-            `- \`textarea\` — multi-line text.\n` +
-            `- \`number\` — numeric input. Use min/max for range constraints.\n` +
-            `- \`phone\` — telephone input (type="tel").\n` +
-            `- \`date\` — date picker (type="date"). Use min/max for YYYY-MM-DD bounds.\n` +
-            `- \`checkbox\` — a single yes/no toggle. defaultValue "true" = pre-checked.\n` +
-            `- \`checkbox_group\` — multi-pick checkboxes. REQUIRES options array (≥ 2).\n` +
-            `- \`radio\` — pick exactly one. REQUIRES options array (≥ 2).\n` +
-            `- \`select\` — dropdown, pick one. REQUIRES options array (≥ 2).\n` +
-            `- \`multi_select\` — dropdown, pick many. REQUIRES options array (≥ 2).\n` +
-            `- \`hidden\` — invisible field submitted with the form. No label shown to users. Set defaultValue to the fixed submitted value.\n` +
-            `- \`html\` — a static HTML content block inside the form (instructions, headings, copy). No user input. label is an internal admin name only. Set defaultValue to the raw HTML string to display.\n\n` +
-            `### Validation (applies to specific types)\n` +
-            `- \`minLength\` / \`maxLength\` — character limits. Apply to: text, email, textarea, phone.\n` +
-            `- \`pattern\` — HTML5 regex pattern. Apply to: text, email, textarea, phone.\n` +
-            `- \`patternError\` — message shown on pattern mismatch (browser title attribute). Apply to: text, email, textarea, phone.\n` +
-            `- \`min\` / \`max\` — numeric range for number fields; YYYY-MM-DD date bounds for date fields.\n` +
-            `- Pass \`null\` for any validation prop in \`update_field\` to clear an existing rule.\n` +
-            `- Only set validation props when the user requests them. Do not invent constraints.\n\n` +
-            `### Other rules\n` +
-            `- "Make only X required" → set required=true on X AND required=false on all other currently-required fields. One op per affected field.\n` +
-            `- For defaultValue: string for single-value types; array for checkbox_group/multi_select.\n` +
-            `- New handles (in add_row) must be unique snake_case, not colliding with any existing handle.\n` +
-            `- Only include "options" in update_field when the user explicitly wants the choice list replaced.\n`,
-        },
-      ],
-    }),
+      },
+    },
+    userMessage:
+      (applyFormMeta
+        ? `You are creating a new form from the user's description. Set form_name and form_handle, then add fields.\n\n`
+        : `You are editing an existing form. Emit the minimum operations to satisfy the request.\n\n`) +
+      formMetaHint +
+      `Existing fields:\n${existingSummary}\n\n` +
+      `User request: "${description}"\n\n` +
+      `## Rules\n\n` +
+      (applyFormMeta
+        ? `### Form metadata (required)\n` +
+          `- \`form_name\`: short title inferred from the request (not "New Form").\n` +
+          `- \`form_handle\`: unique snake_case slug from the name (e.g. contact_us, demo_request).\n\n`
+        : `### Form metadata\n` +
+          `- Omit \`form_name\` and \`form_handle\` unless the user explicitly asks to rename the form.\n\n`) +
+      `### Operations\n` +
+      `- \`add_row\` — append new fields in a new row. Each row can hold 1–4 fields side-by-side.\n` +
+      `- \`update_field\` — patch an existing field by its handle. Only include properties that should change; omit everything else.\n` +
+      `- \`remove_field\` — delete an existing field by its handle.\n` +
+      `- Never invent handles for update_field/remove_field. Only use handles from the "Existing fields" list.\n` +
+      `- Do not duplicate existing fields in add_row. Skip if already present.\n` +
+      `- Return an empty operations array if the request is already satisfied.\n\n` +
+      `### Field types\n` +
+      `Available: ${allowed.join(", ")}\n` +
+      `- \`text\` — single-line text input.\n` +
+      `- \`email\` — email input (validated by browser).\n` +
+      `- \`textarea\` — multi-line text.\n` +
+      `- \`number\` — numeric input. Use min/max for range constraints.\n` +
+      `- \`phone\` — telephone input (type="tel").\n` +
+      `- \`date\` — date picker (type="date"). Use min/max for YYYY-MM-DD bounds.\n` +
+      `- \`checkbox\` — a single yes/no toggle. defaultValue "true" = pre-checked.\n` +
+      `- \`checkbox_group\` — multi-pick checkboxes. REQUIRES options array (≥ 2).\n` +
+      `- \`radio\` — pick exactly one. REQUIRES options array (≥ 2).\n` +
+      `- \`select\` — dropdown, pick one. REQUIRES options array (≥ 2).\n` +
+      `- \`multi_select\` — dropdown, pick many. REQUIRES options array (≥ 2).\n` +
+      `- \`hidden\` — invisible field submitted with the form. No label shown to users. Set defaultValue to the fixed submitted value.\n` +
+      `- \`html\` — a static HTML content block inside the form (instructions, headings, copy). No user input. label is an internal admin name only. Set defaultValue to the raw HTML string to display.\n\n` +
+      `### Validation (applies to specific types)\n` +
+      `- \`minLength\` / \`maxLength\` — character limits. Apply to: text, email, textarea, phone.\n` +
+      `- \`pattern\` — HTML5 regex pattern. Apply to: text, email, textarea, phone.\n` +
+      `- \`patternError\` — message shown on pattern mismatch (browser title attribute). Apply to: text, email, textarea, phone.\n` +
+      `- \`min\` / \`max\` — numeric range for number fields; YYYY-MM-DD date bounds for date fields.\n` +
+      `- Pass \`null\` for any validation prop in \`update_field\` to clear an existing rule.\n` +
+      `- Only set validation props when the user requests them. Do not invent constraints.\n\n` +
+      `### Other rules\n` +
+      `- "Make only X required" → set required=true on X AND required=false on all other currently-required fields. One op per affected field.\n` +
+      `- For defaultValue: string for single-value types; array for checkbox_group/multi_select.\n` +
+      `- New handles (in add_row) must be unique snake_case, not colliding with any existing handle.\n` +
+      `- Only include "options" in update_field when the user explicitly wants the choice list replaced.\n`,
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Anthropic ${res.status}: ${text.slice(0, 200)}`);
-  }
-
-  const json = (await res.json()) as {
-    content: Array<{ type: string; input?: { operations?: AIOp[] } }>;
-  };
-  const toolUse = json.content.find((c) => c.type === "tool_use");
-  if (!toolUse?.input || !Array.isArray(toolUse.input.operations)) {
+  const operations = toolInput.operations;
+  if (!Array.isArray(operations)) {
     throw new Error("Unexpected AI response format");
   }
 
-  return applyOps(existingForm, toolUse.input.operations);
+  const result = applyOps(existingForm, operations as AIOp[]);
+  const newForm = applyAiFormMeta(
+    result.newForm,
+    toolInput,
+    description,
+    applyFormMeta,
+  );
+  return { newForm, summary: result.summary };
+}
+
+function shouldApplyAiFormMeta(form: StoredForm, fieldCount: number): boolean {
+  if (fieldCount > 0) return false;
+  const name = form.name?.trim().toLowerCase() ?? "";
+  return !name || name === "new form";
+}
+
+function applyAiFormMeta(
+  form: StoredForm,
+  toolInput: Record<string, unknown>,
+  description: string,
+  applyMeta: boolean,
+): StoredForm {
+  if (!applyMeta) return form;
+
+  const next = { ...form };
+  const aiName =
+    typeof toolInput.form_name === "string" ? toolInput.form_name.trim() : "";
+  const aiHandle =
+    typeof toolInput.form_handle === "string" ? toolInput.form_handle.trim() : "";
+
+  if (aiName) next.name = aiName;
+  else if (!next.name?.trim() || next.name.trim().toLowerCase() === "new form") {
+    next.name = inferFormTitleFromDescription(description);
+  }
+
+  if (aiHandle) {
+    const normalized = isValidFormHandle(aiHandle) ? aiHandle : toHandle(aiHandle);
+    if (isValidFormHandle(normalized)) next.handle = normalized;
+  } else if (!next.handle?.trim() || next.handle.trim().toLowerCase() === "new_form") {
+    next.handle = toHandle(next.name);
+  }
+
+  return next;
 }
 
 // ── Apply operations ───────────────────────────────────────────────

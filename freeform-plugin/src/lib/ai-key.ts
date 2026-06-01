@@ -1,15 +1,10 @@
 import type { PluginContext } from "emdash";
+import { getAiCredentials, hasApiKey as hasConfiguredApiKey } from "./ai-config";
 
-const KV_KEY = "settings:anthropicApiKey";
-
-/** Returns the user-configured Anthropic API key, or null if not set. */
+/** @deprecated Use getAiCredentials for provider-aware access. */
 export async function getApiKey(ctx: PluginContext): Promise<string | null> {
-  const key = await ctx.kv.get<string>(KV_KEY);
-  return key?.trim() || null;
+  const creds = await getAiCredentials(ctx);
+  return creds?.apiKey ?? null;
 }
 
-/** Returns true if an API key has been configured. */
-export async function hasApiKey(ctx: PluginContext): Promise<boolean> {
-  const key = await getApiKey(ctx);
-  return key !== null;
-}
+export { hasConfiguredApiKey as hasApiKey };

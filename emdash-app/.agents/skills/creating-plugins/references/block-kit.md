@@ -190,11 +190,13 @@ routes: {
 {
 	"type": "columns",
 	"columns": [
-		{ "blocks": [{ "type": "header", "text": "Left" }] },
-		{ "blocks": [{ "type": "header", "text": "Right" }] }
+		[{ "type": "header", "text": "Left" }],
+		[{ "type": "header", "text": "Right" }]
 	]
 }
 ```
+
+Each entry in `columns` is an **array of blocks** (`Block[][]`), not `{ "blocks": [...] }`.
 
 ### Chart (Timeseries)
 

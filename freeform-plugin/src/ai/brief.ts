@@ -1,5 +1,7 @@
 import type { PluginContext } from "emdash";
+import type { AiCredentials } from "../lib/ai-config";
 import type { StoredForm, StoredSubmission, SubmissionBrief, VisitorPageView } from "../types";
+import { callToolUse } from "./llm";
 
 // Generates a structured sales-engineer brief for a submission, optionally
 // enriched with the visitor's pre-submission page journey. Returns null on
@@ -38,7 +40,7 @@ export async function generateBrief(
   ctx: PluginContext,
   form: StoredForm,
   submission: StoredSubmission,
-  apiKey: string,
+  creds: AiCredentials,
   journey?: VisitorPageView[],
 ): Promise<SubmissionBrief | null> {
   const userMsg = `Form: ${form.name}
@@ -50,72 +52,41 @@ Visitor journey (page-by-page, oldest first):
 ${formatJourney(journey)}`;
 
   try {
-    const res = await ctx.http!.fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 700,
-        system: SYSTEM,
-        tools: [
-          {
-            name: "record_brief",
-            description:
-              "Record the triage brief for this inbound submission. Must be called exactly once.",
-            input_schema: {
-              type: "object",
-              required: ["intent", "urgency", "summary", "keyFacts", "suggestedAction"],
-              properties: {
-                intent: {
-                  type: "string",
-                  description:
-                    "Short label for what the visitor is asking for (e.g. 'demo request', 'sustainment contract inquiry', 'partner-test program', 'press').",
-                },
-                urgency: { type: "string", enum: ["low", "medium", "high"] },
-                summary: {
-                  type: "string",
-                  description: "1–2 specific sentences a sales engineer can read at a glance.",
-                },
-                keyFacts: {
-                  type: "array",
-                  items: { type: "string" },
-                  description: "Up to 5 specific bullet-able facts from the submission or journey.",
-                },
-                suggestedAction: {
-                  type: "string",
-                  description: "Single concrete next step.",
-                },
-              },
+    const { toolInput: input } = await callToolUse(ctx, creds, {
+      tier: "smart",
+      system: SYSTEM,
+      tool: {
+        name: "record_brief",
+        description:
+          "Record the triage brief for this inbound submission. Must be called exactly once.",
+        input_schema: {
+          type: "object",
+          required: ["intent", "urgency", "summary", "keyFacts", "suggestedAction"],
+          properties: {
+            intent: {
+              type: "string",
+              description:
+                "Short label for what the visitor is asking for (e.g. 'demo request', 'sustainment contract inquiry', 'partner-test program', 'press').",
+            },
+            urgency: { type: "string", enum: ["low", "medium", "high"] },
+            summary: {
+              type: "string",
+              description: "1–2 specific sentences a sales engineer can read at a glance.",
+            },
+            keyFacts: {
+              type: "array",
+              items: { type: "string" },
+              description: "Up to 5 specific bullet-able facts from the submission or journey.",
+            },
+            suggestedAction: {
+              type: "string",
+              description: "Single concrete next step.",
             },
           },
-        ],
-        tool_choice: { type: "tool", name: "record_brief" },
-        messages: [{ role: "user", content: userMsg }],
-      }),
+        },
+      },
+      userMessage: userMsg,
     });
-
-    if (!res.ok) {
-      ctx.log.warn("Brief generation failed", { status: res.status });
-      return null;
-    }
-
-    const json = (await res.json()) as {
-      content?: Array<
-        | { type: "text"; text: string }
-        | { type: "tool_use"; name: string; input: Record<string, unknown> }
-      >;
-    };
-    const tool = json.content?.find(
-      (b): b is { type: "tool_use"; name: string; input: Record<string, unknown> } =>
-        b.type === "tool_use" && b.name === "record_brief",
-    );
-    if (!tool) return null;
-
-    const input = tool.input;
     const keyFacts = Array.isArray(input.keyFacts) ? (input.keyFacts as unknown[]).map(String) : [];
     const urgency = ["low", "medium", "high"].includes(String(input.urgency))
       ? (input.urgency as "low" | "medium" | "high")

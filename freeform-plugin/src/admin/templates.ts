@@ -1,18 +1,9 @@
 import type { PluginContext } from "emdash";
 import type { StoredTemplate } from "../types";
+import { pageHeader, settingsNavButton, shortDate } from "./layout";
 
 export const TEMPLATE_VARIABLE_REFERENCE =
-  "Variables (Mustache): " +
-  "`{{ form_name }}`, `{{ submission_id }}`, `{{ submitted_at }}`, " +
-  "`{{ all_fields }}` (Label: value list), plus `{{ <field_handle> }}` for any submission field.";
-
-function shortDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
+  "Variables: {{ form_name }}, {{ submission_id }}, {{ submitted_at }}, {{ all_fields }}, {{ field_handle }}";
 
 export async function templatesPageBlocks(ctx: PluginContext): Promise<object[]> {
   const { items } = await ctx.storage.templates.query({
@@ -22,75 +13,77 @@ export async function templatesPageBlocks(ctx: PluginContext): Promise<object[]>
 
   if (templates.length === 0) {
     return [
-      { type: "header", text: "Notification Templates" },
-      { type: "section", text: TEMPLATE_VARIABLE_REFERENCE },
+      ...pageHeader("Templates"),
+      { type: "actions", elements: [settingsNavButton()] },
       {
         type: "empty",
         title: "No templates yet",
-        description:
-          "Templates are reusable email bodies. Assign them per form to send notifications on submission.",
+        description: TEMPLATE_VARIABLE_REFERENCE,
         size: "lg",
         actions: [
-          { type: "button", label: "+ New Template", action_id: "new_template", style: "primary" },
+          {
+            type: "button",
+            label: "Create template",
+            action_id: "new_template",
+            style: "primary",
+          },
         ],
       },
     ];
   }
 
-  return [
-    { type: "header", text: "Notification Templates" },
-    { type: "section", text: TEMPLATE_VARIABLE_REFERENCE },
+  const rows = templates.flatMap((t) => [
+    {
+      type: "fields",
+      fields: [
+        { label: "Name", value: t.data.name },
+        { label: "Subject", value: t.data.subject || "—" },
+        { label: "Format", value: t.data.format === "html" ? "HTML" : "Text" },
+        { label: "Updated", value: shortDate(t.data.updatedAt) },
+      ],
+    },
     {
       type: "actions",
       elements: [
-        { type: "button", label: "+ New Template", action_id: "new_template", style: "primary" },
+        {
+          type: "button",
+          label: "Edit",
+          action_id: `edit_template:${t.id}`,
+          style: "primary",
+        },
+        {
+          type: "button",
+          label: "Delete",
+          action_id: `del_template:${t.id}`,
+          style: "danger",
+          confirm: {
+            title: `Delete "${t.data.name}"?`,
+            text: "Forms using this template will stop sending this email.",
+            confirm: "Delete",
+            deny: "Cancel",
+          },
+        },
       ],
     },
     { type: "divider" },
-    ...templates.flatMap((t) => [
-      {
-        type: "columns",
-        columns: [
-          [
-            { type: "section", text: `${t.data.name}` },
-            {
-              type: "fields",
-              fields: [
-                { label: "Subject", value: t.data.subject || "—" },
-                { label: "Format", value: t.data.format },
-                { label: "Updated", value: shortDate(t.data.updatedAt) },
-              ],
-            },
-          ],
-          [
-            {
-              type: "actions",
-              elements: [
-                {
-                  type: "button",
-                  label: "Edit",
-                  action_id: `edit_template:${t.id}`,
-                  style: "primary",
-                },
-                {
-                  type: "button",
-                  label: "Delete",
-                  action_id: `del_template:${t.id}`,
-                  style: "danger",
-                  confirm: {
-                    title: "Delete this template?",
-                    text: "Any form notifications using it will stop sending.",
-                    confirm: "Delete",
-                    deny: "Cancel",
-                  },
-                },
-              ],
-            },
-          ],
-        ],
-      },
-      { type: "divider" },
-    ]),
+  ]);
+
+  return [
+    ...pageHeader("Templates", "Edit a template or create a new one."),
+    {
+      type: "actions",
+      elements: [
+        settingsNavButton(),
+        {
+          type: "button",
+          label: "Create template",
+          action_id: "new_template",
+          style: "primary",
+        },
+      ],
+    },
+    { type: "divider" },
+    ...rows,
   ];
 }
 
@@ -107,7 +100,9 @@ export async function templateEditorBlocks(
       { type: "banner", title: "Template not found", variant: "error" },
       {
         type: "actions",
-        elements: [{ type: "button", label: "← Back", action_id: "nav:templates" }],
+        elements: [
+          { type: "button", label: "Back to templates", action_id: "nav:templates" },
+        ],
       },
     ];
   }
@@ -122,13 +117,14 @@ export async function templateEditorBlocks(
   };
 
   return [
-    { type: "header", text: templateId ? `Edit Template: ${initial.name}` : "New Template" },
+    ...pageHeader(templateId ? `Edit: ${initial.name}` : "New template"),
+    { type: "context", text: TEMPLATE_VARIABLE_REFERENCE },
     {
       type: "actions",
-      elements: [{ type: "button", label: "← Back to Templates", action_id: "nav:templates" }],
+      elements: [
+        { type: "button", label: "Back to templates", action_id: "nav:templates" },
+      ],
     },
-    { type: "section", text: TEMPLATE_VARIABLE_REFERENCE },
-    { type: "divider" },
     {
       type: "form",
       block_id: "template",
@@ -137,14 +133,14 @@ export async function templateEditorBlocks(
           type: "text_input",
           action_id: "name",
           label: "Template name",
-          placeholder: "e.g. Admin Alert",
+          placeholder: "Admin alert",
           initial_value: initial.name,
         },
         {
           type: "text_input",
           action_id: "subject",
-          label: "Subject",
-          placeholder: "New submission from {{ form_name }}",
+          label: "Email subject",
+          placeholder: "New submission on {{ form_name }}",
           initial_value: initial.subject,
         },
         {
@@ -160,20 +156,16 @@ export async function templateEditorBlocks(
         {
           type: "text_input",
           action_id: "body",
-          label: "Body",
-          placeholder:
-            "New submission from {{ form_name }} at {{ submitted_at }}:\\n\\n{{ all_fields }}",
+          label: "Email body",
+          placeholder: "Hi,\n\n{{ all_fields }}\n\n— {{ form_name }}",
           initial_value: initial.body,
         },
       ],
       submit: {
-        label: templateId ? "Save changes" : "Create template",
+        label: templateId ? "Save template" : "Create template",
         action_id: templateId ? `save_template:${templateId}` : "save_template:new",
+        style: "primary",
       },
-    },
-    {
-      type: "context",
-      text: "Tip: for multi-line bodies, use literal newlines via MCP `create_template` — Block Kit text inputs are single-line.",
     },
   ];
 }

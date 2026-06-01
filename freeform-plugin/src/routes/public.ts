@@ -2,7 +2,7 @@ import { PluginRouteError, type PluginContext } from "emdash";
 import { CSRF_FIELD, HONEYPOT_FIELD } from "../constants";
 import { generateBrief } from "../ai/brief";
 import { scoreSubmissionWithAI } from "../ai/spam";
-import { getApiKey } from "../lib/ai-key";
+import { getAiCredentials } from "../lib/ai-config";
 import { createCsrfToken, verifyCsrfToken } from "../lib/csrf";
 import { sendNotificationsForSubmission } from "../lib/notifications";
 import { ensureDemoSeed } from "../lib/seed";
@@ -106,10 +106,10 @@ export const publicRoutes = {
       };
       if (journey && journey.length > 0) submission.journey = journey;
 
-      const apiKey = await getApiKey(ctx);
+      const creds = await getAiCredentials(ctx);
       const spam = effectiveSpamSettings(formData, await getSpamSettings(ctx));
-      if (apiKey && spam.enabled) {
-        const result = await scoreSubmissionWithAI(formData.name, cleanData, ctx, apiKey);
+      if (creds && spam.enabled) {
+        const result = await scoreSubmissionWithAI(formData.name, cleanData, ctx, creds);
         if (result !== null) {
           submission.spamScore = result.score;
           if (result.reason) submission.spamReason = result.reason;
@@ -128,8 +128,8 @@ export const publicRoutes = {
           threshold: spam.threshold,
         });
       } else {
-        if (apiKey) {
-          const brief = await generateBrief(ctx, formData, submission, apiKey, journey);
+        if (creds) {
+          const brief = await generateBrief(ctx, formData, submission, creds, journey);
           if (brief) {
             submission.brief = brief;
             await ctx.storage.submissions.put(submissionId, submission);

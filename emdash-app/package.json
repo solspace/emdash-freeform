@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "astro dev",
+    "dev:clean": "rm -rf node_modules/.vite && npx emdash dev",
     "build": "astro build",
     "preview": "astro preview",
     "deploy": "astro build && wrangler deploy",
@@ -19,12 +20,12 @@
     "pnpm": ">=11"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^13.1.7",
+    "@astrojs/cloudflare": "^13.6.0",
     "@astrojs/react": "^5.0.0",
     "@emdash-cms/cloudflare": "^0.12.0",
     "@solspace/freeform-astro": "workspace:*",
     "@local/freeform-plugin": "workspace:*",
-    "astro": "^6.0.1",
+    "astro": "^6.4.2",
     "emdash": "^0.12.0",
     "react": "19.2.4",
     "react-dom": "19.2.4"
@@ -32,6 +33,6 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.7",
     "@cloudflare/workers-types": "^4.20260305.1",
-    "wrangler": "^4.83.0"
+    "wrangler": "^4.95.0"
   }
 }

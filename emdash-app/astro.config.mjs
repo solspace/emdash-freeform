@@ -5,6 +5,15 @@ import { defineConfig } from "astro/config";
 import emdash from "emdash/astro";
 import { freeformPlugin } from "@local/freeform-plugin";
 import freeformAstro from "@solspace/freeform-astro";
+import { emdashSsrDeps } from "./vite-emdash-ssr-deps.mjs";
+
+const REACT_OPTIMIZE = [
+  "react",
+  "react-dom",
+  "react-dom/server.edge",
+  "react/jsx-runtime",
+  "react/jsx-dev-runtime",
+];
 
 export default defineConfig({
   output: "server",
@@ -18,18 +27,12 @@ export default defineConfig({
     emdash({
       database: d1({ binding: "DB", session: "auto" }),
       storage: r2({ binding: "MEDIA" }),
-      // Marketplace plugins always run sandboxed via sandboxRunner.
-      // Runner ships as a subpath of @emdash-cms/cloudflare (already installed).
       marketplace: "https://marketplace.emdashcms.com",
       sandboxRunner: "@emdash-cms/cloudflare/sandbox",
-      // Use plugins[] for local dev (trusted mode).
-      // Switch to sandboxed[] when deploying to Cloudflare.
       plugins: [freeformPlugin()],
     }),
     freeformAstro(),
     {
-      // /llms.txt is site-specific (uses getSiteSettings + site identity).
-      // Keep it here until it can be made configurable in freeform-astro.
       name: "freeform-llms-txt",
       hooks: {
         "astro:config:setup": ({ injectRoute }) => {
@@ -43,6 +46,14 @@ export default defineConfig({
   ],
   devToolbar: { enabled: false },
   vite: {
+    plugins: [emdashSsrDeps()],
+    resolve: {
+      dedupe: ["react", "react-dom"],
+      alias: { "react-dom/server": "react-dom/server.edge" },
+    },
+    optimizeDeps: {
+      include: REACT_OPTIMIZE,
+    },
     server: {
       allowedHosts: [".trycloudflare.com"],
     },

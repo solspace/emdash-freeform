@@ -1,6 +1,6 @@
 import { PluginRouteError, type PluginContext } from "emdash";
 import { editFormWithAI } from "../ai/generate";
-import { getApiKey } from "../lib/ai-key";
+import { getAiCredentials } from "../lib/ai-config";
 import { getTier } from "../lib/license";
 import type { StoredForm } from "../types";
 
@@ -17,10 +17,10 @@ export const aiRoutes = {
       };
       if (!description?.trim()) throw PluginRouteError.badRequest("Missing description");
 
-      const apiKey = await getApiKey(ctx);
-      if (!apiKey) {
+      const creds = await getAiCredentials(ctx);
+      if (!creds) {
         throw PluginRouteError.badRequest(
-          "Anthropic API key not configured. Add it in Freeform → Settings.",
+          "AI API key not configured. Add it in Freeform → Settings → AI.",
         );
       }
 
@@ -37,7 +37,7 @@ export const aiRoutes = {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      const { newForm, summary } = await editFormWithAI(description, tier, baseForm, ctx, apiKey);
+      const { newForm, summary } = await editFormWithAI(description, tier, baseForm, ctx, creds);
 
       const anyChange = summary.added > 0 || summary.updated > 0 || summary.removed > 0;
       if (apply && formId && form && anyChange) {

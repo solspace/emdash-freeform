@@ -1,6 +1,6 @@
 import { type PluginContext } from "emdash";
 import { runChatTurn, type ChatMessage } from "../ai/chat";
-import { getApiKey } from "../lib/ai-key";
+import { getAiCredentials } from "../lib/ai-config";
 import { findFormByHandle, runAgentSubmission } from "../lib/agent-submit";
 import type { StoredForm, VisitorPageView } from "../types";
 
@@ -20,8 +20,8 @@ export const chatRoutes = {
       const formHandle = body.formHandle;
       if (!formHandle) return { error: "Missing formHandle" };
 
-      const apiKey = await getApiKey(ctx);
-      if (!apiKey) return { error: "Anthropic API key not configured." };
+      const creds = await getAiCredentials(ctx);
+      if (!creds) return { error: "AI API key not configured." };
 
       const found = await findFormByHandle(ctx, formHandle);
       if (!found) return { error: `Form "${formHandle}" not found` };
@@ -32,7 +32,7 @@ export const chatRoutes = {
       const siteName = body.siteName?.trim() || form.name;
       const salesContext = body.salesContext?.trim() || "";
 
-      const turn = await runChatTurn(ctx, form, messages, siteName, salesContext, apiKey);
+      const turn = await runChatTurn(ctx, form, messages, siteName, salesContext, creds);
 
       if (turn.submission) {
         const ip = routeCtx.request.headers.get("cf-connecting-ip");

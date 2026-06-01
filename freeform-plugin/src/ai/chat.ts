@@ -1,6 +1,8 @@
 import type { PluginContext } from "emdash";
+import type { AiCredentials } from "../lib/ai-config";
 import { fieldToSchema } from "../routes/agent";
 import type { StoredForm } from "../types";
+import { callChatTurn } from "./llm";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -81,49 +83,24 @@ export async function runChatTurn(
   messages: ChatMessage[],
   siteName: string,
   salesContext: string,
-  apiKey: string,
+  creds: AiCredentials,
 ): Promise<ChatTurnResult> {
   const system = buildSystem(form, siteName, salesContext);
   const tool = buildToolSpec(form);
 
-  const res = await ctx.http!.fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
+  const result = await callChatTurn(ctx, creds, {
+    system,
+    messages,
+    tool: {
+      name: String(tool.name),
+      description: String(tool.description),
+      input_schema: tool.input_schema as Record<string, unknown>,
     },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1024,
-      system,
-      tools: [tool],
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-    }),
   });
 
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "");
-    ctx.log.warn("Chat turn failed", { status: res.status, body: errText });
-    return { reply: "Sorry, I'm having trouble responding right now. Please try again." };
-  }
-
-  const json = (await res.json()) as {
-    content?: Array<
-      | { type: "text"; text: string }
-      | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
-    >;
+  return {
+    reply: result.reply,
+    submission: result.toolInput,
+    toolUseId: result.toolUseId,
   };
-
-  let reply = "";
-  let submission: Record<string, unknown> | undefined;
-  let toolUseId: string | undefined;
-  for (const block of json.content ?? []) {
-    if (block.type === "text") reply += block.text;
-    if (block.type === "tool_use" && block.name === "submit_contact_form") {
-      submission = block.input;
-      toolUseId = block.id;
-    }
-  }
-  return { reply: reply.trim(), submission, toolUseId };
 }

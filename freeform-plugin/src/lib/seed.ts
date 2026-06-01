@@ -36,6 +36,7 @@ export async function ensureDemoSeed(ctx: PluginContext): Promise<void> {
   const contactForm: StoredForm = {
     name: "Contact",
     handle: "contact",
+    cardIcon: "email",
     rows: [
       {
         id: uid(),

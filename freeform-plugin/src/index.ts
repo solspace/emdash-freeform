@@ -19,7 +19,10 @@ export function freeformPlugin(): PluginDescriptor {
       webhooks: { indexes: ["createdAt"] },
     },
     adminPages: [
-      { path: "/forms", label: "Freeform", icon: "edit" },
+      { path: "/forms", label: "Forms", icon: "edit" },
+      { path: "/submissions", label: "Submissions", icon: "list" },
+      { path: "/templates", label: "Templates", icon: "mail" },
+      { path: "/settings", label: "Settings", icon: "settings" },
     ],
     adminWidgets: [
       { id: "stats", title: "Freeform", size: "third" },
