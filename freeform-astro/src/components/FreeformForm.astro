@@ -231,6 +231,8 @@ const agentActionLd = formData
         data-agent-schema={agentSchemaPath}
         data-prefilled-fields={prefilledFields.join(",")}
       >
+        <div data-freeform-message role="status" aria-live="polite" hidden />
+
         {formData.rows.map((row) => (
           <div data-freeform-row data-freeform-cols={row.fields.length}>
             {row.fields.map((field) => {
@@ -473,7 +475,6 @@ const agentActionLd = formData
           <button type="submit" data-freeform-submit>
             Submit
           </button>
-          <div data-freeform-message role="status" aria-live="polite" hidden />
         </div>
       </form>
 
@@ -495,6 +496,8 @@ const agentActionLd = formData
   document
     .querySelectorAll<HTMLFormElement>("[data-freeform-form]")
     .forEach((form) => {
+      let resetButtonTimer: ReturnType<typeof setTimeout> | undefined;
+
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
 
@@ -507,7 +510,20 @@ const agentActionLd = formData
           "[data-freeform-submit]",
         )!;
 
+        const defaultButtonText =
+          submitBtn.dataset.defaultLabel ||
+          submitBtn.textContent?.trim() ||
+          "Submit";
+
+        submitBtn.dataset.defaultLabel = defaultButtonText;
+
+        if (resetButtonTimer) {
+          clearTimeout(resetButtonTimer);
+        }
+
         submitBtn.disabled = true;
+        submitBtn.textContent = "Processing...";
+
         msgEl.hidden = true;
         msgEl.removeAttribute("data-freeform-state");
 
@@ -515,10 +531,12 @@ const agentActionLd = formData
         // <select multiple>) become arrays; everything else is a single string.
         const fd = new FormData(form);
         const payload: Record<string, unknown> = { formId: resolvedId };
+
         for (const key of new Set(fd.keys())) {
           const all = fd.getAll(key).map((v) => String(v));
           payload[key] = all.length > 1 ? all : all[0];
         }
+
         try {
           const raw = localStorage.getItem("ff_journey");
           if (raw) payload.__ff_journey = JSON.parse(raw);
@@ -539,20 +557,45 @@ const agentActionLd = formData
 
           if (json.success) {
             form.reset();
+
             msgEl.textContent = json.message ?? "Thank you!";
             msgEl.setAttribute("data-freeform-state", "success");
+            msgEl.hidden = false;
+
+            submitBtn.textContent = "Success!";
+
+            const prefersReducedMotion = window.matchMedia(
+              "(prefers-reduced-motion: reduce)",
+            ).matches;
+
+            const scrollOffset = 150;
+            const formTop = form.getBoundingClientRect().top + window.scrollY;
+
+            window.scrollTo({
+              top: Math.max(formTop - scrollOffset, 0),
+              behavior: prefersReducedMotion ? "auto" : "smooth",
+            });
           } else {
             msgEl.textContent =
               json.error ?? "Submission failed. Please try again.";
             msgEl.setAttribute("data-freeform-state", "error");
+            msgEl.hidden = false;
+
+            submitBtn.textContent = "Errors Found";
           }
         } catch {
           msgEl.textContent = "Network error — please try again.";
           msgEl.setAttribute("data-freeform-state", "error");
+          msgEl.hidden = false;
+
+          submitBtn.textContent = "Errors Found";
         }
 
-        msgEl.hidden = false;
         submitBtn.disabled = false;
+
+        resetButtonTimer = setTimeout(() => {
+          submitBtn.textContent = submitBtn.dataset.defaultLabel || "Submit";
+        }, 3000);
       });
     });
 </script>
