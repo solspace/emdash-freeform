@@ -159,6 +159,7 @@ export async function templateEditorBlocks(
           label: "Email body",
           placeholder: "Hi,\n\n{{ all_fields }}\n\n— {{ form_name }}",
           initial_value: initial.body,
+          multiline: true,
         },
       ],
       submit: {
