@@ -301,7 +301,7 @@ const agentActionLd = formData
                       required={field.required}
                       placeholder={field.placeholder ?? ""}
                       data-freeform-input
-                      rows={4}
+                      rows={3}
                       {...(field.minLength
                         ? { minlength: field.minLength }
                         : {})}
@@ -312,9 +312,7 @@ const agentActionLd = formData
                       {...(field.patternError
                         ? { title: field.patternError }
                         : {})}
-                    >
-                      {asStringDefault(field.defaultValue)}
-                    </textarea>
+                    >{asStringDefault(field.defaultValue)}</textarea>
                   ) : field.type === "select" ? (
                     (() => {
                       const selected = asStringDefault(field.defaultValue);
