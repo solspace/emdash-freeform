@@ -14,6 +14,3 @@ allowBuilds:
 onlyBuiltDependencies:
   - "esbuild"
   - "workerd"
-
-patchedDependencies:
-  '@emdash-cms/blocks@0.12.0': patches/@emdash-cms__blocks@0.12.0.patch

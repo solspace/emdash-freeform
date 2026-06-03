@@ -2,7 +2,7 @@
 // Centralises the env.SELF / globalThis fetcher pattern and the
 // X-Forwarded-* origin resolution that every Freeform route needs.
 
-import { env } from "cloudflare:workers";
+// import { env } from "cloudflare:workers";
 
 /**
  * Returns the Cloudflare SELF service binding when running on a Worker,
@@ -12,7 +12,7 @@ import { env } from "cloudflare:workers";
  * which would otherwise cause same-origin fetches to 404.
  */
 export function getFetcher(): { fetch: typeof fetch } {
-  return (env as any).SELF ?? globalThis;
+  return globalThis;
 }
 
 /**
