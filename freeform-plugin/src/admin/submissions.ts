@@ -10,13 +10,76 @@ import {
 } from "./layout";
 
 const PAGE_SIZE = 25;
+const PREVIEW_FIELD_LIMIT = 2;
+
+function submissionRef(index: number): string {
+  return `#${index + 1}`;
+}
+
+function previewValue(value: unknown, maxLength = 80): string {
+  const text = Array.isArray(value) ? value.join(", ") : String(value ?? "");
+
+  if (!text.trim()) return "—";
+
+  return text.length > maxLength ? `${text.slice(0, maxLength).trim()}…` : text;
+}
+
+function visibleSubmissionFields(
+  sub: StoredSubmission,
+  formData: StoredForm | null,
+  limit = PREVIEW_FIELD_LIMIT,
+): Array<{ label: string; value: string }> {
+  if (formData && formData.rows.length > 0) {
+    const fields = formData.rows.flatMap((r) => r.fields);
+
+    return fields
+      .map((field) => {
+        const raw = sub.data[field.handle];
+
+        if (raw === undefined || raw === "") {
+          return null;
+        }
+
+        return {
+          label: field.label,
+          value: previewValue(resolveOptionLabels(formData, field.handle, raw)),
+        };
+      })
+      .filter((field): field is { label: string; value: string } => Boolean(field))
+      .slice(0, limit);
+  }
+
+  return Object.entries(sub.data)
+    .filter(([, value]) => value !== undefined && value !== "")
+    .slice(0, limit)
+    .map(([key, value]) => ({
+      label: key,
+      value: previewValue(value),
+    }));
+}
+
+function moreFieldsLabel(
+  sub: StoredSubmission,
+  formData: StoredForm | null,
+  shownCount: number,
+): string | null {
+  const total = formData
+    ? formData.rows.flatMap((r) => r.fields).length
+    : Object.keys(sub.data).length;
+
+  const remaining = Math.max(total - shownCount, 0);
+
+  return remaining > 0 ? `+${remaining} more` : null;
+}
 
 export async function submissionDetailBlocks(
   submissionId: string,
   backFormId: string | null,
   ctx: PluginContext,
+  submissionLabel?: string,
 ): Promise<object[]> {
   const sub = (await ctx.storage.submissions.get(submissionId)) as StoredSubmission | null;
+
   if (!sub) {
     return [
       { type: "banner", title: "Submission not found", variant: "error" },
@@ -33,8 +96,11 @@ export async function submissionDetailBlocks(
     ];
   }
 
+  const submissionTitle = submissionLabel
+  ? `Submission ${submissionLabel}`
+  : `Submission ${submissionId.slice(0, 8)}`;
+
   const formData = (await ctx.storage.forms.get(sub.formId)) as StoredForm | null;
-  const formTitle = formData?.name ?? sub.formName ?? "Submission";
 
   const fieldValueItems =
     formData && formData.rows.length > 0
@@ -44,6 +110,7 @@ export async function submissionDetailBlocks(
             raw === undefined || raw === ""
               ? "—"
               : resolveOptionLabels(formData, f.handle, raw);
+
           return { label: f.label, value: String(value) };
         })
       : Object.entries(sub.data).map(([k, v]) => ({
@@ -74,7 +141,7 @@ export async function submissionDetailBlocks(
     : [];
 
   return [
-    ...pageHeader("Submission detail"),
+    ...pageHeader(submissionTitle),
     {
       type: "actions",
       elements: [
@@ -103,12 +170,12 @@ export async function submissionDetailBlocks(
           : []),
       ],
     },
-    ...sectionHeader("Submitted answers"),
+    ...sectionHeader("Submission Data"),
     {
       type: "table",
       columns: [
         { key: "label", label: "Field" },
-        { key: "value", label: "Answer" },
+        { key: "value", label: "Value" },
       ],
       rows: fieldValueItems.map((r) => ({ label: r.label, value: r.value })),
     },
@@ -122,6 +189,7 @@ export async function submissionsBlocks(
   cursor?: string,
 ): Promise<object[]> {
   const where = formId ? { formId } : undefined;
+
   const { items, cursor: nextCursor, hasMore } = await ctx.storage.submissions.query({
     where,
     orderBy: { createdAt: "desc" },
@@ -132,14 +200,18 @@ export async function submissionsBlocks(
   const subs = items as Array<{ id: string; data: StoredSubmission }>;
   const globalSpam = await getSpamSettings(ctx);
   const anyScored = subs.some((s) => typeof s.data.spamScore === "number");
+
   const spamCell = (s: { data: StoredSubmission }) =>
     typeof s.data.spamScore === "number" ? String(s.data.spamScore) : "—";
-  const showBriefColumns = subs.some((s) => s.data.brief);
+
+  const showBriefFields = subs.some((s) => s.data.brief);
+
   const intentCell = (s: { data: StoredSubmission }) => s.data.brief?.intent || "—";
   const urgencyCell = (s: { data: StoredSubmission }) => s.data.brief?.urgency || "—";
 
   const paginationBlocks = (prevCursor?: string): object[] => {
     if (!hasMore && !prevCursor) return [];
+
     return [
       {
         type: "actions",
@@ -171,86 +243,17 @@ export async function submissionsBlocks(
     ];
   };
 
-  const detailPicker =
-    subs.length > 0
-      ? [
-          ...sectionHeader("Open submission"),
-          {
-            type: "form",
-            block_id: "view_submission",
-            fields: [
-              {
-                type: "select",
-                action_id: "sub_id",
-                label: "Which one?",
-                options: subs.map((s, i) => ({
-                  label: `${new Date(s.data.createdAt).toLocaleString()} — #${i + 1}`,
-                  value: s.id,
-                })),
-              },
-            ],
-            submit: {
-              label: "View full details",
-              action_id: `sub_detail:${formId ?? "all"}`,
-              style: "primary",
-            },
-          },
-        ]
-      : [];
-
   if (formId) {
     const formData = (await ctx.storage.forms.get(formId)) as StoredForm | null;
-    const formFields = formData
-      ? formData.rows.flatMap((r) =>
-          r.fields.map((f) => ({ handle: f.handle, label: f.label })),
-        )
-      : [];
     const formTitle = formData ? formData.name : "Form";
     const effective = effectiveSpamSettings(formData, globalSpam);
-    const showSpamColumn = effective.enabled || anyScored;
-
-    const columns = [
-      ...(showBriefColumns
-        ? [
-            { key: "_intent", label: "Intent", format: "badge" },
-            { key: "_urgency", label: "Urgency", format: "badge" },
-          ]
-        : []),
-      ...formFields.slice(0, 4).map((f) => ({ key: f.handle, label: f.label })),
-      ...(formFields.length > 4
-        ? [{ key: "_more", label: "More fields", format: "text" as const }]
-        : []),
-      ...(showSpamColumn ? [{ key: "_spam", label: "Spam", format: "badge" }] : []),
-      { key: "_date", label: "When", format: "relative_time" },
-    ];
-
-    const rows = subs.map((s) => {
-      const extra =
-        formFields.length > 4
-          ? `+${formFields.length - 4} more`
-          : "—";
-      return {
-        ...(showBriefColumns
-          ? { _intent: intentCell(s), _urgency: urgencyCell(s) }
-          : {}),
-        ...Object.fromEntries(
-          formFields.slice(0, 4).map((f) => {
-            const raw = s.data.data[f.handle];
-            if (raw === undefined || raw === "") return [f.handle, "—"];
-            return [
-              f.handle,
-              formData ? resolveOptionLabels(formData, f.handle, raw) : String(raw),
-            ];
-          }),
-        ),
-        ...(formFields.length > 4 ? { _more: extra } : {}),
-        ...(showSpamColumn ? { _spam: spamCell(s) } : {}),
-        _date: s.data.createdAt,
-      };
-    });
+    const showSpamField = effective.enabled || anyScored;
 
     return [
-      ...pageHeader(`${formTitle} — Submissions`, "Select a submission below to view details."),
+      ...pageHeader(
+        `${formTitle} — Submissions`,
+        "Select a submission below to view details.",
+      ),
       backToFormsButton(),
       {
         type: "actions",
@@ -273,36 +276,55 @@ export async function submissionsBlocks(
         ],
       },
       ...sectionHeader("Inbox"),
-      subs.length === 0
-        ? {
-            type: "empty",
-            title: "No submissions yet",
-            description:
-              "Share your form or embed it on a page. New entries will appear here.",
-            size: "base",
-          }
-        : { type: "table", columns, rows },
+      ...(subs.length === 0
+        ? [
+            {
+              type: "empty",
+              title: "No submissions yet",
+              description:
+                "Share your form or embed it on a page. New entries will appear here.",
+              size: "base",
+            },
+          ]
+        : subs.flatMap((s, i) => {
+            const visibleFields = visibleSubmissionFields(s.data, formData);
+            const moreFields = moreFieldsLabel(s.data, formData, visibleFields.length);
+
+            return [
+              {
+                type: "fields",
+                fields: [
+                  { label: "Submission ID", value: submissionRef(i) },
+                  { label: "Record ID", value: s.id },
+                  {
+                    label: "When",
+                    value: new Date(s.data.createdAt).toLocaleString(),
+                  },
+                  ...visibleFields,
+                  ...(moreFields
+                    ? [{ label: "More fields", value: moreFields }]
+                    : []),
+                ],
+              },
+              {
+                type: "actions",
+                elements: [
+                  {
+                    type: "button",
+                    label: `View Submission`,
+                    action_id: `sub_view:${formId}:${s.id}:${i + 1}`,
+                    style: "primary",
+                  },
+                ],
+              },
+              { type: "divider" },
+            ];
+          })),
       ...paginationBlocks(cursor),
-      ...detailPicker,
     ];
   }
 
-  const showSpamColumn = globalSpam.enabled || anyScored;
-  const rows = subs.map((s) => ({
-    form: s.data.formName ?? s.data.formId,
-    ...(showBriefColumns
-      ? { _intent: intentCell(s), _urgency: urgencyCell(s) }
-      : []),
-    preview:
-      s.data.brief?.summary?.slice(0, 80) ||
-      Object.values(s.data.data)
-        .map((v) => (Array.isArray(v) ? v.join(", ") : String(v)))
-        .join(" · ")
-        .slice(0, 80) ||
-      "—",
-    ...(showSpamColumn ? { _spam: spamCell(s) } : {}),
-    date: s.data.createdAt,
-  }));
+  const showSpamField = globalSpam.enabled || anyScored;
 
   return [
     ...(await freeformNavBlocks(ctx, "submissions")),
@@ -318,30 +340,55 @@ export async function submissionsBlocks(
       ],
     },
     ...sectionHeader("Inbox"),
-    subs.length === 0
-      ? {
-          type: "empty",
-          title: "No submissions yet",
-          description: "When a form receives a response, it will show up here.",
-          size: "base",
-        }
-      : {
-          type: "table",
-          columns: [
-            { key: "form", label: "Form", format: "badge" },
-            ...(showBriefColumns
-              ? [
-                  { key: "_intent", label: "Intent", format: "badge" },
-                  { key: "_urgency", label: "Urgency", format: "badge" },
-                ]
-              : []),
-            { key: "preview", label: "Preview" },
-            ...(showSpamColumn ? [{ key: "_spam", label: "Spam", format: "badge" }] : []),
-            { key: "date", label: "When", format: "relative_time" },
-          ],
-          rows,
-        },
+    ...(subs.length === 0
+      ? [
+          {
+            type: "empty",
+            title: "No submissions yet",
+            description: "When a form receives a response, it will show up here.",
+            size: "base",
+          },
+        ]
+      : await Promise.all(
+          subs.map(async (s, i) => {
+            const formData = (await ctx.storage.forms.get(
+              s.data.formId,
+            )) as StoredForm | null;
+            const visibleFields = visibleSubmissionFields(s.data, formData);
+            const moreFields = moreFieldsLabel(s.data, formData, visibleFields.length);
+
+            return [
+              {
+                type: "fields",
+                fields: [
+                  { label: "Submission ID", value: submissionRef(i) },
+                  { label: "Record ID", value: s.id },
+                  { label: "Form", value: s.data.formName ?? s.data.formId },
+                  {
+                    label: "When",
+                    value: new Date(s.data.createdAt).toLocaleString(),
+                  },
+                  ...visibleFields,
+                  ...(moreFields
+                    ? [{ label: "More fields", value: moreFields }]
+                    : []),
+                ],
+              },
+              {
+                type: "actions",
+                elements: [
+                  {
+                    type: "button",
+                    label: `View Submission`,
+                    action_id: `sub_view:all:${s.id}:${i + 1}`,
+                    style: "primary",
+                  },
+                ],
+              },
+              { type: "divider" },
+            ];
+          }),
+        ).then((blocks) => blocks.flat())),
     ...paginationBlocks(cursor),
-    ...detailPicker,
   ];
 }

@@ -380,11 +380,34 @@ export const adminRoute = {
       const cur = rest.slice(colonIdx + 1);
       return { blocks: await submissionsBlocks(fid, ctx, cur) };
     }
+
     if (actionId.startsWith("all_subs_next:") || actionId.startsWith("all_subs_prev:")) {
       const cur = actionId.startsWith("all_subs_next:")
         ? actionId.slice("all_subs_next:".length)
         : actionId.slice("all_subs_prev:".length);
       return { blocks: await submissionsBlocks(null, ctx, cur) };
+    }
+
+    // Direct submission detail button: sub_view:<formId|all>:<submissionId>
+    if (actionId.startsWith("sub_view:")) {
+      const [, fidPart, submissionId, ref] = actionId.split(":");
+      const backFormId = fidPart === "all" ? null : fidPart;
+
+      if (!submissionId) {
+        return {
+          blocks: await submissionsBlocks(backFormId, ctx),
+          toast: { message: "Submission not found.", type: "error" },
+        };
+      }
+
+      return {
+        blocks: await submissionDetailBlocks(
+          submissionId,
+          backFormId,
+          ctx,
+          ref ? `#${ref}` : undefined,
+        ),
+      };
     }
 
     // Submission detail
