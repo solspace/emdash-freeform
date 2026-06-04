@@ -1,6 +1,7 @@
 {
   "name": "@local/freeform-plugin",
-  "version": "1.0.0",
+  "version": "0.1.0",
+  "description": "Build forms, collect submissions, and send notifications directly from EmDash.",
   "type": "module",
   "scripts": {
     "build": "tsdown src/index.ts src/sandbox-entry.ts --format esm --outDir dist --dts false",

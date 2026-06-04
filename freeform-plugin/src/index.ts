@@ -2,7 +2,7 @@ import type { PluginDescriptor } from "emdash";
 
 export function freeformPlugin(): PluginDescriptor {
   return {
-    id: "Freeform",
+    id: "freeform",
     version: "0.1.0",
     format: "standard",
     entrypoint: "@local/freeform-plugin/sandbox",
