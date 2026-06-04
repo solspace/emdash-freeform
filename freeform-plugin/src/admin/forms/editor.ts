@@ -43,11 +43,11 @@ export const defaultEditorUi: EditorUiState = {
 };
 
 const SECTIONS: Array<{ id: EditorSection; label: string }> = [
-  { id: "build", label: "Fields & AI" },
-  { id: "settings", label: "Form settings" },
+  { id: "build", label: "Fields" },
+  { id: "settings", label: "Settings" },
   { id: "notifications", label: "Notifications" },
   { id: "spam", label: "Spam" },
-  { id: "integrate", label: "Render form" },
+  { id: "integrate", label: "Render" },
 ];
 
 function sectionNav(formId: string, active: EditorSection): object {
@@ -55,7 +55,7 @@ function sectionNav(formId: string, active: EditorSection): object {
     type: "actions",
     elements: SECTIONS.map((s) => ({
       type: "button",
-      label: s.id === active ? `· ${s.label} ·` : s.label,
+      label: s.label,
       action_id: `view_${s.id}:${formId}`,
       ...(s.id === active ? { style: "primary" as const } : {}),
     })),

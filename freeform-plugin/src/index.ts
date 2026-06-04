@@ -2,8 +2,8 @@ import type { PluginDescriptor } from "emdash";
 
 export function freeformPlugin(): PluginDescriptor {
   return {
-    id: "freeform",
-    version: "1.0.0",
+    id: "Freeform",
+    version: "0.1.0",
     format: "standard",
     entrypoint: "@local/freeform-plugin/sandbox",
     // network:request:unrestricted is required for webhook delivery to
@@ -19,7 +19,7 @@ export function freeformPlugin(): PluginDescriptor {
       webhooks: { indexes: ["createdAt"] },
     },
     // One sidebar entry — section nav is inside the plugin (see freeformNavBlocks).
-    adminPages: [{ path: "/forms", label: "Freeform", icon: "edit" }],
+    adminPages: [{ path: "/forms", label: "Freeform", icon: "form-input" }],
     adminWidgets: [
       { id: "stats", title: "Freeform", size: "third" },
     ],
