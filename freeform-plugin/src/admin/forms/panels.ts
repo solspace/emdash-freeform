@@ -72,20 +72,8 @@ export function integratePanelBlocks(
 export async function spamPanelBlocks(
   formId: string,
   form: StoredForm,
-  tier: "free" | "pro",
   ctx: PluginContext,
 ): Promise<object[]> {
-  if (tier !== "pro") {
-    return [
-      {
-        type: "banner",
-        title: "Pro feature",
-        description: "Add a Pro license under Settings to enable AI spam scoring.",
-        variant: "default",
-      },
-    ];
-  }
-
   const globalDefaults = await getSpamSettings(ctx);
   const effective = effectiveSpamSettings(form, globalDefaults);
   const hasOverride = !!form.spam;

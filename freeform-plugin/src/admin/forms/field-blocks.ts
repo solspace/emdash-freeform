@@ -1,8 +1,8 @@
-import { ALL_FIELD_TYPES, FREE_FIELD_TYPES } from "../../constants";
+import { ALL_FIELD_TYPES } from "../../constants";
 import type { FormField, FormRow, StoredForm } from "../../types";
 
-function fieldTypeOptions(tier: "free" | "pro") {
-  return (tier === "pro" ? ALL_FIELD_TYPES : FREE_FIELD_TYPES).map((t) => ({
+function fieldTypeOptions() {
+  return ALL_FIELD_TYPES.map((t) => ({
     label: t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
     value: t,
   }));
@@ -67,11 +67,7 @@ function optionsString(f?: FormField): string | undefined {
   return f.options.map((o) => `${o.value}: ${o.label}`).join(", ");
 }
 
-export function addFieldFormBlocks(
-  formId: string,
-  formData: StoredForm,
-  tier: "free" | "pro",
-): object[] {
+export function addFieldFormBlocks(formId: string, formData: StoredForm): object[] {
   return [
     {
       type: "form",
@@ -81,7 +77,7 @@ export function addFieldFormBlocks(
           type: "select",
           action_id: "field_type",
           label: "Field type",
-          options: fieldTypeOptions(tier),
+          options: fieldTypeOptions(),
           initial_value: "text",
         },
         {
@@ -140,20 +136,8 @@ export function addFieldFormBlocks(
   ];
 }
 
-export function editFieldFormBlocks(
-  formId: string,
-  field: FormField,
-  tier: "free" | "pro",
-): object[] {
+export function editFieldFormBlocks(formId: string, field: FormField): object[] {
   return [
-    ...(tier === "free" && field.type === "email"
-      ? [
-          {
-            type: "context",
-            text: "Email fields require Pro to add new ones; editing existing is allowed.",
-          },
-        ]
-      : []),
     {
       type: "form",
       block_id: "edit_field",
@@ -162,7 +146,7 @@ export function editFieldFormBlocks(
           type: "select",
           action_id: "field_type",
           label: "Field type",
-          options: fieldTypeOptions(tier),
+          options: fieldTypeOptions(),
           initial_value: field.type,
         },
         {

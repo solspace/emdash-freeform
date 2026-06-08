@@ -56,7 +56,7 @@ A fully functional Freeform form-builder plugin for Emdash:
 
 - **Admin UI** via Block Kit: list, create, edit, delete forms; add/remove fields; view per-form submissions in a proper table
 - **AI form generation** via Claude Haiku — describe a form in plain English, fields are appended to the current form
-- **Freemium gate** — email field type is locked on the free tier; any `FF-*` key activates Pro (POC stand-in for a real license server)
+- **All field types** — including `email`, available without a paid plan
 - **Public API routes** — `get-form` and `submit` consumed by a server-rendered Astro component
 - **Frontend component** — `src/components/FreeformForm.astro` renders a form from any page with `<FreeformForm formId="contact" />`
 
@@ -131,11 +131,11 @@ Note `get()` returns `T` directly; `query()` returns `Array<{ id: string, data: 
 
 ### KV
 
-Simple key-value store for plugin settings (license tier, license key):
+Simple key-value store for plugin settings (AI provider, API keys, spam defaults, MCP worker URL):
 
 ```typescript
-await ctx.kv.set("license:tier", "pro")
-await ctx.kv.get<string>("license:tier")    // returns T | null
+await ctx.kv.set("settings:aiProvider", "anthropic")
+await ctx.kv.get<string>("settings:aiProvider")    // returns T | null
 ```
 
 ### API responses
@@ -246,13 +246,11 @@ The all-submissions view (across all forms) can't do this since fields differ pe
 
 ## AI generation
 
-Uses Claude Haiku via tool use (structured output). The `build_form` tool schema enforces allowed field types at the JSON Schema level — the `enum` on the `type` property is dynamically built from the tier's allowed types. For free tier, `email` is omitted from the enum, so the model physically cannot return it.
-
-There's also a pre-flight gate: if the free-tier user's description contains the word "email", the handler returns early with an error toast before hitting the API at all.
+Uses Claude Haiku via tool use (structured output). The `build_form` tool schema enforces allowed field types at the JSON Schema level — the `enum` on the `type` property includes all supported field types.
 
 AI fields are **appended** to the existing form, not replacing it. This allows iterative building.
 
-The Anthropic API key is hardcoded in `sandbox-entry.ts`. In production, proxy through the Solspace license server instead.
+The Anthropic or OpenAI API key is configured in Freeform → Settings → AI.
 
 ---
 
@@ -268,7 +266,6 @@ Server-rendered. Fetches the form schema at request time, renders all inputs, ha
 
 For a real production Freeform, you'd need:
 
-- **License validation** against a real license server (current: any `FF-*` key works)
 - **Email notifications** on submission (Craft Freeform's most-used feature)
 - **More field types**: checkbox, radio, file upload, date, hidden, HTML block
 - **Multi-page / wizard forms**
@@ -457,4 +454,3 @@ npx emdash dev
 
 The plugin is registered in `astro.config.mjs` under `plugins: [freeformPlugin()]`. For Cloudflare deployment, swap `plugins` for `sandboxed` in the emdash config — same descriptor, true VM isolation.
 
-Demo license key (activates Pro in this POC): any string starting with `FF-`, e.g. `FF-DEMO-1234`.

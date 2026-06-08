@@ -3,7 +3,6 @@ import type { AiCredentials } from "../lib/ai-config";
 import { callToolUse } from "./llm";
 import {
   ALL_FIELD_TYPES,
-  FREE_FIELD_TYPES,
   MAX_NEW_FIELDS_PER_GENERATION,
   MAX_TOTAL_FIELDS_PER_FORM,
   RANGE_VALIDATION_TYPES,
@@ -175,12 +174,11 @@ function buildFieldInputSchema(allowedTypes: readonly FieldType[]) {
 
 export async function editFormWithAI(
   description: string,
-  tier: "free" | "pro",
   existingForm: StoredForm,
   ctx: PluginContext,
   creds: AiCredentials,
 ): Promise<EditResult> {
-  const allowed = tier === "pro" ? ALL_FIELD_TYPES : FREE_FIELD_TYPES;
+  const allowed = ALL_FIELD_TYPES;
 
   // Build existing-fields summary with validation state so the AI knows
   // what is already set and can reference handles correctly.

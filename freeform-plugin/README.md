@@ -254,8 +254,3 @@ See `packages/emdash-freeform-mcp/README.md` for deployment instructions.
 
 For PAT-based local setup with Claude Desktop see `MCP-SETUP.md` in this directory.
 
----
-
-## Licensing
-
-Any license key starting with `FF-` activates Pro features (POC stand-in). Real licensing against the Solspace licensing service is deferred. The only Pro-gated feature is the `email` field type.

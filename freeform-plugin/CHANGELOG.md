@@ -62,11 +62,6 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Bearer token authentication (EmDash PAT)
 - Proxy-ready via `SOLSPACE_PROXY_MODE` environment variable
 
-**Licensing**
-- Free tier: all features except `email` field type
-- Pro tier: `email` field type + AI spam scoring
-- License key stored in plugin KV; validated against Solspace licensing service (stub in v1.0.0)
-
 ### Technical
 
 - `format: "standard"` — marketplace-compatible, runs in EmDash V8 sandbox

@@ -133,19 +133,7 @@ Until this is resolved, MCP auth is PAT-only — a single static admin identity.
 
 ---
 
-## 8. Licensing is a stub
-
-**Current state.** Any string starting with `FF-` activates Pro features. This is a POC stand-in. There is no call to a real license server, no cryptographic validation, no seat limits, no expiry.
-
-**What is gated on Pro:** The `email` field type (both in the admin AI builder and via MCP).
-
-**What is not gated:** AI form generation, MCP access, spam scoring, notifications — all of these work on any "tier" as long as the user has configured an Anthropic API key. The AI features are gated only on the key being present, not on a license tier.
-
-**Waiting on:** Solspace licensing service. When it exists, `lib/license.ts` needs to replace the prefix check with a real verification call against the license server.
-
----
-
-## 9. Things explicitly out of scope for v1
+## 8. Things explicitly out of scope for v1
 
 These are known gaps that are not blocked on anything external — they are deliberate deferrals.
 

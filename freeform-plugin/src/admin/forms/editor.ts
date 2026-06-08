@@ -1,14 +1,12 @@
 import type { PluginContext } from "emdash";
 import { ensureFormHandle } from "../../lib/form-handles";
-import { getTier } from "../../lib/license";
 import {
   backToFormsButton,
   editorTopActions,
-  freePlanProBanner,
   pageHeader,
   shortDate,
 } from "../layout";
-import type { FormField, StoredForm } from "../../types";
+import type { StoredForm } from "../../types";
 import {
   addFieldFormBlocks,
   editFieldFormBlocks,
@@ -62,11 +60,7 @@ function sectionNav(formId: string, active: EditorSection): object {
   };
 }
 
-function fieldRowBlocks(
-  formId: string,
-  formData: StoredForm,
-  tier: "free" | "pro",
-): object[] {
+function fieldRowBlocks(formId: string, formData: StoredForm): object[] {
   const flat = formData.rows.flatMap((r) => r.fields);
   if (flat.length === 0) {
     return [
@@ -90,7 +84,7 @@ function fieldRowBlocks(
         type: "fields",
         fields: [
           {
-            label: f.type === "email" && tier === "free" ? `${f.label} (Pro type)` : f.label,
+            label: f.label,
             value: details,
           },
         ],
@@ -139,14 +133,10 @@ function aiBuilderColumnBlocks(formId: string): object[] {
   ];
 }
 
-function buildFieldsColumnBlocks(
-  formId: string,
-  formData: StoredForm,
-  tier: "free" | "pro",
-): object[] {
+function buildFieldsColumnBlocks(formId: string, formData: StoredForm): object[] {
   return [
     { type: "header", text: "Fields" },
-    ...fieldRowBlocks(formId, formData, tier),
+    ...fieldRowBlocks(formId, formData),
     { type: "divider" },
     {
       type: "actions",
@@ -169,15 +159,13 @@ async function mainPanelBlocks(
   ui: EditorUiState,
   siteOrigin: string,
 ): Promise<object[]> {
-  const tier = await getTier(ctx);
-
   switch (ui.section) {
     case "settings":
       return metaPanelBlocks(formId, formData);
     case "notifications":
       return notificationsPanelBlocks(formId, ctx);
     case "spam":
-      return spamPanelBlocks(formId, formData, tier, ctx);
+      return spamPanelBlocks(formId, formData, ctx);
     case "integrate":
       return integratePanelBlocks(formId, formData, siteOrigin);
     case "build":
@@ -226,7 +214,7 @@ async function mainPanelBlocks(
   }
 
   if (ui.showAddField) {
-    return addFieldFormBlocks(formId, formData, tier);
+    return addFieldFormBlocks(formId, formData);
   }
 
   if (ui.selectedFieldId) {
@@ -243,7 +231,7 @@ async function mainPanelBlocks(
             },
           ],
         },
-        ...editFieldFormBlocks(formId, field, tier),
+        ...editFieldFormBlocks(formId, field),
       ];
     }
   }
@@ -251,7 +239,7 @@ async function mainPanelBlocks(
   return [
     {
       type: "columns",
-      columns: [buildFieldsColumnBlocks(formId, formData, tier), aiBuilderColumnBlocks(formId)],
+      columns: [buildFieldsColumnBlocks(formId, formData), aiBuilderColumnBlocks(formId)],
     },
   ];
 }
@@ -282,10 +270,8 @@ export async function editorBlocks(
   });
 
   const content = await mainPanelBlocks(formId, formData, ctx, ui, siteOrigin);
-  const proBanner = await freePlanProBanner(ctx);
 
   return [
-    ...proBanner,
     ...pageHeader(formData.name),
     editorTopActions(formId),
     {

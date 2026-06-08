@@ -327,7 +327,7 @@ export async function submissionsBlocks(
   const showSpamField = globalSpam.enabled || anyScored;
 
   return [
-    ...(await freeformNavBlocks(ctx, "submissions")),
+    ...freeformNavBlocks("submissions"),
     ...pageHeader("All submissions", "Open a form’s submissions for all field columns."),
     {
       type: "stats",

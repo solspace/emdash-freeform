@@ -2,7 +2,7 @@ import type { PluginContext } from "emdash";
 import { uid } from "./handles";
 import type { StoredForm } from "../types";
 
-// Idempotent: writes a default Contact form and default license tier on the
+// Idempotent: writes a default Contact form on the
 // first call against a clean install, and no-ops on subsequent calls.
 //
 // Called from three places:
@@ -28,9 +28,6 @@ export async function ensureDemoSeed(ctx: PluginContext): Promise<void> {
     await ctx.kv.set("seed:contact_v1", "done");
     return;
   }
-
-  const currentTier = await ctx.kv.get<string>("license:tier");
-  if (!currentTier) await ctx.kv.set("license:tier", "free");
 
   const now = new Date().toISOString();
   const contactForm: StoredForm = {

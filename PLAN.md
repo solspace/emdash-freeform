@@ -11,7 +11,6 @@ See `FREEFORM-POC.md` for architecture decisions, gotchas, and EmDash feature re
 - **Admin UI**: Block Kit only — no React, no drag-and-drop, no custom JS in browser
 - **Storage**: EmDash generic JSON+indexes KV API — document storage, no DDL needed
 - **AI**: User-supplied Anthropic API key stored in plugin KV — no key, no AI features
-- **Licensing**: POC stub (`FF-*` keys = Pro). Real licensing deferred.
 - **MCP**: Standalone Cloudflare Worker (`emdash-freeform-mcp`), self-deployed per customer.
   Solspace-operated proxy planned for later — Worker code is proxy-ready via `SOLSPACE_PROXY_MODE`.
 

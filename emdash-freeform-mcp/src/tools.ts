@@ -1,8 +1,6 @@
 // MCP tool definitions for the Freeform plugin.
 //
 // Must stay in sync with ALL_FIELD_TYPES in @local/freeform-plugin/constants.
-// The plugin enforces the Pro gate on `email`; we still advertise it so
-// Claude can attempt it and the plugin returns a clear license error on Free.
 
 export const FIELD_TYPES = [
   "text",
@@ -321,7 +319,7 @@ export const TOOLS = [
   {
     name: "get_spam_settings",
     description:
-      "Get AI spam filter settings. Without `formId`, returns the global defaults. With `formId`, returns that form's effective settings (override if set, otherwise the inherited global) plus the override state and the global defaults for reference. Pro license required for scoring to actually run.",
+      "Get AI spam filter settings. Without `formId`, returns the global defaults. With `formId`, returns that form's effective settings (override if set, otherwise the inherited global) plus the override state and the global defaults for reference.",
     inputSchema: {
       type: "object",
       properties: {
@@ -336,7 +334,7 @@ export const TOOLS = [
   {
     name: "set_spam_settings",
     description:
-      "Update AI spam filter settings. Pro license required. Without `formId`, writes the global defaults used by any form that doesn't override. With `formId`, writes a per-form override (`enabled` AND `threshold` both required). Pass `formId` with `clearOverride: true` to remove a per-form override and revert that form to inheriting the global. Submissions flagged at/above the effective threshold do NOT trigger notifications.",
+      "Update AI spam filter settings. Without `formId`, writes the global defaults used by any form that doesn't override. With `formId`, writes a per-form override (`enabled` AND `threshold` both required). Pass `formId` with `clearOverride: true` to remove a per-form override and revert that form to inheriting the global. Submissions flagged at/above the effective threshold do NOT trigger notifications.",
     inputSchema: {
       type: "object",
       properties: {

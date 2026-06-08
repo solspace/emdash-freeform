@@ -31,7 +31,6 @@ import {
 } from "../lib/form-handles";
 import { inferFormCardIconId, isFormCardIconId } from "../lib/form-icons";
 import { uid } from "../lib/handles";
-import { activateLicense, clearLicense, getTier } from "../lib/license";
 import { deleteTemplateAndDetach } from "../lib/notifications";
 import { ensureDemoSeed } from "../lib/seed";
 import { setFormSpamOverride, setSpamSettings } from "../lib/spam-settings";
@@ -261,12 +260,9 @@ export const adminRoute = {
       };
       await ctx.storage.forms.put(id, emptyForm);
 
-      const tier = await getTier(ctx);
-
       try {
         const { newForm, summary } = await editFormWithAI(
           description,
-          tier,
           emptyForm,
           ctx,
           creds,
@@ -570,7 +566,6 @@ export const adminRoute = {
       const parsed = parseFormAndFieldId("save_edit:", actionId);
       if (!parsed) return { blocks: await listPageBlocks(ctx) };
       const { formId: fid, fieldId } = parsed;
-      const tier = await getTier(ctx);
       const form = (await ctx.storage.forms.get(fid)) as StoredForm | null;
       if (!form) return { blocks: await listPageBlocks(ctx) };
 
@@ -582,7 +577,6 @@ export const adminRoute = {
       }
 
       const result = parseFieldFromValues(values as FieldFormValues, {
-        tier,
         existingId: fieldId,
       });
       if (!result.ok) {
@@ -651,7 +645,6 @@ export const adminRoute = {
 
     if (actionId.startsWith("add:")) {
       const fid = actionId.slice(4);
-      const tier = await getTier(ctx);
       const form = (await ctx.storage.forms.get(fid)) as StoredForm | null;
       if (!form) return { blocks: await listPageBlocks(ctx) };
 
@@ -660,7 +653,7 @@ export const adminRoute = {
         showAddField: true,
         selectedFieldId: null,
       });
-      const result = parseFieldFromValues(values as FieldFormValues, { tier });
+      const result = parseFieldFromValues(values as FieldFormValues);
       if (!result.ok) {
         return {
           ...(await renderEditor(fid, ctx, siteOrigin, addUi)),
@@ -708,10 +701,8 @@ export const adminRoute = {
       const form = (await ctx.storage.forms.get(fid)) as StoredForm | null;
       if (!form) return { blocks: await listPageBlocks(ctx) };
 
-      const tier = await getTier(ctx);
-
       try {
-        const { newForm, summary } = await editFormWithAI(description, tier, form, ctx, creds);
+        const { newForm, summary } = await editFormWithAI(description, form, ctx, creds);
         const anyChange =
           summary.added > 0 || summary.updated > 0 || summary.removed > 0;
         if (anyChange) {
@@ -1032,43 +1023,8 @@ export const adminRoute = {
       };
     }
 
-    if (actionId === "save_license") {
-      const key = ((values.key as string) ?? "").trim();
-      if (!key) {
-        return {
-          blocks: await settingsBlocks(ctx, siteOrigin),
-          toast: { message: "Please enter a license key", type: "error" },
-        };
-      }
-      const activated = await activateLicense(ctx, key);
-      return {
-        blocks: await settingsBlocks(ctx, siteOrigin),
-        toast: activated
-          ? {
-              message: "Pro license activated! Email fields are now unlocked.",
-              type: "success",
-            }
-          : {
-              message: 'Invalid key. For this demo any key starting with "FF-" activates Pro.',
-              type: "error",
-            },
-      };
-    }
-
     if (actionId.startsWith("save_form_spam:")) {
       const fid = actionId.slice("save_form_spam:".length);
-      const tier = await getTier(ctx);
-      if (tier !== "pro") {
-        return {
-          ...(await renderEditor(
-            fid,
-            ctx,
-            siteOrigin,
-            editorUi({ section: "spam" }),
-          )),
-          toast: { message: "AI spam filtering requires a Pro license.", type: "error" },
-        };
-      }
       const useCustom = (values.use_custom as boolean) ?? false;
       if (!useCustom) {
         const updated = await setFormSpamOverride(ctx, fid, null);
@@ -1108,13 +1064,6 @@ export const adminRoute = {
     }
 
     if (actionId === "save_spam_settings") {
-      const tier = await getTier(ctx);
-      if (tier !== "pro") {
-        return {
-          blocks: await settingsBlocks(ctx, siteOrigin),
-          toast: { message: "AI spam filtering requires a Pro license.", type: "error" },
-        };
-      }
       const enabled = (values.spam_enabled as boolean) ?? false;
       const thresholdRaw = ((values.spam_threshold as string) ?? "").trim();
       const thresholdNum =
@@ -1134,14 +1083,6 @@ export const adminRoute = {
             : "Spam filter off.",
           type: "success",
         },
-      };
-    }
-
-    if (actionId === "remove_license") {
-      await clearLicense(ctx);
-      return {
-        blocks: await settingsBlocks(ctx, siteOrigin),
-        toast: { message: "License removed. Reverted to free plan.", type: "info" },
       };
     }
 

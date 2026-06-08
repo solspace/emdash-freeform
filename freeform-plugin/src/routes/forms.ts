@@ -7,7 +7,6 @@ import {
   isValidFormHandle,
 } from "../lib/form-handles";
 import { toHandle, uid } from "../lib/handles";
-import { getTier } from "../lib/license";
 import { isMultiType, isOptionType } from "../lib/options";
 import type {
   FieldOption,
@@ -56,7 +55,6 @@ function pickValidation(
 export const formsRoutes = {
   "list-forms": {
     handler: async (_routeCtx: any, ctx: PluginContext) => {
-      const tier = await getTier(ctx);
       const { items: forms } = await ctx.storage.forms.query({
         orderBy: { createdAt: "desc" },
       });
@@ -66,7 +64,6 @@ export const formsRoutes = {
         subCountMap.set(s.data.formId, (subCountMap.get(s.data.formId) ?? 0) + 1);
       }
       return {
-        tier,
         forms: (forms as Array<{ id: string; data: StoredForm }>).map((f) => ({
           id: f.id,
           name: f.data.name,
@@ -246,13 +243,6 @@ export const formsRoutes = {
             );
           }
         }
-      }
-
-      const tier = await getTier(ctx);
-      if (field.type === "email" && tier === "free") {
-        throw PluginRouteError.badRequest(
-          "Email fields require a Pro license. Activate Pro in Settings first.",
-        );
       }
 
       const form = (await ctx.storage.forms.get(formId)) as StoredForm | null;

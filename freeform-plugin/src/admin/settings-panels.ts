@@ -4,8 +4,6 @@ import type { StoredForm, StoredWebhook, WebhookDeliveryRecord } from "../types"
 import { webhookGridBlocks } from "./layout";
 
 export interface SettingsPanelContext {
-  tier: "free" | "pro";
-  hasLicenseKey: boolean;
   aiProvider: AiProvider;
   apiKeyConfigured: boolean;
   anthropicKeySet: boolean;
@@ -25,49 +23,6 @@ export interface SettingsPanelContext {
   } | null;
   focusedLog: WebhookDeliveryRecord[] | null;
   focusedWebhookName: string;
-}
-
-export function licensePanelBlocks(ctx: SettingsPanelContext): object[] {
-  return [
-    {
-      type: "context",
-      text: "Pro keys start with FF-. Email fields and AI spam scoring unlock after you save.",
-    },
-    {
-      type: "form",
-      block_id: "license",
-      fields: [
-        {
-          type: "secret_input",
-          action_id: "key",
-          label: "License key",
-          placeholder: "FF-XXXX-XXXX-XXXX",
-        },
-      ],
-      submit: { label: "Save license", action_id: "save_license", style: "primary" },
-    },
-    ...(ctx.hasLicenseKey
-      ? [
-          {
-            type: "actions",
-            elements: [
-              {
-                type: "button",
-                label: "Remove license",
-                action_id: "remove_license",
-                style: "danger",
-                confirm: {
-                  title: "Remove license key?",
-                  text: "You will be reverted to the free plan and email fields will be locked.",
-                  confirm: "Remove",
-                  deny: "Cancel",
-                },
-              },
-            ],
-          },
-        ]
-      : []),
-  ];
 }
 
 export function aiPanelBlocks(ctx: SettingsPanelContext): object[] {
@@ -164,48 +119,39 @@ export function aiPanelBlocks(ctx: SettingsPanelContext): object[] {
     { type: "header", text: "Spam filter defaults" },
   ];
 
-  if (ctx.tier === "pro") {
-    blocks.push(
-      {
-        type: "stats",
-        items: [
-          { label: "Status", value: ctx.spam.enabled ? "On" : "Off" },
-          { label: "Threshold", value: `${ctx.spam.threshold} / 10` },
-        ],
-      },
-      {
-        type: "form",
-        block_id: "spam_settings",
-        fields: [
-          {
-            type: "toggle",
-            action_id: "spam_enabled",
-            label: "Enable AI spam scoring",
-            initial_value: ctx.spam.enabled,
-          },
-          {
-            type: "text_input",
-            action_id: "spam_threshold",
-            label: "Flag threshold (0–10)",
-            initial_value: String(ctx.spam.threshold),
-            placeholder: "7",
-          },
-        ],
-        submit: {
-          label: "Save defaults",
-          action_id: "save_spam_settings",
-          style: "primary",
+  blocks.push(
+    {
+      type: "stats",
+      items: [
+        { label: "Status", value: ctx.spam.enabled ? "On" : "Off" },
+        { label: "Threshold", value: `${ctx.spam.threshold} / 10` },
+      ],
+    },
+    {
+      type: "form",
+      block_id: "spam_settings",
+      fields: [
+        {
+          type: "toggle",
+          action_id: "spam_enabled",
+          label: "Enable AI spam scoring",
+          initial_value: ctx.spam.enabled,
         },
+        {
+          type: "text_input",
+          action_id: "spam_threshold",
+          label: "Flag threshold (0–10)",
+          initial_value: String(ctx.spam.threshold),
+          placeholder: "7",
+        },
+      ],
+      submit: {
+        label: "Save defaults",
+        action_id: "save_spam_settings",
+        style: "primary",
       },
-    );
-  } else {
-    blocks.push({
-      type: "banner",
-      title: "Pro feature",
-      description: "Save a license on the License tab to configure site-wide spam defaults.",
-      variant: "default",
-    });
-  }
+    },
+  );
 
   return blocks;
 }

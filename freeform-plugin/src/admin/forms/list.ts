@@ -28,7 +28,7 @@ export async function listPageBlocks(ctx: PluginContext): Promise<object[]> {
 
   if (formItems.length === 0) {
     return [
-      ...(await freeformNavBlocks(ctx, "forms")),
+      ...freeformNavBlocks("forms"),
       ...header,
       ...createAiModal,
       {
@@ -41,7 +41,7 @@ export async function listPageBlocks(ctx: PluginContext): Promise<object[]> {
   }
 
   return [
-    ...(await freeformNavBlocks(ctx, "forms")),
+    ...freeformNavBlocks("forms"),
     ...header,
     ...createAiModal,
     ...formGridBlocks(formItems, subCountMap),

@@ -47,15 +47,9 @@ function parseValidation(values: FieldFormValues) {
 
 export function parseFieldFromValues(
   values: FieldFormValues,
-  opts: { tier: "free" | "pro"; existingId?: string },
+  opts: { existingId?: string } = {},
 ): ParseFieldResult {
   const fieldType = ((values.field_type as string) ?? "text") as FieldType;
-  if (fieldType === "email" && opts.tier === "free") {
-    return {
-      ok: false,
-      message: "Email fields require a Pro license. Add your key in Settings.",
-    };
-  }
 
   const label = (values.field_label ?? "").trim() || "New Field";
   const handle = (values.field_handle ?? "").trim() || toHandle(label);

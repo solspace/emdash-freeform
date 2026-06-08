@@ -6,17 +6,15 @@ import {
   hasOpenAiKey,
   providerLabel,
 } from "../lib/ai-config";
-import { getMaskedKey, getTier } from "../lib/license";
 import {
   getMcpWorkerUrl,
   mcpEndpointForClient,
 } from "../lib/mcp-settings";
 import { getSpamSettings } from "../lib/spam-settings";
 import { getDeliveryLog } from "../lib/webhooks";
-import { freeformNavBlocks, freePlanProBanner, settingsPageToolbar } from "./layout";
+import { freeformNavBlocks, settingsPageToolbar } from "./layout";
 import {
   aiPanelBlocks,
-  licensePanelBlocks,
   mcpPanelBlocks,
   webhooksPanelBlocks,
   type SettingsPanelContext,
@@ -26,10 +24,9 @@ import type { StoredForm, StoredWebhook, WebhookDeliveryRecord } from "../types"
 const WEBHOOK_SECRET_REVEAL_KEY = "webhooks:secretReveal";
 const WEBHOOK_SECRET_REVEAL_MS = 2 * 60 * 1000;
 
-export const SETTINGS_TAB_LICENSE = 0;
-export const SETTINGS_TAB_AI = 1;
-export const SETTINGS_TAB_MCP = 2;
-export const SETTINGS_TAB_WEBHOOKS = 3;
+export const SETTINGS_TAB_AI = 0;
+export const SETTINGS_TAB_MCP = 1;
+export const SETTINGS_TAB_WEBHOOKS = 2;
 
 interface WebhookSecretReveal {
   webhookId: string;
@@ -57,11 +54,8 @@ export async function settingsBlocks(
   ctx: PluginContext,
   siteOrigin: string,
   focusWebhookLog?: string,
-  defaultTab = SETTINGS_TAB_LICENSE,
+  defaultTab = SETTINGS_TAB_AI,
 ): Promise<object[]> {
-  const tier = await getTier(ctx);
-  const maskedKey = await getMaskedKey(ctx);
-  const hasLicenseKey = maskedKey.length > 0;
   const aiProvider = await getAiProvider(ctx);
   const apiKeyConfigured = await hasApiKey(ctx);
   const anthropicKeySet = await hasAnthropicKey(ctx);
@@ -110,8 +104,6 @@ export async function settingsBlocks(
   );
 
   const panelCtx: SettingsPanelContext = {
-    tier,
-    hasLicenseKey,
     aiProvider,
     apiKeyConfigured,
     anthropicKeySet,
@@ -137,17 +129,14 @@ export async function settingsBlocks(
 
   const activeTab = focusWebhookLog ? SETTINGS_TAB_WEBHOOKS : defaultTab;
 
-  const proBanner = await freePlanProBanner(ctx, "settings");
   const toolbar = settingsPageToolbar();
 
   return [
-    ...(await freeformNavBlocks(ctx, "settings")),
-    ...proBanner,
+    ...freeformNavBlocks("settings"),
     ...toolbar,
     {
       type: "stats",
       items: [
-        { label: "Plan", value: tier === "pro" ? "Pro" : "Free" },
         {
           label: "AI",
           value: apiKeyConfigured ? providerLabel(aiProvider) : "Not set",
@@ -160,7 +149,6 @@ export async function settingsBlocks(
       type: "tab",
       default_tab: activeTab,
       panels: [
-        { label: "License", blocks: licensePanelBlocks(panelCtx) },
         { label: "AI", blocks: aiPanelBlocks(panelCtx) },
         { label: "MCP", blocks: mcpPanelBlocks(panelCtx) },
         { label: "Webhooks", blocks: webhooksPanelBlocks(panelCtx) },

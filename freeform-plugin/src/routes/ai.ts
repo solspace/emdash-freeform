@@ -1,7 +1,6 @@
 import { PluginRouteError, type PluginContext } from "emdash";
 import { editFormWithAI } from "../ai/generate";
 import { getAiCredentials } from "../lib/ai-config";
-import { getTier } from "../lib/license";
 import type { StoredForm } from "../types";
 
 export const aiRoutes = {
@@ -24,8 +23,6 @@ export const aiRoutes = {
         );
       }
 
-      const tier = await getTier(ctx);
-
       const form = formId
         ? ((await ctx.storage.forms.get(formId)) as StoredForm | null)
         : null;
@@ -37,7 +34,7 @@ export const aiRoutes = {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      const { newForm, summary } = await editFormWithAI(description, tier, baseForm, ctx, creds);
+      const { newForm, summary } = await editFormWithAI(description, baseForm, ctx, creds);
 
       const anyChange = summary.added > 0 || summary.updated > 0 || summary.removed > 0;
       if (apply && formId && form && anyChange) {

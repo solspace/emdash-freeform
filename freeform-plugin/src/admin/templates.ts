@@ -13,7 +13,7 @@ export async function templatesPageBlocks(ctx: PluginContext): Promise<object[]>
 
   if (templates.length === 0) {
     return [
-      ...(await freeformNavBlocks(ctx, "templates")),
+      ...freeformNavBlocks("templates"),
       ...pageHeader("Templates"),
       {
         type: "empty",
@@ -69,7 +69,7 @@ export async function templatesPageBlocks(ctx: PluginContext): Promise<object[]>
   ]);
 
   return [
-    ...(await freeformNavBlocks(ctx, "templates")),
+    ...freeformNavBlocks("templates"),
     ...pageHeader("Templates", "Edit a template or create a new one."),
     {
       type: "actions",

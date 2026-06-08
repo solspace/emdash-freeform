@@ -16,9 +16,6 @@ export const ALL_FIELD_TYPES: FieldType[] = [
   "html",
 ];
 
-// Email is the only type gated behind Pro.
-export const FREE_FIELD_TYPES: FieldType[] = ALL_FIELD_TYPES.filter((t) => t !== "email");
-
 // Field types that accept per-field length/pattern validation.
 export const TEXT_VALIDATION_TYPES: FieldType[] = [
   "text", "email", "textarea", "phone",

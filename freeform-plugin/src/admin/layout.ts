@@ -1,20 +1,13 @@
 import type { PluginContext } from "emdash";
 import { hasApiKey } from "../lib/ai-key";
 import { resolveFormCardGlyph } from "../lib/form-icons";
-import { getTier } from "../lib/license";
 
 export const FORMS_PER_ROW = 3;
 
 export type FreeformNavSection = "forms" | "submissions" | "templates" | "settings";
 
-/** In-plugin section nav + plan label on the right (one Plugins sidebar entry). */
-export async function freeformNavBlocks(
-  ctx: PluginContext,
-  active: FreeformNavSection,
-): Promise<object[]> {
-  const tier = await getTier(ctx);
-  const planLine = tier === "pro" ? "Pro plan" : "Free plan";
-
+/** In-plugin section nav (one Plugins sidebar entry). */
+export function freeformNavBlocks(active: FreeformNavSection): object[] {
   const items: Array<{
     section: FreeformNavSection;
     label: string;
@@ -34,26 +27,7 @@ export async function freeformNavBlocks(
   }));
 
   return [
-    {
-      type: "columns",
-      columns: [
-        [{ type: "actions", elements: navButtons }],
-        [
-          {
-            type: "actions",
-            align: "end",
-            elements: [
-              {
-                type: "button",
-                label: planLine,
-                action_id: "nav:settings",
-                style: "secondary",
-              },
-            ],
-          },
-        ],
-      ],
-    },
+    { type: "actions", elements: navButtons },
     { type: "divider" },
   ];
 }
@@ -123,7 +97,7 @@ export function editorTopActions(formId: string): object {
   };
 }
 
-/** Settings page title (plan is on {@link freeformNavBlocks}). */
+/** Settings page title. */
 export function settingsPageToolbar(): object[] {
   return [{ type: "header", text: "Settings" }, { type: "divider" }];
 }
@@ -205,53 +179,6 @@ export function webhookGridBlocks(
     rows.push({ type: "columns", columns });
   }
   return rows;
-}
-
-/** Top-of-page Pro upsell on free plan: alert banner + Settings button on the right. */
-export async function freePlanProBanner(
-  ctx: PluginContext,
-  where: "default" | "settings" = "default",
-): Promise<object[]> {
-  const tier = await getTier(ctx);
-  if (tier === "pro") return [];
-
-  const body =
-    where === "settings"
-      ? "Enter a license key on the License tab to enable AI spam scoring and email fields."
-      : "Add a Pro license under Settings to enable AI spam scoring.";
-
-  const alertBanner = {
-    type: "banner",
-    title: "Pro feature",
-    description: body,
-    variant: "alert",
-  };
-
-  if (where === "settings") {
-    return [alertBanner, { type: "divider" }];
-  }
-
-  return [
-    {
-      type: "columns",
-      columns: [
-        [alertBanner],
-        [
-          {
-            type: "section",
-            text: "\u00a0",
-            accessory: {
-              type: "button",
-              label: "Settings",
-              action_id: "nav:settings",
-              style: "primary",
-            },
-          },
-        ],
-      ],
-    },
-    { type: "divider" },
-  ];
 }
 
 /** Forms page title + create actions on the right. */
