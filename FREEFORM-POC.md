@@ -65,7 +65,7 @@ A fully functional Freeform form-builder plugin for Emdash:
 ## File map
 
 ```
-packages/freeform-plugin/
+packages/freeform/
   src/
     index.ts           # PluginDescriptor — wired into astro.config.mjs
     sandbox-entry.ts   # All runtime logic — runs in the plugin sandbox
@@ -304,7 +304,7 @@ Freeform exposes its own MCP Streamable HTTP endpoint so AI agents (Claude Deskt
 - `emdash-app/src/pages/freeform/mcp.ts` — the MCP endpoint. Sits **outside** the plugin package on purpose — plugin route returns are unconditionally wrapped in `{ data: ... }` and can't set custom status, content-type, or `WWW-Authenticate` headers, all of which MCP needs. The endpoint forwards the Bearer token to the plugin's existing `list-forms`, `list-submissions`, and `get-form` routes via same-origin server-side fetch; EmDash's auth middleware validates the token on the inner call.
 - `emdash-app/src/freeform-resource-metadata.ts` — RFC 9728 protected-resource metadata, served at `/.well-known/oauth-protected-resource/freeform/mcp` via `injectRoute` in `astro.config.mjs`. Required for OAuth-capable MCP clients (`mcp-remote` uses convention-based discovery, **not** `WWW-Authenticate` hints, so the metadata path must match exactly). Currently unused with PAT setup; kept for the OAuth path once unblocked.
 - `emdash-app/astro.config.mjs` — adds the `injectRoute` integration and `vite.server.allowedHosts: [".trycloudflare.com"]` for tunneled demos.
-- `packages/freeform-plugin/MCP-SETUP.md` — short setup doc that lives next to the plugin.
+- `packages/freeform/MCP-SETUP.md` — short setup doc that lives next to the plugin.
 
 ### Localhost setup (Claude Desktop + PAT)
 
@@ -428,9 +428,9 @@ Submissions can be exported as CSV via a signed-URL pattern, exposed primarily t
 
 **Files.**
 
-- `packages/freeform-plugin/src/lib/csv.ts` — RFC 4180 escaping, UTF-8 BOM for Excel, formula-injection guard (leading `=` `+` `-` `@` get quoted).
-- `packages/freeform-plugin/src/lib/export-token.ts` — base64url HMAC sign/verify, KV-backed secret.
-- `packages/freeform-plugin/src/routes/exports.ts` — `prepare-export` (admin) + `export-csv` (public, token-gated).
+- `packages/freeform/src/lib/csv.ts` — RFC 4180 escaping, UTF-8 BOM for Excel, formula-injection guard (leading `=` `+` `-` `@` get quoted).
+- `packages/freeform/src/lib/export-token.ts` — base64url HMAC sign/verify, KV-backed secret.
+- `packages/freeform/src/routes/exports.ts` — `prepare-export` (admin) + `export-csv` (public, token-gated).
 - `src/pages/freeform/export/[token].ts` — public download Astro endpoint.
 
 **Column policy.**

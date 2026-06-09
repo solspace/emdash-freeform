@@ -1,6 +1,6 @@
 {
   "name": "@solspace/freeform-astro",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Astro integration and component library for the Freeform plugin on EmDash CMS",
   "type": "module",
   "license": "MIT",

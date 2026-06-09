@@ -1,5 +1,5 @@
 packages:
-  - "freeform-plugin"
+  - "freeform"
   - "freeform-astro"
   - "emdash-freeform-mcp"
   - "emdash-app"

@@ -9,7 +9,7 @@ Form builder plugin for [EmDash CMS](https://emdashcms.com) — monorepo.
 cd emdash-app && pnpm run dev:clean
 
 # 2 — plugin rebuild on save (optional)
-cd freeform-plugin && pnpm run build:watch
+cd freeform && pnpm run build:watch
 ```
 
 ---
@@ -18,7 +18,7 @@ cd freeform-plugin && pnpm run build:watch
 
 ```
 emdash-freeform/
-  freeform-plugin/        EmDash marketplace plugin
+  freeform/        EmDash marketplace plugin
   freeform-astro/         Astro integration + component library
   emdash-freeform-mcp/    Standalone Cloudflare Worker MCP server
   emdash-app/             Mars Rover Supply demo site (EmDash + Freeform consumer)
@@ -31,7 +31,7 @@ emdash-freeform/
 
 ## Packages
 
-### `freeform-plugin` — EmDash plugin
+### `freeform` — EmDash plugin
 
 The core plugin. Runs in EmDash's V8 sandbox (`format: "standard"`). Manages forms, submissions, email notifications, webhooks, spam scoring, and CSV exports via Block Kit admin UI and a full set of plugin routes.
 
@@ -42,7 +42,7 @@ The core plugin. Runs in EmDash's V8 sandbox (`format: "standard"`). Manages for
 
 **Build locally:**
 ```bash
-cd freeform-plugin
+cd freeform
 pnpm install
 pnpm run build          # compile src/ → dist/
 pnpm run bundle         # produces dist/freeform-x.x.x.tar.gz
@@ -52,7 +52,7 @@ pnpm run bundle         # produces dist/freeform-x.x.x.tar.gz
 
 **Publish to marketplace:**
 ```bash
-cd freeform-plugin
+cd freeform
 pnpm run build
 npx emdash plugin publish --build
 ```
@@ -124,7 +124,7 @@ cd emdash-freeform
 pnpm install
 
 # Build the plugin once (required before the demo site can load Freeform)
-cd freeform-plugin && pnpm run build
+cd freeform && pnpm run build
 ```
 
 ### Daily dev — start here every time
@@ -148,10 +148,10 @@ pnpm run dev:clean
 
 On the **first start** after a cache clear, the terminal may log one `emdash/middleware` optimize + `program reload` — that’s normal. If a page shows `Astro is not defined`, wait a few seconds and refresh once.
 
-**Terminal 2 — plugin watch (while editing `freeform-plugin/`)**
+**Terminal 2 — plugin watch (while editing `freeform/`)**
 
 ```bash
-cd freeform-plugin
+cd freeform
 pnpm run build:watch
 ```
 
@@ -171,7 +171,7 @@ cd emdash-app && npx emdash dev
 
 | Tag pattern | Action |
 |---|---|
-| `freeform-plugin/v*` | Build + publish to EmDash marketplace |
+| `freeform/v*` | Build + publish to EmDash marketplace |
 | `freeform-astro/v*` | Publish `@solspace/freeform-astro` to npm |
 
 Secrets required in GitHub repository settings:

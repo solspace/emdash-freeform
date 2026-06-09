@@ -113,8 +113,8 @@ async function callPluginRoute(
   return json.data;
 }
 
-// Must stay in sync with ALL_FIELD_TYPES in @local/freeform-plugin/constants.
-// Must stay in sync with ALL_FIELD_TYPES in freeform-plugin/constants.
+// Must stay in sync with ALL_FIELD_TYPES in @local/freeform/constants.
+// Must stay in sync with ALL_FIELD_TYPES in freeform/constants.
 const FIELD_TYPES = [
   "text",
   "email",
@@ -881,7 +881,7 @@ export const POST: APIRoute = async ({ request }) => {
       return rpcResult(id, {
         protocolVersion: params?.protocolVersion ?? MCP_PROTOCOL_VERSION,
         capabilities: { tools: {} },
-        serverInfo: { name: "freeform", version: "1.0.0" },
+        serverInfo: { name: "freeform", version: "0.1.0" },
       });
     }
 

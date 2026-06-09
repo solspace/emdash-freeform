@@ -19,9 +19,9 @@ importers:
       '@emdash-cms/cloudflare':
         specifier: ^0.12.0
         version: 0.12.0(72dcc0bd348ba547afd3680b11d1be31)
-      '@local/freeform-plugin':
+      '@local/freeform':
         specifier: workspace:*
-        version: link:../freeform-plugin
+        version: link:../freeform
       '@solspace/freeform-astro':
         specifier: workspace:*
         version: link:../freeform-astro
@@ -60,13 +60,7 @@ importers:
         specifier: ^4.83.0
         version: 4.96.0(@cloudflare/workers-types@4.20260601.1)
 
-  freeform-astro:
-    dependencies:
-      astro:
-        specifier: ^6.0.0
-        version: 6.4.2(@types/node@25.9.1)(jiti@2.7.0)(rollup@4.61.0)(yaml@2.9.0)
-
-  freeform-plugin:
+  freeform:
     dependencies:
       emdash:
         specifier: ^0.12.0
@@ -75,6 +69,12 @@ importers:
       tsdown:
         specifier: ^0.12.0
         version: 0.12.9(typescript@5.9.3)
+
+  freeform-astro:
+    dependencies:
+      astro:
+        specifier: ^6.0.0
+        version: 6.4.2(@types/node@25.9.1)(jiti@2.7.0)(rollup@4.61.0)(yaml@2.9.0)
 
 packages:
 

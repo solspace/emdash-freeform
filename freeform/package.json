@@ -1,5 +1,5 @@
 {
-  "name": "@local/freeform-plugin",
+  "name": "@local/freeform",
   "version": "0.1.0",
   "description": "Build forms, collect submissions, and send notifications directly from EmDash.",
   "type": "module",

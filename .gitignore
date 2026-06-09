@@ -56,4 +56,4 @@ legacy/
 .wrangler/
 
 # Screenshots staging (oversized; properly resized ones go in screenshots/)
-freeform-plugin/.screenshots-staging/
+freeform/.screenshots-staging/

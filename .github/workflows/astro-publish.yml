@@ -1,7 +1,7 @@
 name: Publish @solspace/freeform-astro to npm
 
 # Triggers on version tags scoped to freeform-astro, e.g.
-#   git tag freeform-astro/v1.0.0 && git push --tags
+#   git tag freeform-astro/v0.1.0 && git push --tags
 on:
   push:
     tags:

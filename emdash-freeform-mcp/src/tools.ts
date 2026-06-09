@@ -1,6 +1,6 @@
 // MCP tool definitions for the Freeform plugin.
 //
-// Must stay in sync with ALL_FIELD_TYPES in @local/freeform-plugin/constants.
+// Must stay in sync with ALL_FIELD_TYPES in @local/freeform/constants.
 
 export const FIELD_TYPES = [
   "text",

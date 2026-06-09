@@ -1,11 +1,11 @@
-name: Publish freeform-plugin to EmDash Marketplace
+name: Publish freeform to EmDash Marketplace
 
-# Triggers on version tags scoped to freeform-plugin, e.g.
-#   git tag freeform-plugin/v1.0.0 && git push --tags
+# Triggers on version tags scoped to freeform, e.g.
+#   git tag freeform/v0.1.0 && git push --tags
 on:
   push:
     tags:
-      - "freeform-plugin/v*"
+      - "freeform/v*"
 
 jobs:
   publish:
@@ -30,15 +30,15 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build plugin
-        working-directory: freeform-plugin
+        working-directory: freeform
         run: pnpm run build
 
       - name: Bundle plugin
-        working-directory: freeform-plugin
+        working-directory: freeform
         run: pnpm run bundle
 
       - name: Publish to marketplace
-        working-directory: freeform-plugin
+        working-directory: freeform
         env:
           EMDASH_MARKETPLACE_TOKEN: ${{ secrets.EMDASH_MARKETPLACE_TOKEN }}
         run: npx emdash plugin publish --tarball dist/$(ls dist/*.tar.gz | xargs basename) --no-wait

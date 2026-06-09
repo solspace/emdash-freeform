@@ -159,9 +159,9 @@ root so they are self-contained and independent of the EmDash demo site.
 
 ### 6A — Repo restructuring
 
-- [x] Create root `pnpm-workspace.yaml` listing `freeform-plugin`, `freeform-astro`, `emdash-freeform-mcp`, `emdash-app`
+- [x] Create root `pnpm-workspace.yaml` listing `freeform`, `freeform-astro`, `emdash-freeform-mcp`, `emdash-app`
 - [x] Create root `package.json` (`"private": true`)
-- [x] Move `emdash-app/packages/freeform-plugin/` → `freeform-plugin/`
+- [x] Move `emdash-app/packages/freeform/` → `freeform/`
 - [x] Move `emdash-app/packages/freeform-astro/` → `freeform-astro/`
 - [x] Move `emdash-app/packages/emdash-freeform-mcp/` → `emdash-freeform-mcp/`
 - [x] Delete `emdash-app/packages/` (now empty)
@@ -170,16 +170,16 @@ root so they are self-contained and independent of the EmDash demo site.
 - [x] Update `emdash-app/package.json` workspace references
 - [x] Run `pnpm install` from repo root to re-link everything
 
-### 6B — `freeform-plugin`: build setup
+### 6B — `freeform`: build setup
 
 `emdash plugin bundle` validates that `package.json` exports point to compiled
 `.mjs` files, not TypeScript source. A `tsdown` build step is required.
 
-- [x] Add `tsdown` devDep to `freeform-plugin`
+- [x] Add `tsdown` devDep to `freeform`
 - [x] Add `build` and `build:watch` scripts
 - [x] Update exports: `"." → "./dist/index.js"`, `"./sandbox" → "./dist/sandbox-entry.js"` (tsdown emits `.js`)
 - [x] Add `dist/` to root `.gitignore`
-- [x] Verify `emdash plugin bundle` runs cleanly from `freeform-plugin/`
+- [x] Verify `emdash plugin bundle` runs cleanly from `freeform/`
 
 ### 6C — `freeform-astro`: rename & npm prep
 
@@ -190,13 +190,13 @@ root so they are self-contained and independent of the EmDash demo site.
 
 ### 6D — Marketplace assets
 
-- [x] `freeform-plugin/CHANGELOG.md` starting at `1.0.0`
-- [ ] `freeform-plugin/icon.png` (256×256) — placeholder or real design
-- [ ] `freeform-plugin/screenshots/` — 3–5 admin screenshots (capture from running dev server)
+- [x] `freeform/CHANGELOG.md` starting at `0.1.0`
+- [ ] `freeform/icon.png` (256×256) — placeholder or real design
+- [ ] `freeform/screenshots/` — 3–5 admin screenshots (capture from running dev server)
 
 ### 6E — GitHub Actions CI
 
-- [x] `.github/workflows/plugin-publish.yml` — on tag `freeform-plugin/v*`, bundle + publish to marketplace
+- [x] `.github/workflows/plugin-publish.yml` — on tag `freeform/v*`, bundle + publish to marketplace
 - [x] `.github/workflows/astro-publish.yml` — on tag `freeform-astro/v*`, publish to npm
 
 ### 6F — Root README
@@ -204,7 +204,7 @@ root so they are self-contained and independent of the EmDash demo site.
 - [x] Root `README.md` — monorepo map + per-package quick-start
 
 **Not bundled**: `emdash-freeform-mcp/` and `freeform-astro/` are separate deployables.
-Plugin bundle only contains `freeform-plugin/backend.js` + `manifest.json` + assets.
+Plugin bundle only contains `freeform/backend.js` + `manifest.json` + assets.
 
 ---
 

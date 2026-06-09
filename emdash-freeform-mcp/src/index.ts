@@ -72,7 +72,7 @@ export default {
         return rpcResult(id, {
           protocolVersion: (params?.protocolVersion as string) ?? MCP_PROTOCOL_VERSION,
           capabilities: { tools: {} },
-          serverInfo: { name: "freeform", version: "1.0.0" },
+          serverInfo: { name: "freeform", version: "0.1.0" },
         });
       }
 

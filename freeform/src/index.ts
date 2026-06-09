@@ -5,7 +5,7 @@ export function freeformPlugin(): PluginDescriptor {
     id: "freeform",
     version: "0.1.0",
     format: "standard",
-    entrypoint: "@local/freeform-plugin/sandbox",
+    entrypoint: "@local/freeform/sandbox",
     // network:request:unrestricted is required for webhook delivery to
     // arbitrary customer-supplied URLs. It implies network:request, so
     // allowedHosts is removed — the Anthropic API is reachable under the

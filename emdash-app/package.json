@@ -24,7 +24,7 @@
     "@astrojs/react": "^5.0.0",
     "@emdash-cms/cloudflare": "^0.12.0",
     "@solspace/freeform-astro": "workspace:*",
-    "@local/freeform-plugin": "workspace:*",
+    "@local/freeform": "workspace:*",
     "astro": "^6.4.2",
     "emdash": "^0.12.0",
     "react": "19.2.4",

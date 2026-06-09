@@ -7,7 +7,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [1.0.0] — 2026-05-20
+## [0.1.0] — 2026-06-09
 
 ### Added
 
@@ -72,4 +72,4 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `cron` hook for webhook retry processing (runs every minute)
 - Idempotent demo seed via KV flag (`seed:contact_v1`) — works on both marketplace install and trusted-plugin first-load
 
-[1.0.0]: https://github.com/solspace/emdash-freeform/releases/tag/freeform-plugin/v1.0.0
+[0.1.0]: https://github.com/solspace/emdash-freeform/releases/tag/freeform/v0.1.0
