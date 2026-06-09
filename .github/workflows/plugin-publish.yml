@@ -39,6 +39,22 @@ jobs:
         working-directory: freeform
         run: pnpm run bundle
 
+      - name: Verify bundle version matches tag
+        working-directory: freeform
+        run: |
+          TAG_VERSION="${{ steps.version.outputs.version }}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TARBALL="dist/freeform-${TAG_VERSION}.tar.gz"
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag is freeform/v${TAG_VERSION} but freeform/package.json is ${PKG_VERSION}. Bump package.json and src/index.ts before tagging."
+            exit 1
+          fi
+          if [ ! -f "$TARBALL" ]; then
+            echo "::error::Expected ${TARBALL} after bundle."
+            ls -la dist/ 2>/dev/null || echo "(no dist/ directory)"
+            exit 1
+          fi
+
       - name: Create GitHub release and upload tarball
         uses: softprops/action-gh-release@v2
         with:
