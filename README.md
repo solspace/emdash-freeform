@@ -179,7 +179,7 @@ In the repo → **Settings** → **Secrets and variables** → **Actions**, add:
 
 | Secret | How to get it |
 |---|---|
-| `EMDASH_PLUGIN_OAUTH_SESSIONS` | After login (see below), copy the contents of `~/.emdash/oauth/sessions.json` |
+| `EMDASH_PLUGIN_OAUTH_SESSIONS` | After login (see below), copy the full contents of `~/.emdash/oauth/sessions.json`. CI also derives `~/.emdash/credentials.json` from this file (publish checks both). |
 | `NPM_TOKEN` | [npmjs.com](https://www.npmjs.com) → **Access Tokens** → granular token with **read/write** on `@solspace/*` |
 | `REGISTRY_TARBALL_URL` (optional) | Full public URL to the tarball if GitHub release assets are not publicly fetchable (e.g. private repo) |
 
@@ -213,9 +213,11 @@ git push origin freeform-astro/v0.1.1
    - Registry: `npx emdash-plugin search freeform` or EmDash admin → **Plugins** → **Registry**
    - npm: `npm view @solspace/freeform-astro`
 
-### Re-tagging a failed release
+### Re-running a failed registry publish
 
-If CI failed before publish completed, delete the tag and push it again on the fixed commit:
+If bundle and GitHub Release succeeded but **Publish release record to registry** failed, re-run that job (or step) from **Actions** — you do not need a new tag.
+
+If the workflow failed earlier (e.g. bundle), delete the tag and push it again on the fixed commit:
 
 ```bash
 git tag -d freeform-astro/v0.1.1

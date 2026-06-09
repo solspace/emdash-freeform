@@ -50,8 +50,35 @@ jobs:
         env:
           EMDASH_PLUGIN_OAUTH_SESSIONS: ${{ secrets.EMDASH_PLUGIN_OAUTH_SESSIONS }}
         run: |
-          mkdir -p ~/.emdash/oauth
+          if [ -z "$EMDASH_PLUGIN_OAUTH_SESSIONS" ]; then
+            echo "EMDASH_PLUGIN_OAUTH_SESSIONS secret is empty or missing." >&2
+            exit 1
+          fi
+
+          mkdir -p ~/.emdash/oauth ~/.emdash
           printf '%s' "$EMDASH_PLUGIN_OAUTH_SESSIONS" > ~/.emdash/oauth/sessions.json
+
+          # publish reads identity from ~/.emdash/credentials.json; OAuth tokens
+          # live in ~/.emdash/oauth/sessions.json (restored above).
+          DID=$(jq -er '(.entries | keys)[0]' ~/.emdash/oauth/sessions.json)
+          PDS=$(jq -er --arg did "$DID" '.entries[$did].tokenSet.aud' ~/.emdash/oauth/sessions.json)
+          UPDATED_AT=$(($(date +%s) * 1000))
+          jq -n \
+            --arg did "$DID" \
+            --arg pds "$PDS" \
+            --argjson updatedAt "$UPDATED_AT" \
+            '{
+              version: 1,
+              currentDid: $did,
+              sessions: {
+                ($did): {
+                  did: $did,
+                  handle: null,
+                  pds: $pds,
+                  updatedAt: $updatedAt
+                }
+              }
+            }' > ~/.emdash/credentials.json
 
       - name: Publish release record to registry
         working-directory: freeform
