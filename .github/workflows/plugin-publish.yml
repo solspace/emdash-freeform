@@ -101,6 +101,7 @@ jobs:
       # must fetch the tarball from a public HTTPS URL, so we mirror to npm
       # and register a jsDelivr/unpkg URL (repo can stay private).
       - name: Publish plugin tarball to npm (public CDN)
+        id: npm_dist
         working-directory: freeform
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -120,12 +121,13 @@ jobs:
             "files": ["${TARBALL}"]
           }
           EOF
-          LOCAL_SHA=$(sha256sum "dist/$TARBALL" | awk '{print $1}')
 
           if npm view "@solspace/freeform-plugin-dist@${VERSION}" version >/dev/null 2>&1; then
             echo "@solspace/freeform-plugin-dist@${VERSION} already on npm; skipping publish."
+            echo "fresh=false" >> "$GITHUB_OUTPUT"
           else
             npm publish "$DIST_DIR" --access public
+            echo "fresh=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Publish release record to registry
@@ -163,12 +165,16 @@ jobs:
             fi
           fi
 
-          LOCAL_SHA=$(sha256sum "$TARBALL" | awk '{print $1}')
-          REMOTE_SHA=$(curl -fsSL "$URL" | sha256sum | awk '{print $1}')
-          if [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
-            echo "::error::CDN tarball differs from this build. If npm already has another build for ${VERSION}, bump the plugin version and re-tag."
-            exit 1
-          fi
-
           echo "Registry tarball URL: $URL"
-          pnpm exec emdash-plugin publish --url "$URL" --local "$TARBALL"
+          if [ "${{ steps.npm_dist.outputs.fresh }}" = "true" ]; then
+            LOCAL_SHA=$(sha256sum "$TARBALL" | awk '{print $1}')
+            REMOTE_SHA=$(curl -fsSL "$URL" | sha256sum | awk '{print $1}')
+            if [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
+              echo "::error::CDN tarball differs from this build right after npm publish."
+              exit 1
+            fi
+            pnpm exec emdash-plugin publish --url "$URL" --local "$TARBALL"
+          else
+            echo "npm version already published; registering CDN tarball (re-run safe)."
+            pnpm exec emdash-plugin publish --url "$URL"
+          fi
