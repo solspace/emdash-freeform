@@ -128,5 +128,5 @@ jobs:
             fi
             echo "Waiting for public tarball URL (attempt $attempt)..."
             sleep 10
-          fi
+          done
           pnpm exec emdash-plugin publish --url "$URL" --local "$TARBALL"
