@@ -183,7 +183,7 @@ In the repo → **Settings** → **Secrets and variables** → **Actions**, add:
 | `NPM_TOKEN` | [npmjs.com](https://www.npmjs.com) → **Access Tokens** → granular token with **read/write** on `@solspace/*` |
 | `REGISTRY_TARBALL_URL` (optional) | Override the public tarball URL passed to `emdash-plugin publish`. By default CI publishes the tarball to npm as `@solspace/freeform-plugin-dist` and uses its unpkg URL (works with a private GitHub repo). |
 
-The GitHub repo can stay **private** for source code. Registry publish needs a **public HTTPS URL** for the tarball — CI mirrors each release to `@solspace/freeform-plugin-dist` on npm (same `NPM_TOKEN` as `freeform-astro`) and registers the unpkg URL with the EmDash registry. GitHub Releases are still created for your own archive. Override with `REGISTRY_TARBALL_URL` if you host the tarball elsewhere (R2, S3, etc.).
+The GitHub repo can stay **private** for source code — you do **not** need to make it public. Registry publish needs a **public HTTPS URL** for the tarball; CI mirrors each release to `@solspace/freeform-plugin-dist` on npm (same `NPM_TOKEN` as `freeform-astro`) and registers a jsDelivr/unpkg URL with the EmDash registry. CDNs can lag npm by a few minutes after first publish; re-run the workflow if that step times out. GitHub Releases are still created for your own archive. Override with `REGISTRY_TARBALL_URL` if you host the tarball elsewhere (R2, S3, etc.).
 
 ### Release checklist
 

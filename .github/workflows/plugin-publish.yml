@@ -99,7 +99,7 @@ jobs:
 
       # Private GitHub release assets return 404 without auth. The registry
       # must fetch the tarball from a public HTTPS URL, so we mirror to npm
-      # and use unpkg as the default distribution URL.
+      # and register a jsDelivr/unpkg URL (repo can stay private).
       - name: Publish plugin tarball to npm (public CDN)
         working-directory: freeform
         env:
@@ -120,31 +120,12 @@ jobs:
             "files": ["${TARBALL}"]
           }
           EOF
-          UNPKG_URL="https://unpkg.com/@solspace/freeform-plugin-dist@${VERSION}/${TARBALL}"
           LOCAL_SHA=$(sha256sum "dist/$TARBALL" | awk '{print $1}')
 
           if npm view "@solspace/freeform-plugin-dist@${VERSION}" version >/dev/null 2>&1; then
-            echo "@solspace/freeform-plugin-dist@${VERSION} already on npm; verifying tarball bytes..."
-            REMOTE_SHA=$(curl -fsSL "$UNPKG_URL" | sha256sum | awk '{print $1}')
-            if [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
-              echo "::error::npm already has a different tarball for @solspace/freeform-plugin-dist@${VERSION}. Bump the plugin version in freeform/package.json and re-tag (npm versions are immutable)."
-              exit 1
-            fi
-            echo "npm tarball matches this build; skipping publish."
+            echo "@solspace/freeform-plugin-dist@${VERSION} already on npm; skipping publish."
           else
             npm publish "$DIST_DIR" --access public
-            echo "Waiting for npm CDN to serve the tarball..."
-            for attempt in $(seq 1 30); do
-              if curl -fsS "$UNPKG_URL" -o /dev/null; then
-                echo "Tarball reachable on unpkg (attempt $attempt)."
-                break
-              fi
-              if [ "$attempt" -eq 30 ]; then
-                echo "::error::Tarball not reachable on unpkg after npm publish: $UNPKG_URL"
-                exit 1
-              fi
-              sleep 10
-            done
           fi
 
       - name: Publish release record to registry
@@ -153,23 +134,41 @@ jobs:
           EMDASH_REGISTRY_URL: https://registry.emdashcms.com
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          TARBALL="dist/${{ steps.version.outputs.tarball }}"
-          URL="https://unpkg.com/@solspace/freeform-plugin-dist@${VERSION}/${{ steps.version.outputs.tarball }}"
+          TARBALL_FILE="${{ steps.version.outputs.tarball }}"
+          TARBALL="dist/${TARBALL_FILE}"
+          CDN_URLS=(
+            "https://cdn.jsdelivr.net/npm/@solspace/freeform-plugin-dist@${VERSION}/${TARBALL_FILE}"
+            "https://unpkg.com/@solspace/freeform-plugin-dist@${VERSION}/${TARBALL_FILE}"
+          )
+
           if [ -n "${{ secrets.REGISTRY_TARBALL_URL }}" ]; then
             URL="${{ secrets.REGISTRY_TARBALL_URL }}"
-          fi
-          echo "Registry tarball URL: $URL"
-          # unpkg/jsdelivr can lag npm by 1–2 minutes; use GET (HEAD often 404s).
-          for attempt in $(seq 1 12); do
-            if curl -fsS "$URL" -o /dev/null; then
-              echo "Tarball URL reachable (attempt $attempt)."
-              break
-            fi
-            if [ "$attempt" -eq 12 ]; then
-              echo "Tarball URL is not publicly reachable: $URL" >&2
+          else
+            URL=""
+            # CDNs can lag npm by several minutes; try jsDelivr first, then unpkg.
+            for attempt in $(seq 1 60); do
+              for candidate in "${CDN_URLS[@]}"; do
+                if curl -fsS --retry 2 --retry-delay 3 "$candidate" -o /dev/null; then
+                  URL="$candidate"
+                  echo "Tarball reachable at $URL (attempt $attempt)."
+                  break 2
+                fi
+              done
+              echo "Waiting for npm CDN (attempt ${attempt}/60)..."
+              sleep 10
+            done
+            if [ -z "$URL" ]; then
+              echo "::error::Tarball not reachable on jsDelivr or unpkg yet. npm publish succeeded; re-run this workflow in a few minutes."
               exit 1
             fi
-            echo "Waiting for public tarball URL (attempt $attempt)..."
-            sleep 10
-          done
+          fi
+
+          LOCAL_SHA=$(sha256sum "$TARBALL" | awk '{print $1}')
+          REMOTE_SHA=$(curl -fsSL "$URL" | sha256sum | awk '{print $1}')
+          if [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
+            echo "::error::CDN tarball differs from this build. If npm already has another build for ${VERSION}, bump the plugin version and re-tag."
+            exit 1
+          fi
+
+          echo "Registry tarball URL: $URL"
           pnpm exec emdash-plugin publish --url "$URL" --local "$TARBALL"
