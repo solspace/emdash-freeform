@@ -1,6 +1,6 @@
 {
   "name": "@local/freeform",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Build forms, collect submissions, and send notifications directly from EmDash.",
   "type": "module",
   "scripts": {

@@ -104,8 +104,17 @@ jobs:
             "files": ["${TARBALL}"]
           }
           EOF
+          UNPKG_URL="https://unpkg.com/@solspace/freeform-plugin-dist@${VERSION}/${TARBALL}"
+          LOCAL_SHA=$(sha256sum "dist/$TARBALL" | awk '{print $1}')
+
           if npm view "@solspace/freeform-plugin-dist@${VERSION}" version >/dev/null 2>&1; then
-            echo "@solspace/freeform-plugin-dist@${VERSION} already on npm; skipping publish."
+            echo "@solspace/freeform-plugin-dist@${VERSION} already on npm; verifying tarball bytes..."
+            REMOTE_SHA=$(curl -fsSL "$UNPKG_URL" | sha256sum | awk '{print $1}')
+            if [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
+              echo "::error::npm already has a different tarball for @solspace/freeform-plugin-dist@${VERSION}. Bump the plugin version in freeform/package.json and re-tag (npm versions are immutable)."
+              exit 1
+            fi
+            echo "npm tarball matches this build; skipping publish."
           else
             npm publish "$DIST_DIR" --access public
           fi

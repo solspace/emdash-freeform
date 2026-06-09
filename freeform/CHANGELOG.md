@@ -7,6 +7,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.1.1] — 2026-06-09
+
+### Changed
+
+- Registry publish CI: npm tarball mirror and credential handling fixes.
+
 ## [0.1.0] — 2026-06-09
 
 ### Added
