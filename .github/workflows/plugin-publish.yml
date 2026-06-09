@@ -22,6 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org
           cache: pnpm
 
       - name: Install dependencies
@@ -80,14 +81,52 @@ jobs:
               }
             }' > ~/.emdash/credentials.json
 
+      # Private GitHub release assets return 404 without auth. The registry
+      # must fetch the tarball from a public HTTPS URL, so we mirror to npm
+      # and use unpkg as the default distribution URL.
+      - name: Publish plugin tarball to npm (public CDN)
+        working-directory: freeform
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TARBALL="${{ steps.version.outputs.tarball }}"
+          DIST_DIR=".registry-dist"
+          rm -rf "$DIST_DIR"
+          mkdir -p "$DIST_DIR"
+          cp "dist/$TARBALL" "$DIST_DIR/"
+          cat > "$DIST_DIR/package.json" <<EOF
+          {
+            "name": "@solspace/freeform-plugin-dist",
+            "version": "${VERSION}",
+            "description": "EmDash plugin tarball for freeform@${VERSION} (registry distribution only)",
+            "license": "MIT",
+            "files": ["${TARBALL}"]
+          }
+          EOF
+          npm publish "$DIST_DIR" --access public
+
       - name: Publish release record to registry
         working-directory: freeform
         env:
           EMDASH_REGISTRY_URL: https://registry.emdashcms.com
         run: |
+          VERSION="${{ steps.version.outputs.version }}"
           TARBALL="dist/${{ steps.version.outputs.tarball }}"
-          URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ steps.version.outputs.tarball }}"
+          URL="https://unpkg.com/@solspace/freeform-plugin-dist@${VERSION}/${{ steps.version.outputs.tarball }}"
           if [ -n "${{ secrets.REGISTRY_TARBALL_URL }}" ]; then
             URL="${{ secrets.REGISTRY_TARBALL_URL }}"
+          fi
+          echo "Registry tarball URL: $URL"
+          for attempt in 1 2 3 4 5 6; do
+            if curl -fsSI "$URL" >/dev/null; then
+              break
+            fi
+            if [ "$attempt" -eq 6 ]; then
+              echo "Tarball URL is not publicly reachable: $URL" >&2
+              exit 1
+            fi
+            echo "Waiting for public tarball URL (attempt $attempt)..."
+            sleep 10
           fi
           pnpm exec emdash-plugin publish --url "$URL" --local "$TARBALL"

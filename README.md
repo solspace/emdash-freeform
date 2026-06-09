@@ -181,9 +181,9 @@ In the repo → **Settings** → **Secrets and variables** → **Actions**, add:
 |---|---|
 | `EMDASH_PLUGIN_OAUTH_SESSIONS` | After login (see below), copy the full contents of `~/.emdash/oauth/sessions.json`. CI also derives `~/.emdash/credentials.json` from this file (publish checks both). |
 | `NPM_TOKEN` | [npmjs.com](https://www.npmjs.com) → **Access Tokens** → granular token with **read/write** on `@solspace/*` |
-| `REGISTRY_TARBALL_URL` (optional) | Full public URL to the tarball if GitHub release assets are not publicly fetchable (e.g. private repo) |
+| `REGISTRY_TARBALL_URL` (optional) | Override the public tarball URL passed to `emdash-plugin publish`. By default CI publishes the tarball to npm as `@solspace/freeform-plugin-dist` and uses its unpkg URL (works with a private GitHub repo). |
 
-The GitHub repo can stay **private** for source code. npm publish uses `NPM_TOKEN` only (no provenance — provenance requires a public GitHub repo). Registry publish needs a **public HTTPS URL** for the tarball — CI uploads to a GitHub Release by default; use `REGISTRY_TARBALL_URL` if that URL is not world-readable.
+The GitHub repo can stay **private** for source code. Registry publish needs a **public HTTPS URL** for the tarball — CI mirrors each release to `@solspace/freeform-plugin-dist` on npm (same `NPM_TOKEN` as `freeform-astro`) and registers the unpkg URL with the EmDash registry. GitHub Releases are still created for your own archive. Override with `REGISTRY_TARBALL_URL` if you host the tarball elsewhere (R2, S3, etc.).
 
 ### Release checklist
 
