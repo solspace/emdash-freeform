@@ -18,7 +18,7 @@ cd freeform && pnpm run build:watch
 
 ```
 emdash-freeform/
-  freeform/        EmDash marketplace plugin
+  freeform/               EmDash registry plugin
   freeform-astro/         Astro integration + component library
   emdash-freeform-mcp/    Standalone Cloudflare Worker MCP server
   emdash-app/             Mars Rover Supply demo site (EmDash + Freeform consumer)
@@ -35,10 +35,7 @@ emdash-freeform/
 
 The core plugin. Runs in EmDash's V8 sandbox (`format: "standard"`). Manages forms, submissions, email notifications, webhooks, spam scoring, and CSV exports via Block Kit admin UI and a full set of plugin routes.
 
-**Install** (EmDash marketplace, once published):
-```
-# In the EmDash admin: Marketplace → Search "Freeform" → Install
-```
+**Install** (for site owners): see [`freeform/README.md`](freeform/README.md#getting-started) — enable the registry in `astro.config.mjs`, install **freeform** from **Plugins → Registry**, then add **`@solspace/freeform-astro`** on the frontend.
 
 **Build locally:**
 ```bash

@@ -1,6 +1,143 @@
 # Freeform Plugin for EmDash
 
-Form builder plugin for [EmDash CMS](https://emdashcms.com). Provides form management, submission storage, AI-assisted form generation, email notifications, AI spam scoring, and outbound webhooks.
+Form builder plugin for [EmDash CMS](https://emdashcms.com). Build forms in the admin, collect submissions, send email notifications, score spam with AI, and push events to webhooks.
+
+**Latest release:** `freeform@0.1.2` on the [EmDash plugin registry](https://registry.emdashcms.com) (publisher: `thejahid.bsky.social`).
+
+---
+
+## Getting started
+
+Freeform is two packages:
+
+| Package | What it does |
+|---------|----------------|
+| **Freeform** (this plugin) | Backend — forms, submissions, admin UI, APIs |
+| **[@solspace/freeform-astro](https://www.npmjs.com/package/@solspace/freeform-astro)** | Frontend — Astro routes + `FreeformForm` / `FreeformChat` components |
+
+You need **both** on a production Astro site. The plugin alone does not inject public form routes; the Astro package does.
+
+### Requirements
+
+- An [EmDash](https://emdashcms.com) site (Astro 6+, server output)
+- EmDash version with **experimental registry** support
+- Node.js ≥ 22
+
+### 1. Enable the plugin registry
+
+In `astro.config.mjs`, point EmDash at the registry:
+
+```js
+import emdash from "emdash/astro";
+
+export default defineConfig({
+  integrations: [
+    emdash({
+      // …your existing database / storage config…
+      experimental: {
+        registry: "https://registry.emdashcms.com",
+      },
+    }),
+  ],
+});
+```
+
+Restart the dev server after changing this.
+
+### 2. Install the Freeform plugin
+
+In the EmDash admin:
+
+1. Open **`/_emdash/admin`**
+2. Go to **Plugins → Registry**
+3. Search for **`freeform`**
+4. Click **Install** and approve the capability prompt (`network:request`, `email:send`)
+
+The registry index can lag a few minutes after a new release is published. If search is empty, wait and refresh, or verify from your terminal:
+
+```bash
+pnpm dlx @emdash-cms/plugin-cli@0.5.1 search freeform
+pnpm dlx @emdash-cms/plugin-cli@0.5.1 info thejahid.bsky.social freeform
+```
+
+### 3. Install the Astro integration
+
+```bash
+pnpm add @solspace/freeform-astro
+```
+
+```js
+// astro.config.mjs
+import freeformAstro from "@solspace/freeform-astro";
+
+export default defineConfig({
+  integrations: [
+    emdash({ /* … */ }),
+    freeformAstro(),
+  ],
+});
+```
+
+This adds public routes (`/api/freeform/submit`, `/.well-known/freeform.json`, etc.). See the [freeform-astro README](https://www.npmjs.com/package/@solspace/freeform-astro) for the full route list.
+
+### 4. Create a form
+
+1. In the admin, open **Freeform** (sidebar)
+2. Click **New form**, give it a name and **handle** (e.g. `contact`)
+3. Add fields (or use **AI generate** if you configured an Anthropic API key under **Settings**)
+4. Save
+
+The **handle** is what you use in frontend components (`formId="contact"`).
+
+### 5. Embed a form on a page
+
+```astro
+---
+import { FreeformForm } from "@solspace/freeform-astro/components";
+---
+
+<FreeformForm formId="contact" class="my-contact-form" />
+```
+
+Components are **unstyled**. Style them with CSS targeting `data-freeform-*` attributes:
+
+```css
+[data-freeform-form] { display: grid; gap: 1rem; max-width: 32rem; }
+[data-freeform-field] { display: flex; flex-direction: column; gap: 0.25rem; }
+[data-freeform-input] { padding: 0.5rem 0.75rem; border: 1px solid #ccc; border-radius: 0.375rem; }
+[data-freeform-submit] { padding: 0.5rem 1rem; cursor: pointer; }
+```
+
+Visit the page, submit a test entry, then check **Freeform → Submissions** in the admin.
+
+### 6. Optional configuration
+
+| Area | Where | Notes |
+|------|--------|------|
+| AI form builder & spam scoring | **Freeform → Settings → AI** | Requires an [Anthropic](https://console.anthropic.com/) API key |
+| Email notifications | **Freeform → Notifications** | Mustache templates; attach to forms |
+| Webhooks | **Freeform → Settings → Webhooks** | HMAC-signed `POST` on each submission — see [Webhooks](#webhooks) below |
+| CSV export | **Freeform → Submissions** | Signed download links; also available via MCP |
+| AI chat widget | `<FreeformChat formHandle="contact" … />` | Streaming chat tied to a form — see [freeform-astro](https://www.npmjs.com/package/@solspace/freeform-astro) |
+
+### Updating
+
+When a new `freeform` version appears in **Plugins → Registry**, install the update from the admin (same flow as step 2). Bump `@solspace/freeform-astro` separately when a new npm release is published.
+
+### Self-hosted / monorepo development
+
+If you are hacking on this repo (not installing from the registry), declare the plugin as a **trusted** dependency instead:
+
+```js
+import { freeformPlugin } from "@local/freeform"; // or your package name
+
+emdash({
+  plugins: [freeformPlugin()],
+  // …
+});
+```
+
+See the [repository README](https://github.com/solspace/emdash-freeform) for local dev setup.
 
 ---
 

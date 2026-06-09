@@ -2,7 +2,7 @@
 
 Astro integration and component library for the [Freeform](https://emdashcms.com) plugin on [EmDash CMS](https://emdashcms.com).
 
-Install the **Freeform** plugin from the EmDash marketplace (or as a trusted plugin), then add this package to your Astro site for forms, submissions, AI chat, and agent discovery routes.
+Install the **Freeform** plugin from the EmDash registry (**Plugins → Registry** in the admin — see [`freeform/README.md`](../freeform/README.md#getting-started)), then add this package to your Astro site for forms, submissions, AI chat, and agent discovery routes.
 
 ## Requirements
 
@@ -19,16 +19,21 @@ pnpm add @solspace/freeform-astro
 
 ## Setup
 
+**Prerequisite:** the Freeform EmDash plugin must already be installed (registry or trusted). See [`freeform/README.md`](../freeform/README.md#getting-started).
+
 Add the integration to `astro.config.mjs` alongside EmDash:
 
 ```js
 import { defineConfig } from "astro/config";
-import emdash from "emdash";
+import emdash from "emdash/astro";
 import freeformAstro from "@solspace/freeform-astro";
 
 export default defineConfig({
   integrations: [
-    emdash({ /* plugins: [freeformPlugin()] if trusted */ }),
+    emdash({
+      experimental: { registry: "https://registry.emdashcms.com" },
+      // …database, storage, etc.
+    }),
     freeformAstro(),
   ],
 });
