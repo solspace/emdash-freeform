@@ -104,7 +104,11 @@ jobs:
             "files": ["${TARBALL}"]
           }
           EOF
-          npm publish "$DIST_DIR" --access public
+          if npm view "@solspace/freeform-plugin-dist@${VERSION}" version >/dev/null 2>&1; then
+            echo "@solspace/freeform-plugin-dist@${VERSION} already on npm; skipping publish."
+          else
+            npm publish "$DIST_DIR" --access public
+          fi
 
       - name: Publish release record to registry
         working-directory: freeform
