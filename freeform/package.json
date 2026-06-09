@@ -4,20 +4,28 @@
   "description": "Build forms, collect submissions, and send notifications directly from EmDash.",
   "type": "module",
   "scripts": {
-    "build": "tsdown src/index.ts src/sandbox-entry.ts --format esm --outDir dist --dts false",
+    "build": "mkdir -p .tmp && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin build && tsdown src/index.ts --format esm --outDir dist --dts false",
+    "build:registry": "mkdir -p .tmp && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin build",
     "build:watch": "tsdown src/index.ts src/sandbox-entry.ts --format esm --outDir dist --dts false --watch",
-    "bundle": "emdash plugin bundle",
-    "bundle:validate": "emdash plugin validate",
+    "bundle": "mkdir -p .tmp && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin bundle",
+    "bundle:validate": "mkdir -p .tmp && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin bundle --validate-only",
     "typecheck": "tsc --noEmit"
   },
   "exports": {
     ".": "./dist/index.js",
-    "./sandbox": "./dist/sandbox-entry.js"
+    "./sandbox": "./dist/plugin.mjs"
   },
+  "files": [
+    "dist",
+    "emdash-plugin.jsonc",
+    "README.md"
+  ],
   "peerDependencies": {
-    "emdash": "^0.12.0"
+    "emdash": ">=0.12.0"
   },
   "devDependencies": {
+    "@emdash-cms/plugin-cli": "0.5.1",
+    "emdash": "0.17.2",
     "tsdown": "^0.12.0"
   }
 }

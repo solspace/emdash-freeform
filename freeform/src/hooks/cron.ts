@@ -2,7 +2,7 @@ import type { PluginContext } from "emdash";
 import { processRetryQueue } from "../lib/webhooks";
 
 // CronEvent is not re-exported by the public emdash package; use a local shape.
-interface CronEvent {
+export interface CronEvent {
   name: string;
   data?: Record<string, unknown>;
   scheduledAt: string;

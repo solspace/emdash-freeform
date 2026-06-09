@@ -57,3 +57,4 @@ legacy/
 
 # Screenshots staging (oversized; properly resized ones go in screenshots/)
 freeform/.screenshots-staging/
+freeform/.tmp/

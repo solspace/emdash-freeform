@@ -1,0 +1,34 @@
+{
+	"$schema": "./node_modules/@emdash-cms/plugin-cli/schemas/emdash-plugin.schema.json",
+
+	"slug": "freeform",
+	"publisher": "did:plc:vtu5cwkbl5mmckg2ymzspxb7",
+
+	"name": "Freeform",
+	"description": "Build forms, collect submissions, and send notifications directly from EmDash.",
+	"license": "MIT",
+	"repo": "https://github.com/solspace/emdash-freeform",
+	"keywords": ["forms", "submissions", "notifications", "webhooks", "emdash"],
+
+	"author": {
+		"name": "Solspace",
+		"url": "https://solspace.com"
+	},
+	"security": {
+		"email": "jahid@solspace.com"
+	},
+
+	"capabilities": ["network:request:unrestricted", "email:send"],
+	"allowedHosts": [],
+	"admin": {
+		"pages": [{ "path": "/forms", "label": "Freeform", "icon": "form-input" }],
+		"widgets": [{ "id": "stats", "title": "Freeform", "size": "third" }]
+	},
+	"storage": {
+		"forms": { "indexes": ["createdAt"] },
+		"submissions": { "indexes": ["formId", "createdAt"] },
+		"templates": { "indexes": ["createdAt"] },
+		"notification_assignments": { "indexes": ["formId"] },
+		"webhooks": { "indexes": ["createdAt"] }
+	}
+}

@@ -46,7 +46,7 @@ export async function sendNotificationsForSubmission(
       return;
     }
 
-    const { items } = await ctx.storage.notificationAssignments.query({
+    const { items } = await ctx.storage.notification_assignments.query({
       where: { formId: submission.formId },
       limit: 200,
     });
@@ -117,11 +117,11 @@ export async function deleteTemplateAndDetach(
   templateId: string,
 ): Promise<number> {
   await ctx.storage.templates.delete(templateId);
-  const { items } = await ctx.storage.notificationAssignments.query({ limit: 1000 });
+  const { items } = await ctx.storage.notification_assignments.query({ limit: 1000 });
   let detached = 0;
   for (const item of items as Array<{ id: string; data: StoredAssignment }>) {
     if (item.data.templateId === templateId) {
-      await ctx.storage.notificationAssignments.delete(item.id);
+      await ctx.storage.notification_assignments.delete(item.id);
       detached++;
     }
   }

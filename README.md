@@ -50,13 +50,8 @@ pnpm run bundle         # produces dist/freeform-x.x.x.tar.gz
 
 **Development:** see [Daily dev — start here every time](#daily-dev--start-here-every-time) in Development setup.
 
-**Publish to marketplace:**
-```bash
-cd freeform
-pnpm run build
-npx emdash plugin publish --build
-```
-Requires `EMDASH_MARKETPLACE_TOKEN` (set via `npx emdash plugin login`).
+**Publish to registry:** see [Publishing](#publishing) (`pnpm dlx @emdash-cms/plugin-cli@0.5.1 login` must run outside the monorepo).
+See [Publishing](#publishing) for CI via `freeform/v*` tags.
 
 ---
 
@@ -167,13 +162,96 @@ cd emdash-app && npx emdash dev
 
 ---
 
-## CI / releasing
+## Publishing
 
-| Tag pattern | Action |
+Releases are tag-driven GitHub Actions workflows. Push a scoped tag and CI builds + publishes automatically.
+
+| Tag pattern | Package | Destination |
+|---|---|---|
+| `freeform/v*` | EmDash plugin | [Plugin registry](https://registry.emdashcms.com) |
+| `freeform-astro/v*` | `@solspace/freeform-astro` | [npm](https://www.npmjs.com/package/@solspace/freeform-astro) |
+
+Sites install registry plugins with `experimental.registry: "https://registry.emdashcms.com"` in `astro.config.mjs`.
+
+### One-time setup (GitHub Actions secrets)
+
+In the repo → **Settings** → **Secrets and variables** → **Actions**, add:
+
+| Secret | How to get it |
 |---|---|
-| `freeform/v*` | Build + publish to EmDash marketplace |
-| `freeform-astro/v*` | Publish `@solspace/freeform-astro` to npm |
+| `EMDASH_PLUGIN_OAUTH_SESSIONS` | After login (see below), copy the contents of `~/.emdash/oauth/sessions.json` |
+| `NPM_TOKEN` | [npmjs.com](https://www.npmjs.com) → **Access Tokens** → granular token with **read/write** on `@solspace/*` |
+| `REGISTRY_TARBALL_URL` (optional) | Full public URL to the tarball if GitHub release assets are not publicly fetchable (e.g. private repo) |
 
-Secrets required in GitHub repository settings:
-- `EMDASH_MARKETPLACE_TOKEN` — from `npx emdash plugin login`
-- `NPM_TOKEN` — npm automation token with publish rights to `@solspace`
+The GitHub repo can stay **private** for source code. npm publish uses `NPM_TOKEN` only (no provenance — provenance requires a public GitHub repo). Registry publish needs a **public HTTPS URL** for the tarball — CI uploads to a GitHub Release by default; use `REGISTRY_TARBALL_URL` if that URL is not world-readable.
+
+### Release checklist
+
+1. **Bump the version** in the package you are shipping:
+   - Registry plugin: `freeform/package.json` **and** `freeform/src/index.ts` (`version` field)
+   - npm package: `freeform-astro/package.json`
+   - Update `freeform/CHANGELOG.md` when releasing the plugin
+   - Add or update `freeform-astro/README.md` when releasing the Astro package (npm displays this on the package page)
+
+2. **Commit and push** to `main` (merge `dev` → `main` first if needed).
+
+3. **Tag and push** (one tag per package, or both for a combined release):
+
+```bash
+# EmDash plugin registry
+git tag freeform/v0.1.0
+git push origin freeform/v0.1.0
+
+# npm Astro package
+git tag freeform-astro/v0.1.1
+git push origin freeform-astro/v0.1.1
+```
+
+4. Watch **Actions** in GitHub for the publish workflow result.
+
+5. Verify:
+   - Registry: `npx emdash-plugin search freeform` or EmDash admin → **Plugins** → **Registry**
+   - npm: `npm view @solspace/freeform-astro`
+
+### Re-tagging a failed release
+
+If CI failed before publish completed, delete the tag and push it again on the fixed commit:
+
+```bash
+git tag -d freeform-astro/v0.1.1
+git push origin :refs/tags/freeform-astro/v0.1.1
+git tag freeform-astro/v0.1.1
+git push origin freeform-astro/v0.1.1
+```
+
+If the version **already exists on npm or the registry**, bump the version — you cannot republish the same semver.
+
+### Publish locally (optional)
+
+**Registry plugin:**
+
+Log in **outside the monorepo** (workspace dependency hoisting breaks `emdash-plugin login` here):
+
+```bash
+pnpm dlx @emdash-cms/plugin-cli@0.5.1 login thejahid.bsky.social
+cat ~/.emdash/oauth/sessions.json   # → paste into EMDASH_PLUGIN_OAUTH_SESSIONS secret
+```
+
+Then bundle and publish:
+
+```bash
+cd freeform
+pnpm run bundle
+pnpm dlx @emdash-cms/plugin-cli@0.5.1 publish \
+  --url https://your-host/freeform-x.y.z.tar.gz \
+  --local dist/freeform-x.y.z.tar.gz
+```
+
+**npm package:**
+
+```bash
+cd freeform-astro
+npm login   # first time
+pnpm publish --access public --no-git-checks --dry-run   # test
+pnpm publish --access public --no-git-checks             # publish
+```

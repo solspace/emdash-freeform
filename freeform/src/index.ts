@@ -15,7 +15,7 @@ export function freeformPlugin(): PluginDescriptor {
       forms: { indexes: ["createdAt"] },
       submissions: { indexes: ["formId", "createdAt"] },
       templates: { indexes: ["createdAt"] },
-      notificationAssignments: { indexes: ["formId"] },
+      notification_assignments: { indexes: ["formId"] },
       webhooks: { indexes: ["createdAt"] },
     },
     // One sidebar entry — section nav is inside the plugin (see freeformNavBlocks).

@@ -130,7 +130,7 @@ export async function notificationsPanelBlocks(
   if (!form) return [];
 
   const { items: assignmentItems } =
-    await ctx.storage.notificationAssignments.query({
+    await ctx.storage.notification_assignments.query({
       where: { formId },
       limit: 100,
     });

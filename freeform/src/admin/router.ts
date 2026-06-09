@@ -905,7 +905,7 @@ export const adminRoute = {
         };
       }
 
-      await ctx.storage.notificationAssignments.put(uid(), assignment);
+      await ctx.storage.notification_assignments.put(uid(), assignment);
       return {
         ...(await renderEditor(
           fid,
@@ -919,9 +919,9 @@ export const adminRoute = {
 
     if (actionId.startsWith("toggle_notif:")) {
       const aid = actionId.slice("toggle_notif:".length);
-      const a = (await ctx.storage.notificationAssignments.get(aid)) as StoredAssignment | null;
+      const a = (await ctx.storage.notification_assignments.get(aid)) as StoredAssignment | null;
       if (!a) return { blocks: await listPageBlocks(ctx) };
-      await ctx.storage.notificationAssignments.put(aid, {
+      await ctx.storage.notification_assignments.put(aid, {
         ...a,
         enabled: !a.enabled,
         updatedAt: new Date().toISOString(),
@@ -942,9 +942,9 @@ export const adminRoute = {
 
     if (actionId.startsWith("detach_notif:")) {
       const aid = actionId.slice("detach_notif:".length);
-      const a = (await ctx.storage.notificationAssignments.get(aid)) as StoredAssignment | null;
+      const a = (await ctx.storage.notification_assignments.get(aid)) as StoredAssignment | null;
       if (!a) return { blocks: await listPageBlocks(ctx) };
-      await ctx.storage.notificationAssignments.delete(aid);
+      await ctx.storage.notification_assignments.delete(aid);
       return {
         ...(await renderEditor(
           a.formId,

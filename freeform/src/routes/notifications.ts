@@ -12,7 +12,7 @@ export const notificationRoutes = {
     handler: async (routeCtx: any, ctx: PluginContext) => {
       const formId = new URL(routeCtx.request.url).searchParams.get("formId");
       if (!formId) throw PluginRouteError.badRequest("Missing ?formId=");
-      const { items } = await ctx.storage.notificationAssignments.query({
+      const { items } = await ctx.storage.notification_assignments.query({
         where: { formId },
         limit: 200,
       });
@@ -79,7 +79,7 @@ export const notificationRoutes = {
         createdAt: now,
         updatedAt: now,
       };
-      await ctx.storage.notificationAssignments.put(aid, assignment);
+      await ctx.storage.notification_assignments.put(aid, assignment);
       return { id: aid, ...assignment };
     },
   },
@@ -88,7 +88,7 @@ export const notificationRoutes = {
     handler: async (routeCtx: any, ctx: PluginContext) => {
       const { id } = routeCtx.input as { id: string };
       if (!id) throw PluginRouteError.badRequest("Missing id");
-      await ctx.storage.notificationAssignments.delete(id);
+      await ctx.storage.notification_assignments.delete(id);
       return { ok: true };
     },
   },
@@ -104,7 +104,7 @@ export const notificationRoutes = {
       };
       if (!input?.id) throw PluginRouteError.badRequest("Missing id");
 
-      const existing = (await ctx.storage.notificationAssignments.get(
+      const existing = (await ctx.storage.notification_assignments.get(
         input.id,
       )) as StoredAssignment | null;
       if (!existing) throw PluginRouteError.notFound("Assignment not found");
@@ -148,7 +148,7 @@ export const notificationRoutes = {
         }
       }
 
-      await ctx.storage.notificationAssignments.put(input.id, next);
+      await ctx.storage.notification_assignments.put(input.id, next);
       return { id: input.id, ...next };
     },
   },
