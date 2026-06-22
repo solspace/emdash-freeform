@@ -4,9 +4,9 @@
   "description": "Build forms, collect submissions, and send notifications directly from EmDash.",
   "type": "module",
   "scripts": {
-    "build": "mkdir -p .tmp && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin build && tsdown src/index.ts --format esm --outDir dist --dts false",
+    "build": "mkdir -p .tmp dist && tsdown src/index.ts --format esm --outDir dist --dts false && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin build",
     "build:registry": "mkdir -p .tmp && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin build",
-    "build:watch": "tsdown src/index.ts src/sandbox-entry.ts --format esm --outDir dist --dts false --watch",
+    "build:watch": "mkdir -p .tmp dist && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin build && tsdown src/index.ts --format esm --outDir dist --dts false --no-clean --watch",
     "bundle": "mkdir -p .tmp && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin bundle",
     "bundle:validate": "mkdir -p .tmp && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin bundle --validate-only",
     "typecheck": "tsc --noEmit"
@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "@emdash-cms/plugin-cli": "0.5.1",
-    "emdash": "0.17.2",
+    "emdash": "0.21.0",
     "tsdown": "^0.12.0"
   }
 }

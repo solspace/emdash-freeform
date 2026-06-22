@@ -2,6 +2,8 @@
 
 Form builder plugin for [EmDash CMS](https://emdashcms.com) — monorepo.
 
+**Manager / install guide:** [FREEFORM-REGISTRY-GUIDE.md](./FREEFORM-REGISTRY-GUIDE.md) — verify publish, install on a site, links.
+
 **Every day — two terminals:**
 
 ```bash
@@ -130,7 +132,7 @@ cd emdash-app
 pnpm run dev:clean
 ```
 
-`dev:clean` clears Vite’s cache and runs `npx emdash dev` (migrations + Astro on port **4321**). Wait until you see `astro … ready`, then open:
+`dev:clean` builds the Freeform plugin first, clears Vite’s cache, and runs `npx emdash dev` (migrations + Astro on port **4321**). Wait until you see `astro … ready`, then open:
 
 | URL | What |
 |-----|------|

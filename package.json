@@ -2,5 +2,5 @@
   "name": "emdash-freeform",
   "private": true,
   "description": "Freeform plugin for EmDash CMS — monorepo root",
-  "packageManager": "pnpm@11.5.0"
+  "packageManager": "pnpm@11.8.0"
 }
