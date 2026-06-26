@@ -3,7 +3,7 @@ import type { PluginDescriptor } from "emdash";
 export function freeformPlugin(): PluginDescriptor {
   return {
     id: "freeform",
-    version: "0.1.2",
+    version: "0.1.3",
     format: "standard",
     entrypoint: "@local/freeform/sandbox",
     // network:request:unrestricted is required for webhook delivery to

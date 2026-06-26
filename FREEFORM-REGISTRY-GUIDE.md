@@ -3,7 +3,7 @@
 **For:** Solspace team / site owners installing Freeform on EmDash  
 **Product:** [Freeform](https://github.com/solspace/emdash-freeform) — form builder plugin for [EmDash CMS](https://emdashcms.com)  
 **Current plugin release:** `freeform@0.1.2`  
-**Publisher:** `thejahid.bsky.social` (`did:plc:vtu5cwkbl5mmckg2ymzspxb7`)  
+**Publisher:** `solspace.com` (`did:plc:tsp7az5h6qsqjzqsgz37wonx`)  
 **Registry:** https://registry.emdashcms.com  
 
 ---
@@ -74,7 +74,7 @@ pnpm dlx @emdash-cms/plugin-cli@0.5.1 search freeform
 ```
 Freeform (freeform)
   Build forms, collect submissions, and send notifications directly from EmDash.
-  at://did:plc:vtu5cwkbl5mmckg2ymzspxb7/com.emdashcms.experimental.package.profile/freeform
+  at://did:plc:tsp7az5h6qsqjzqsgz37wonx/com.emdashcms.experimental.package.profile/freeform
 ```
 
 If this appears, the plugin is **indexed and discoverable**.
@@ -82,7 +82,7 @@ If this appears, the plugin is **indexed and discoverable**.
 ### 2. Package details & latest version
 
 ```bash
-pnpm dlx @emdash-cms/plugin-cli@0.5.1 info thejahid.bsky.social freeform
+pnpm dlx @emdash-cms/plugin-cli@0.5.1 info solspace.com freeform
 ```
 
 Shows profile metadata, latest release version, and download URL.
@@ -218,7 +218,7 @@ Submit a test entry, then confirm it under **Freeform → Submissions**.
 
 1. Check registry for a newer version:
    ```bash
-   pnpm dlx @emdash-cms/plugin-cli@0.5.1 info thejahid.bsky.social freeform
+   pnpm dlx @emdash-cms/plugin-cli@0.5.1 info solspace.com freeform
    ```
 2. In admin → **Plugins → Registry**, install the update for **freeform**
 3. Bump `@solspace/freeform-astro` on npm when a new frontend release is published:

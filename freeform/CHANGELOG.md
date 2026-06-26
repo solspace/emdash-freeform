@@ -7,6 +7,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.1.3] — 2026-06-09
+
+### Changed
+
+- Registry publisher transferred to Solspace (`did:plc:tsp7az5h6qsqjzqsgz37wonx`).
+
 ## [0.1.2] — 2026-06-09
 
 ### Changed

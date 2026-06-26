@@ -2,7 +2,7 @@
 
 Form builder plugin for [EmDash CMS](https://emdashcms.com). Build forms in the admin, collect submissions, send email notifications, score spam with AI, and push events to webhooks.
 
-**Latest release:** `freeform@0.1.2` on the [EmDash plugin registry](https://registry.emdashcms.com) (publisher: `thejahid.bsky.social`).
+**Latest release:** see registry (`pnpm dlx @emdash-cms/plugin-cli@0.5.1 info solspace.com freeform`) — publisher: `solspace.com`.
 
 ---
 
@@ -57,7 +57,7 @@ The registry index can lag a few minutes after a new release is published. If se
 
 ```bash
 pnpm dlx @emdash-cms/plugin-cli@0.5.1 search freeform
-pnpm dlx @emdash-cms/plugin-cli@0.5.1 info thejahid.bsky.social freeform
+pnpm dlx @emdash-cms/plugin-cli@0.5.1 info solspace.com freeform
 ```
 
 ### 3. Install the Astro integration

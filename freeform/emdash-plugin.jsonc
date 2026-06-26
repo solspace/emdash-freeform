@@ -2,7 +2,7 @@
 	"$schema": "./node_modules/@emdash-cms/plugin-cli/schemas/emdash-plugin.schema.json",
 
 	"slug": "freeform",
-	"publisher": "did:plc:vtu5cwkbl5mmckg2ymzspxb7",
+	"publisher": "did:plc:tsp7az5h6qsqjzqsgz37wonx",
 
 	"name": "Freeform",
 	"description": "Build forms, collect submissions, and send notifications directly from EmDash.",
@@ -15,7 +15,7 @@
 		"url": "https://solspace.com"
 	},
 	"security": {
-		"email": "jahid@solspace.com"
+		"email": "support@solspace.com"
 	},
 
 	"capabilities": ["network:request:unrestricted", "email:send"],

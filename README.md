@@ -234,7 +234,7 @@ If the version **already exists on npm or the registry**, bump the version — y
 Log in **outside the monorepo** (workspace dependency hoisting breaks `emdash-plugin login` here):
 
 ```bash
-pnpm dlx @emdash-cms/plugin-cli@0.5.1 login thejahid.bsky.social
+pnpm dlx @emdash-cms/plugin-cli@0.5.1 login solspace.com
 cat ~/.emdash/oauth/sessions.json   # → paste into EMDASH_PLUGIN_OAUTH_SESSIONS secret
 ```
 
