@@ -1,192 +1,97 @@
-# Freeform — Registry publish & installation guide
+# Freeform — Registry Guide
 
-**For:** Solspace team / site owners installing Freeform on EmDash  
-**Product:** [Freeform](https://github.com/solspace/emdash-freeform) — form builder plugin for [EmDash CMS](https://emdashcms.com)  
-**Current plugin release:** `freeform@0.1.4`  
-**Publisher:** `solspace.com` (`did:plc:tsp7az5h6qsqjzqsgz37wonx`)  
-**Registry:** https://registry.emdashcms.com  
+How to verify Freeform's registry listing, install it on an EmDash site, and
+troubleshoot common problems.
 
----
+- **Package:** `@solspace.com/freeform` ([plugin page](https://plugins.emdashcms.com/plugins/@solspace.com/freeform))
+- **Current release:** `freeform@0.1.4`
+- **Publisher:** `solspace.com` (`did:plc:tsp7az5h6qsqjzqsgz37wonx`)
+- **Registry:** https://registry.emdashcms.com
+- **Source:** https://github.com/solspace/emdash-freeform
 
-## Summary
+Freeform has two installable parts:
 
-Freeform is published on the **EmDash plugin registry**. Site owners can search for it in the EmDash admin and install it like any other registry plugin.
+| Part | Package | Source |
+| --- | --- | --- |
+| Backend plugin | `freeform` | EmDash **Plugins → Registry** |
+| Frontend integration | `@solspace/freeform-astro` | [npm](https://www.npmjs.com/package/@solspace/freeform-astro) |
 
-Freeform is **two parts**:
+Both are required on a production site. The plugin provides the admin UI,
+storage, and APIs; the Astro package renders the public forms and routes.
 
-| Part | Package | Where it comes from |
-|------|---------|---------------------|
-| **Backend plugin** | `freeform` | EmDash **Plugins → Registry** |
-| **Frontend integration** | `@solspace/freeform-astro` | [npm](https://www.npmjs.com/package/@solspace/freeform-astro) |
-
-Both are required on a production Astro site. The plugin provides the admin UI, storage, and APIs. The Astro package adds public form pages, submission endpoints, and UI components.
-
-The GitHub source repo can stay **private**. Public downloads are served via npm/jsDelivr (`@solspace/freeform-plugin-dist`).
-
----
-
-## Important: Marketplace ≠ Registry
-
-EmDash currently has **two separate plugin distribution systems**. Freeform is on the **new registry only** — it will **not** appear in the old marketplace.
-
-| | **Old Marketplace** | **New Registry** (where Freeform lives) |
-|---|---------------------|----------------------------------------|
-| **URL** | `https://marketplace.emdashcms.com` | `https://registry.emdashcms.com` |
-| **Admin config** | `marketplace: "https://marketplace.emdashcms.com"` | `experimental: { registry: "https://registry.emdashcms.com" }` |
-| **What you see** | ~3 official EmDash plugins | Community plugins including **Freeform** |
-| **Publish target** | `emdash plugin publish` (broken / deprecated) | `emdash-plugin publish` (what we use) |
-| **Browser homepage** | Has a web UI | **API only** — opening the root URL shows `not found` (normal) |
-
-If your admin shows only three EmDash plugins, you are almost certainly on the **Marketplace**, not the Registry. Typical causes:
-
-1. **EmDash version too old** — registry install UI requires **EmDash ≥ 0.17** (experimental). Older sites (e.g. `emdash@0.12`) only have Marketplace.
-2. **Registry not enabled in config** — `experimental.registry` is missing from `astro.config.mjs`.
-3. **Still using `marketplace:` only** — that setting does not query the decentralized registry.
-
-**Registry is not a website.** `https://registry.emdashcms.com/` returns an API error in the browser. To verify in a browser or curl, use the search API:
+## Verify the listing
 
 ```bash
-curl "https://registry.emdashcms.com/xrpc/com.emdashcms.experimental.aggregator.searchPackages?q=freeform"
+npx @emdash-cms/plugin-cli search freeform
+npx @emdash-cms/plugin-cli info solspace.com freeform
 ```
 
-Or use the CLI (easier):
+`info` shows the profile, the latest release (currently `0.1.4`), and the
+download URL. The registry index can lag a few minutes behind a fresh
+publish; if a new version doesn't appear yet, wait and retry.
 
-```bash
-pnpm dlx @emdash-cms/plugin-cli@0.5.1 search freeform
-```
-
-If CLI search finds Freeform but the admin UI does not, fix EmDash version + config (below) — **the publish itself is fine**.
-
----
-
-## How to verify the publish
-
-### 1. Registry search (recommended)
-
-From any machine with Node.js:
-
-```bash
-pnpm dlx @emdash-cms/plugin-cli@0.5.1 search freeform
-```
-
-**Expected output** (example):
-
-```
-Freeform (freeform)
-  Build forms, collect submissions, and send notifications directly from EmDash.
-  at://did:plc:tsp7az5h6qsqjzqsgz37wonx/com.emdashcms.experimental.package.profile/freeform
-```
-
-If this appears, the plugin is **indexed and discoverable**.
-
-### 2. Package details & latest version
-
-```bash
-pnpm dlx @emdash-cms/plugin-cli@0.5.1 info solspace.com freeform
-```
-
-Shows profile metadata, latest release version, and download URL.
-
-### 3. EmDash admin UI
-
-On an EmDash site with registry enabled (see [Installation](#installation-on-an-emdash-site)):
-
-1. Open **`https://<your-site>/_emdash/admin`**
-2. Go to **Plugins → Registry**
-3. Search for **`freeform`**
-
-The plugin should appear as **Freeform**.
-
-### 4. Public download URL (technical check)
-
-The registry points at this tarball:
+You can also check the public tarball mirror directly:
 
 https://cdn.jsdelivr.net/npm/@solspace/freeform-plugin-dist@0.1.4/freeform-0.1.4.tar.gz
 
-Opening that URL in a browser should download the plugin bundle (HTTP 200).
-
-### 5. npm mirror
-
-https://www.npmjs.com/package/@solspace/freeform-plugin-dist  
-
-Lists published plugin tarball versions used for public CDN hosting.
-
----
-
-## Installation on an EmDash site
+## Install on an EmDash site
 
 ### Requirements
 
-- EmDash **≥ 0.17** (registry is experimental; not available on `emdash@0.12`)
-- Astro **6+** with **server output**
-- **`sandboxRunner`** configured (registry plugins always install sandboxed — e.g. `@emdash-cms/cloudflare/sandbox` on Cloudflare)
-- Node.js ≥ 22 for local development
+- EmDash **≥ 1.0** (the plugin refuses to install on older hosts)
+- Astro **6+** with server output
+- A sandbox runner configured (registry plugins install sandboxed — e.g. `@emdash-cms/cloudflare/sandbox` on Cloudflare)
+- Node.js **≥ 22**
 
-### Step 1 — Enable the plugin registry (replaces Marketplace UI)
-
-In `astro.config.mjs`, add **`experimental.registry`** and remove or stop relying on the old **`marketplace`** setting for browse/install:
+### 1. Enable the registry
 
 ```js
+// astro.config.mjs
 import emdash from "emdash/astro";
 
 export default defineConfig({
   integrations: [
     emdash({
+      registry: "https://registry.emdashcms.com",
+      sandboxRunner: "@emdash-cms/cloudflare/sandbox",
       // …existing database / storage config…
-      sandboxRunner: "@emdash-cms/cloudflare/sandbox", // required for registry installs
-      experimental: {
-        registry: "https://registry.emdashcms.com",
-      },
     }),
   ],
 });
 ```
 
-When `experimental.registry` is set, EmDash **replaces** the Marketplace browse/install UI with the Registry UI.
+Restart the dev server (or redeploy) after changing this.
 
-Restart the dev server or redeploy after this change.
+### 2. Install the plugin
 
-### Step 2 — Install the Freeform plugin
+1. Open `/_emdash/admin`
+2. Go to **Plugins → Registry**
+3. Search for **`freeform`** and click **Install**
+4. Approve the requested capabilities:
+   - **Network requests** — AI features and webhook delivery
+   - **Email send** — submission notifications
 
-1. Open **`/_emdash/admin`**
-2. **Plugins → Registry**
-3. Search **`freeform`**
-4. Click **Install**
-5. Approve capabilities when prompted:
-   - **Network requests** (plugin API calls, AI, webhooks)
-   - **Email send** (submission notifications)
+**Freeform** then appears in the admin sidebar.
 
-After install, **Freeform** appears in the admin sidebar.
-
-### Step 3 — Install the Astro frontend package
+### 3. Install the Astro package
 
 ```bash
 pnpm add @solspace/freeform-astro
 ```
 
-Add the integration in `astro.config.mjs`:
-
 ```js
 import freeformAstro from "@solspace/freeform-astro";
 
 export default defineConfig({
-  integrations: [
-    emdash({ /* … */ }),
-    freeformAstro(),
-  ],
+  integrations: [emdash({ /* … */ }), freeformAstro()],
 });
 ```
 
-This injects routes such as `/api/freeform/submit` and `/.well-known/freeform.json` for AI agents.
+### 4. Create and embed a form
 
-### Step 4 — Create a form
-
-1. Admin → **Freeform**
-2. **New form** — set name and **handle** (e.g. `contact`)
-3. Add fields (or use **AI generate** if Anthropic API key is configured under **Settings**)
-4. Save
-
-### Step 5 — Embed on a page
+1. Admin → **Freeform** → **New form** — set the name and **handle** (e.g. `contact`)
+2. Add fields (or use the AI builder after adding an Anthropic API key in **Freeform → Settings**)
+3. Embed by handle:
 
 ```astro
 ---
@@ -196,74 +101,42 @@ import { FreeformForm } from "@solspace/freeform-astro/components";
 <FreeformForm formId="contact" />
 ```
 
-Components ship **unstyled**. Style with CSS using `data-freeform-*` attributes on the rendered markup.
+Components ship unstyled; theme them with `data-freeform-*` CSS selectors.
+Submit a test entry and confirm it under **Freeform → Submissions**.
 
-Submit a test entry, then confirm it under **Freeform → Submissions**.
+## Optional features
 
----
+| Feature | Where | Notes |
+| --- | --- | --- |
+| Email notifications | Freeform → Templates | Mustache templates assigned per form |
+| Webhooks | Freeform → Settings → Webhooks | HMAC-signed POST on every submission |
+| AI builder / spam scoring / briefs | Freeform → Settings | Your own Anthropic API key |
+| CSV export | Freeform → Submissions | Signed, short-lived download links |
+| AI chat widget | `<FreeformChat />` component | See `packages/astro/README.md` |
+| MCP server | `packages/mcp/` | Optional Worker for AI agents |
 
-## Optional features (after install)
+## Updating
 
-| Feature | Admin location | Notes |
-|---------|----------------|-------|
-| Email notifications | **Freeform → Notifications** | Mustache templates per form |
-| Webhooks | **Freeform → Settings → Webhooks** | Signed POST to external URLs |
-| AI form builder & spam scoring | **Freeform → Settings → AI** | Requires Anthropic API key |
-| CSV export | **Freeform → Submissions** | Signed download links |
-| AI chat widget | `<FreeformChat />` component | See npm package README |
-
----
-
-## Updating to a new version
-
-1. Check registry for a newer version:
-   ```bash
-   pnpm dlx @emdash-cms/plugin-cli@0.5.1 info solspace.com freeform
-   ```
-2. In admin → **Plugins → Registry**, install the update for **freeform**
-3. Bump `@solspace/freeform-astro` on npm when a new frontend release is published:
-   ```bash
-   pnpm update @solspace/freeform-astro
-   ```
-
----
+1. Check the latest version: `npx @emdash-cms/plugin-cli info solspace.com freeform`
+2. Admin → **Plugins → Registry** → install the update for **freeform**
+3. Update the frontend package when a new npm release appears: `pnpm update @solspace/freeform-astro`
 
 ## Troubleshooting
 
-| Symptom | Likely cause | What to do |
-|---------|--------------|------------|
-| **Only 3 EmDash plugins in admin** | Old **Marketplace** UI, not Registry | Upgrade to EmDash ≥ 0.17; set `experimental.registry`; ensure `sandboxRunner` is configured |
-| **`registry.emdashcms.com` shows not found in browser** | Expected — it's an API server | Use CLI `search freeform` or the `searchPackages` XRPC URL above |
-| **CLI finds Freeform but admin does not** | Site not on registry config / old EmDash | Upgrade EmDash + add `experimental.registry`, restart |
-| **Registry search empty** in admin | Aggregator still indexing | Wait and retry `emdash-plugin search freeform` |
-| **Plugin installed but no public form** | Missing `@solspace/freeform-astro` | Install and add `freeformAstro()` integration |
-| **Form not found on page** | Wrong handle | Use the form **handle** from admin (e.g. `contact`), not the internal ID |
-| **CLI `info` fails but `search` works** | Transient indexer lag | Retry after a few minutes |
-
----
+| Symptom | Likely cause | Fix |
+| --- | --- | --- |
+| Freeform missing from Registry search | Index lag, or registry not enabled | Wait a few minutes; confirm `registry:` is set in `astro.config.mjs` and EmDash ≥ 1.0 |
+| CLI finds Freeform but the admin doesn't | Site config | Add `registry:`, restart/redeploy |
+| Plugin installed but no public form | Missing Astro package | Install `@solspace/freeform-astro` and add `freeformAstro()` |
+| "Form not found" on a page | Wrong handle | Use the form **handle** from the admin (e.g. `contact`), not its internal ID |
+| Registry root URL shows an error in the browser | Expected — it's an API, not a website | Use the CLI commands above |
 
 ## Links
 
 | Resource | URL |
-|----------|-----|
-| Source repo | https://github.com/solspace/emdash-freeform |
-| Plugin registry | https://registry.emdashcms.com |
+| --- | --- |
+| Source repository | https://github.com/solspace/emdash-freeform |
+| Plugin page | https://plugins.emdashcms.com/plugins/@solspace.com/freeform |
 | Astro package (npm) | https://www.npmjs.com/package/@solspace/freeform-astro |
-| Plugin tarball CDN | https://cdn.jsdelivr.net/npm/@solspace/freeform-plugin-dist@0.1.4/freeform-0.1.4.tar.gz |
+| Plugin tarball (CDN) | https://cdn.jsdelivr.net/npm/@solspace/freeform-plugin-dist@0.1.4/freeform-0.1.4.tar.gz |
 | EmDash CMS | https://emdashcms.com |
-| Developer README (detailed) | [README.md](../README.md) |
-
----
-
-## Release process (internal — Solspace dev)
-
-New plugin versions are published by pushing a git tag:
-
-```bash
-git tag freeform/v0.1.3
-git push origin freeform/v0.1.3
-```
-
-GitHub Actions bundles the plugin, mirrors the tarball to npm, and registers it with the EmDash registry. See [README.md — Publishing](../CONTRIBUTING.md#publishing) for full CI setup and secrets.
-
-**Contact:** jahid@solspace.com

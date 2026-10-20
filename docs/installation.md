@@ -2,7 +2,9 @@
 
 ## 1. Install the plugin
 
-In your EmDash admin, go to **Plugins → Registry**, find **Freeform**, and
+Make sure the registry is enabled in your `astro.config.mjs`
+(`emdash({ registry: "https://registry.emdashcms.com", … })`, EmDash ≥ 1.0),
+then in the EmDash admin go to **Plugins → Registry**, find **Freeform**, and
 install it. Freeform appears in the sidebar once installed.
 
 ## 2. Render forms on your site

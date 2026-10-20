@@ -1,12 +1,15 @@
-# Freeform — Known Limitations
+# Known Limitations
 
-This document captures what does not work yet, what is deferred by design, and what requires changes in EmDash or third-party infrastructure before it can be fixed. It is a working document for the Solspace team — not end-user documentation.
+What Freeform can't do yet, what is deferred by design, and which items are
+waiting on changes in EmDash or third-party infrastructure. Kept public in
+the interest of transparency — if one of these blocks you, please open an
+issue.
 
 ---
 
-## 1. MCP setup is unreasonably painful for customers
+## 1. MCP setup requires a custom domain
 
-This is the most significant UX problem in the current v1 architecture. Here is the full chain of what a customer must do to connect Claude Desktop to their Freeform MCP server:
+This is the most significant UX problem in the current v1 architecture. Connecting Claude Desktop to a Freeform MCP server currently takes several steps:
 
 ### Why it is painful
 
@@ -32,12 +35,12 @@ All Cloudflare Workers are served at `<name>.workers.dev` by default. Anthropic 
 10. Edit `~/Library/Application Support/Claude/claude_desktop_config.json` manually with the PAT pasted in plaintext.
 11. Fully restart Claude Desktop.
 
-This is a developer-grade setup experience for what will eventually be a marketer/site-owner feature. It is not shippable as-is to a general customer base.
+This is a developer-grade setup for what should become a one-click feature, and it is the top UX item on our list.
 
 ### What would fix it
 
-**Short-term (doable by Solspace without EmDash changes):**
-- Host a Solspace-operated `mcp.solspace.com/freeform` proxy that customers point Claude at. The proxy forwards requests to the customer's EmDash site based on a customer token. The `SOLSPACE_PROXY_MODE` env var in the Worker is already implemented for this. This reduces the customer setup to "add a line to your Claude config pointing at our proxy." Still PAT-auth only until the OAuth issue is resolved.
+**Short-term (no EmDash changes needed):**
+- Host a Solspace-operated MCP proxy that customers point Claude at. The proxy forwards requests to the customer's EmDash site based on a customer token. The `SOLSPACE_PROXY_MODE` env var in the Worker is already implemented for this. This reduces the customer setup to "add a line to your Claude config pointing at our proxy." Still PAT-auth only until the OAuth issue is resolved.
 
 **Long-term (requires EmDash changes):**
 - EmDash exposes an OAuth-grantable plugin scope (see §3). The customer's MCP endpoint becomes their own site's `/freeform/mcp` Astro route, they authorize in the browser via Claude.ai's Custom Connector flow, no Wrangler, no custom domain, no plaintext PAT in a config file.

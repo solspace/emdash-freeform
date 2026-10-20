@@ -43,7 +43,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 **Form builder**
 - Form management via Block Kit admin UI: create, edit, delete forms
-- 13 field types: `text`, `email` (Pro), `textarea`, `number`, `phone`, `date`, `checkbox`, `checkbox_group`, `radio`, `select`, `multi_select`, `hidden`, `html`
+- 13 field types: `text`, `email`, `textarea`, `number`, `phone`, `date`, `checkbox`, `checkbox_group`, `radio`, `select`, `multi_select`, `hidden`, `html`
 - Per-field validation: `minLength`, `maxLength`, `pattern`/`patternError` for text types; `min`/`max` for number and date
 - Row-based layout: up to 4 fields side-by-side per row
 - Form handles as stable public references (`<FreeformForm formId="contact" />`)
@@ -60,7 +60,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - CSRF protection + honeypot spam field on all forms
 - URL-based form prefill via query parameters
 
-**Spam filtering** (Pro)
+**Spam filtering**
 - AI-powered spam scoring (0–10) on every submission via Claude Haiku
 - Global default threshold with per-form overrides
 - Scores stored on submissions; nothing auto-rejected
