@@ -30,12 +30,12 @@ The original POC handoff (`FREEFORM-POC.md`) was removed from the tree; find it 
 
 ---
 
-## Phase 2 — `packages/freeform-astro/` — Astro Integration & Component Library
+## Phase 2 — `packages/astro/` — Astro Integration & Component Library
 
 Extract all Freeform site-side infrastructure from the demo app into a proper publishable package.
 The demo app becomes a clean example of how to consume the package.
 
-- [x] Scaffold `packages/freeform-astro/` with `package.json`, `tsconfig.json`
+- [x] Scaffold `packages/astro/` with `package.json`, `tsconfig.json`
 - [x] `src/lib/client.ts` — `getFetcher()`, `publicOrigin()`, `fetchForm()`
 - [x] `src/components/FreeformForm.astro` — moved, styles stripped, `data-freeform-*` attributes added
 - [x] `src/components/FreeformChat.astro` — moved, styles stripped, `data-freeform-chat-*` attributes added
@@ -72,7 +72,7 @@ Components ship with no styles. Semantic HTML with `data-freeform-*` attributes:
 |---|---|
 | Workspace name | `@local/freeform-astro` |
 | Future publish name | `@solspace/freeform-astro` |
-| Location | `packages/freeform-astro/` |
+| Location | `packages/astro/` |
 | Peer deps | `astro`, `emdash` |
 
 ### Three entry points (important)
@@ -109,9 +109,9 @@ import { fetchForm } from "@solspace/freeform-astro/client"             // utili
 
 ---
 
-## Phase 3 — `packages/emdash-freeform-mcp/` — Cloudflare Worker MCP Server
+## Phase 3 — `packages/mcp/` — Cloudflare Worker MCP Server
 
-- [x] Scaffold `packages/emdash-freeform-mcp/` with `package.json`, `wrangler.jsonc`, `tsconfig.json`
+- [x] Scaffold `packages/mcp/` with `package.json`, `wrangler.jsonc`, `tsconfig.json`
 - [x] `src/protocol.ts` — `rpcResult()`, `rpcError()`, `unauthorized()`
 - [x] `src/client.ts` — `callPluginRoute()`, `getTargetSiteUrl()`
 - [x] `src/tools.ts` — all 25 TOOLS definitions + schemas (ported from `mcp.ts`)
@@ -162,8 +162,8 @@ root so they are self-contained and independent of the EmDash demo site.
 - [x] Create root `pnpm-workspace.yaml` listing `freeform`, `freeform-astro`, `emdash-freeform-mcp`, `emdash-app`
 - [x] Create root `package.json` (`"private": true`)
 - [x] Move `emdash-app/packages/freeform/` → `freeform/`
-- [x] Move `emdash-app/packages/freeform-astro/` → `freeform-astro/`
-- [x] Move `emdash-app/packages/emdash-freeform-mcp/` → `emdash-freeform-mcp/`
+- [x] Move `emdash-app/packages/astro/` → `freeform-astro/`
+- [x] Move `emdash-app/packages/mcp/` → `emdash-freeform-mcp/`
 - [x] Delete `emdash-app/packages/` (now empty)
 - [x] Delete `emdash-app/pnpm-workspace.yaml` (no longer the workspace root)
 - [x] Move `emdash-app/PLAN.md`, `FREEFORM-POC.md`, `LIMITATIONS.md` → repo root
@@ -304,14 +304,14 @@ shape as the Craft Freeform repo). Decided 2026-10-20.
   freeform/   ← this repo (moved from ~/solspace/emdash-freeform)
                   (repo root IS the plugin: src/, emdash-plugin.jsonc,
                    icon, docs/, package.json, workflows)
-                  packages/freeform-astro/    companion Astro package
-                  packages/emdash-freeform-mcp/  companion MCP worker
+                  packages/astro/    companion Astro package
+                  packages/mcp/  companion MCP worker
   cms/        ← the EmDash demo/test site (moved out of emdash-app/)
                 standalone; consumes Freeform via file: links to ../freeform
 ```
 
 - [x] Move repo dir `~/solspace/emdash-freeform` → `~/solspace/emdash/freeform` (same GitHub remote: `solspace/emdash-freeform`)
-- [x] Flatten plugin to repo root; companions into `packages/`; update workflows (`working-directory` removed / `packages/freeform-astro`)
+- [x] Flatten plugin to repo root; companions into `packages/`; update workflows (`working-directory` removed / `packages/astro`)
 - [x] Move `emdash-app/` → `~/solspace/emdash/cms` (standalone site, `file:` deps, own `pnpm-workspace.yaml`)
 - [x] Fix references: `pnpm-workspace.yaml`, README/DEVELOPMENT/registry-guide/MCP docs, CMS `package.json`
 - [x] Verify `pnpm install`, plugin build, and CMS dev server from new locations (2026-10-20: bundle validates; CMS home + /demo return 200)

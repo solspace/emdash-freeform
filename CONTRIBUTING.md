@@ -21,8 +21,8 @@ pnpm run build:watch  # from repo root
 ```
 emdash/freeform/          This repo — repo root IS the plugin package
   src/                    EmDash registry plugin source
-  packages/freeform-astro/      Astro integration + component library
-  packages/emdash-freeform-mcp/ Standalone Cloudflare Worker MCP server
+  packages/astro/      Astro integration + component library
+  packages/mcp/ Standalone Cloudflare Worker MCP server
 emdash/cms/               Mars Rover Supply demo site (outside this repo)
   docs/PLAN.md            Phased product plan with progress tracking
   docs/LIMITATIONS.md     Known limitations and EmDash feature requests

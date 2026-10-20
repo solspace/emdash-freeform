@@ -152,7 +152,7 @@ See the [repository README](https://github.com/solspace/emdash-freeform) for loc
 | AI spam scoring | Score 0–10 on each submission, threshold-based archiving |
 | CSV export | Signed short-lived download URL, MCP-accessible |
 | Webhooks | HMAC-signed POST on each submission, retry with backoff |
-| MCP server | 25 tools for AI agents — see `packages/emdash-freeform-mcp/` |
+| MCP server | 25 tools for AI agents — see `packages/mcp/` |
 
 ---
 
@@ -385,9 +385,9 @@ All AI features require an Anthropic API key configured in **Freeform → Settin
 
 ## MCP Server
 
-The `packages/emdash-freeform-mcp/` directory is a standalone Cloudflare Worker that exposes 25 MCP tools to AI agents (Claude Desktop, Cursor, etc.). Covers form management, submissions, notifications, spam settings, and webhooks.
+The `packages/mcp/` directory is a standalone Cloudflare Worker that exposes 25 MCP tools to AI agents (Claude Desktop, Cursor, etc.). Covers form management, submissions, notifications, spam settings, and webhooks.
 
-See `packages/emdash-freeform-mcp/README.md` for deployment instructions.
+See `packages/mcp/README.md` for deployment instructions.
 
 For PAT-based local setup with Claude Desktop see `docs/MCP-SETUP.md`.
 
