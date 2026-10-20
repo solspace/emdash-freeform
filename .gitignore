@@ -2,6 +2,7 @@
 
 # dependencies
 node_modules/
+.pnpm-store/
 .pnp
 .pnp.*
 .yarn/*
@@ -52,8 +53,37 @@ legacy/
 # Claude
 .claude/
 
-# Wrangler
+# Wrangler / Cloudflare local state
 .wrangler/
+.dev.vars
+.dev.vars.*
+wrangler-*.log
+
+# Astro / EmDash local state
+.astro/
+.emdash/
+emdash-app/.astro/
+uploads/
+
+# Local databases (EmDash dev D1 / SQLite)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+data.db*
+
+# Temp / build scratch
+.tmp/
+*.tmp
+*.log
+
+# OS / editor
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/mcp.json
 
 # Screenshots staging (oversized; properly resized ones go in screenshots/)
 freeform/.screenshots-staging/

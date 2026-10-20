@@ -28,9 +28,7 @@ export default defineConfig({
       database: d1({ binding: "DB", session: "auto" }),
       storage: r2({ binding: "MEDIA" }),
       sandboxRunner: "@emdash-cms/cloudflare/sandbox",
-      experimental: {
-        registry: "https://registry.emdashcms.com",
-      },
+      registry: "https://registry.emdashcms.com",
       // Trusted plugin for local dev; use Plugins → Registry to test sandbox install.
       plugins: [freeformPlugin()],
     }),

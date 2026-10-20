@@ -9,30 +9,30 @@
   },
   "scripts": {
     "dev": "pnpm --filter @local/freeform run build && astro dev",
-    "dev:clean": "pnpm --filter @local/freeform run build && rm -rf node_modules/.vite && npx emdash dev",
+    "dev:clean": "pnpm --filter @local/freeform run build && rm -rf node_modules/.vite && astro dev",
     "build": "astro build",
     "preview": "astro preview",
     "deploy": "astro build && wrangler deploy",
     "typecheck": "astro check"
   },
   "engines": {
-    "node": ">=22.12.0",
+    "node": ">=22.16.0",
     "pnpm": ">=11"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.6.0",
     "@astrojs/react": "^5.0.0",
-    "@emdash-cms/cloudflare": "^0.21.0",
+    "@emdash-cms/cloudflare": "^1.3.1",
     "@solspace/freeform-astro": "workspace:*",
     "@local/freeform": "workspace:*",
     "astro": "^6.4.2",
-    "emdash": "^0.21.0",
+    "emdash": "^1.3.1",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.7",
     "@cloudflare/workers-types": "^4.20260305.1",
-    "wrangler": "^4.95.0"
+    "wrangler": "^4.151.3"
   }
 }
