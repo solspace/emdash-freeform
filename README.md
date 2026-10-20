@@ -389,5 +389,5 @@ The `packages/emdash-freeform-mcp/` directory is a standalone Cloudflare Worker 
 
 See `packages/emdash-freeform-mcp/README.md` for deployment instructions.
 
-For PAT-based local setup with Claude Desktop see `MCP-SETUP.md` in this directory.
+For PAT-based local setup with Claude Desktop see `docs/MCP-SETUP.md`.
 

@@ -251,7 +251,7 @@ Submit a test entry, then confirm it under **Freeform → Submissions**.
 | Astro package (npm) | https://www.npmjs.com/package/@solspace/freeform-astro |
 | Plugin tarball CDN | https://cdn.jsdelivr.net/npm/@solspace/freeform-plugin-dist@0.1.4/freeform-0.1.4.tar.gz |
 | EmDash CMS | https://emdashcms.com |
-| Developer README (detailed) | [README.md](./README.md) |
+| Developer README (detailed) | [README.md](../README.md) |
 
 ---
 
@@ -264,6 +264,6 @@ git tag freeform/v0.1.3
 git push origin freeform/v0.1.3
 ```
 
-GitHub Actions bundles the plugin, mirrors the tarball to npm, and registers it with the EmDash registry. See [README.md — Publishing](./README.md#publishing) for full CI setup and secrets.
+GitHub Actions bundles the plugin, mirrors the tarball to npm, and registers it with the EmDash registry. See [README.md — Publishing](../CONTRIBUTING.md#publishing) for full CI setup and secrets.
 
 **Contact:** jahid@solspace.com

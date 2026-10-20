@@ -1,7 +1,7 @@
 # Freeform Plugin — Product Plan
 
 Built on top of the POC by Mitchell Kimbrough (May 2026).
-See `FREEFORM-POC.md` for architecture decisions, gotchas, and EmDash feature requests.
+The original POC handoff (`FREEFORM-POC.md`) was removed from the tree; find it in git history before 2026-10-20.
 
 ---
 

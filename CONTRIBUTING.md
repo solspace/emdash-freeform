@@ -2,7 +2,7 @@
 
 Form builder plugin for [EmDash CMS](https://emdashcms.com) — monorepo.
 
-**Manager / install guide:** [FREEFORM-REGISTRY-GUIDE.md](./FREEFORM-REGISTRY-GUIDE.md) — verify publish, install on a site, links.
+**Manager / install guide:** [docs/REGISTRY-GUIDE.md](./docs/REGISTRY-GUIDE.md) — verify publish, install on a site, links.
 
 **Every day — two terminals:**
 
@@ -24,9 +24,8 @@ emdash/freeform/          This repo — repo root IS the plugin package
   packages/freeform-astro/      Astro integration + component library
   packages/emdash-freeform-mcp/ Standalone Cloudflare Worker MCP server
 emdash/cms/               Mars Rover Supply demo site (outside this repo)
-  PLAN.md                 Phased product plan with progress tracking
-  LIMITATIONS.md          Known limitations and EmDash feature requests
-  FREEFORM-POC.md         Original POC handoff — architecture decisions and gotchas
+  docs/PLAN.md            Phased product plan with progress tracking
+  docs/LIMITATIONS.md     Known limitations and EmDash feature requests
 ```
 
 ---
