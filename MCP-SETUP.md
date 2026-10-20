@@ -17,8 +17,8 @@ Rough-in POC. Exposes Freeform's forms and submissions to an AI agent
 
 ## Files
 
-- `emdash-app/src/pages/freeform/mcp.ts` — the MCP endpoint
-- `emdash-app/src/freeform-resource-metadata.ts` — RFC 9728 protected-resource
+- `../cms/src/pages/freeform/mcp.ts` — the MCP endpoint
+- `../cms/src/freeform-resource-metadata.ts` — RFC 9728 protected-resource
   metadata, served at `/.well-known/oauth-protected-resource/freeform/mcp` via
   `injectRoute` in `astro.config.mjs`. Used by OAuth-capable MCP clients for
   discovery. (Not used in the PAT setup below — kept for the future OAuth path.)
@@ -37,7 +37,7 @@ Tested working on 2026-05-15.
 ### 1. Run the dev server
 
 ```bash
-cd emdash-app
+cd ../cms
 npx emdash dev
 # → http://localhost:4321
 ```

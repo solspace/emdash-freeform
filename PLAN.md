@@ -302,19 +302,20 @@ shape as the Craft Freeform repo). Decided 2026-10-20.
 ```
 /Users/thejahid/solspace/emdash/
   freeform/   ← this repo (moved from ~/solspace/emdash-freeform)
-                  freeform/          the EmDash plugin
-                  freeform-astro/    companion Astro package
-                  emdash-freeform-mcp/  companion MCP worker
-                  docs, PLAN.md, README, workflows
+                  (repo root IS the plugin: src/, emdash-plugin.jsonc,
+                   icon, docs/, package.json, workflows)
+                  packages/freeform-astro/    companion Astro package
+                  packages/emdash-freeform-mcp/  companion MCP worker
   cms/        ← the EmDash demo/test site (moved out of emdash-app/)
-                consumes Freeform via registry / local package
+                standalone; consumes Freeform via file: links to ../freeform
 ```
 
-- [ ] Move repo dir `~/solspace/emdash-freeform` → `~/solspace/emdash/freeform` (same GitHub remote: `solspace/emdash-freeform`)
-- [ ] Move `emdash-app/` → `~/solspace/emdash/cms` (separate repo or local-only site — decide at move time)
-- [ ] Fix references: `pnpm-workspace.yaml`, demo paths in README/PLAN, `MANAGER` docs, MCP worker site URL config
-- [ ] Remove `emdash-app` from workspace; verify `pnpm install`, plugin build, and CMS dev server from new locations
-- [ ] Re-run plugin publish workflow once from the new location to prove CI is unaffected
+- [x] Move repo dir `~/solspace/emdash-freeform` → `~/solspace/emdash/freeform` (same GitHub remote: `solspace/emdash-freeform`)
+- [x] Flatten plugin to repo root; companions into `packages/`; update workflows (`working-directory` removed / `packages/freeform-astro`)
+- [x] Move `emdash-app/` → `~/solspace/emdash/cms` (standalone site, `file:` deps, own `pnpm-workspace.yaml`)
+- [x] Fix references: `pnpm-workspace.yaml`, README/DEVELOPMENT/registry-guide/MCP docs, CMS `package.json`
+- [x] Verify `pnpm install`, plugin build, and CMS dev server from new locations (2026-10-20: bundle validates; CMS home + /demo return 200)
+- [ ] Re-run plugin publish workflow once from the new location to prove CI is unaffected (next release)
 
 ### Phase 14 — 1.0 release
 

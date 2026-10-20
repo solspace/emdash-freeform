@@ -36,17 +36,15 @@ jobs:
           echo "tarball=freeform-${VERSION}.tar.gz" >> "$GITHUB_OUTPUT"
 
       - name: Build and bundle plugin
-        working-directory: freeform
         run: pnpm run bundle
 
       - name: Verify bundle version matches tag
-        working-directory: freeform
         run: |
           TAG_VERSION="${{ steps.version.outputs.version }}"
           PKG_VERSION=$(node -p "require('./package.json').version")
           TARBALL="dist/freeform-${TAG_VERSION}.tar.gz"
           if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
-            echo "::error::Tag is freeform/v${TAG_VERSION} but freeform/package.json is ${PKG_VERSION}. Bump package.json and src/index.ts before tagging."
+            echo "::error::Tag is freeform/v${TAG_VERSION} but package.json is ${PKG_VERSION}. Bump package.json and src/index.ts before tagging."
             exit 1
           fi
           if [ ! -f "$TARBALL" ]; then
@@ -60,7 +58,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: freeform ${{ steps.version.outputs.version }}
-          files: freeform/dist/${{ steps.version.outputs.tarball }}
+          files: dist/${{ steps.version.outputs.tarball }}
           make_latest: true
 
       - name: Restore registry publisher session
@@ -112,7 +110,6 @@ jobs:
       # and register a jsDelivr/unpkg URL (repo can stay private).
       - name: Publish plugin tarball to npm (public CDN)
         id: npm_dist
-        working-directory: freeform
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -141,7 +138,6 @@ jobs:
           fi
 
       - name: Publish release record to registry
-        working-directory: freeform
         env:
           EMDASH_REGISTRY_URL: https://registry.emdashcms.com
         run: |

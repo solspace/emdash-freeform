@@ -1,10 +1,10 @@
 packages:
-  - "freeform"
-  - "freeform-astro"
-  - "emdash-freeform-mcp"
-  - "emdash-app"
+  - "packages/*"
 
-# Native binary builds required by emdash-app
+# This repo is the Freeform plugin (package.json at the root) plus its
+# companion packages under packages/. The EmDash demo/test site lives
+# outside this repo at ../cms and consumes the plugin via file: links.
+
 allowBuilds:
   better-sqlite3: true
   esbuild: true

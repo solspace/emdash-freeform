@@ -251,7 +251,7 @@ Submit a test entry, then confirm it under **Freeform → Submissions**.
 | Astro package (npm) | https://www.npmjs.com/package/@solspace/freeform-astro |
 | Plugin tarball CDN | https://cdn.jsdelivr.net/npm/@solspace/freeform-plugin-dist@0.1.4/freeform-0.1.4.tar.gz |
 | EmDash CMS | https://emdashcms.com |
-| Developer README (detailed) | [freeform/README.md](./freeform/README.md) |
+| Developer README (detailed) | [README.md](./README.md) |
 
 ---
 

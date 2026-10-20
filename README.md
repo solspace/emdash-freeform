@@ -1,258 +1,393 @@
-# Freeform for EmDash
+# Freeform Plugin for EmDash
 
-Form builder plugin for [EmDash CMS](https://emdashcms.com) — monorepo.
+Form builder plugin for [EmDash CMS](https://emdashcms.com). Build forms in the admin, collect submissions, send email notifications, score spam with AI, and push events to webhooks.
 
-**Manager / install guide:** [FREEFORM-REGISTRY-GUIDE.md](./FREEFORM-REGISTRY-GUIDE.md) — verify publish, install on a site, links.
+**Latest release:** see registry (`pnpm dlx @emdash-cms/plugin-cli@0.5.1 info solspace.com freeform`) — publisher: `solspace.com`.
 
-**Every day — two terminals:**
+---
+
+## Getting started
+
+Freeform is two packages:
+
+| Package | What it does |
+|---------|----------------|
+| **Freeform** (this plugin) | Backend — forms, submissions, admin UI, APIs |
+| **[@solspace/freeform-astro](https://www.npmjs.com/package/@solspace/freeform-astro)** | Frontend — Astro routes + `FreeformForm` / `FreeformChat` components |
+
+You need **both** on a production Astro site. The plugin alone does not inject public form routes; the Astro package does.
+
+### Requirements
+
+- An [EmDash](https://emdashcms.com) site (Astro 6+, server output)
+- EmDash version with **experimental registry** support
+- Node.js ≥ 22
+
+### 1. Enable the plugin registry
+
+In `astro.config.mjs`, point EmDash at the registry:
+
+```js
+import emdash from "emdash/astro";
+
+export default defineConfig({
+  integrations: [
+    emdash({
+      // …your existing database / storage config…
+      experimental: {
+        registry: "https://registry.emdashcms.com",
+      },
+    }),
+  ],
+});
+```
+
+Restart the dev server after changing this.
+
+### 2. Install the Freeform plugin
+
+In the EmDash admin:
+
+1. Open **`/_emdash/admin`**
+2. Go to **Plugins → Registry**
+3. Search for **`freeform`**
+4. Click **Install** and approve the capability prompt (`network:request`, `email:send`)
+
+The registry index can lag a few minutes after a new release is published. If search is empty, wait and refresh, or verify from your terminal:
 
 ```bash
-# 1 — demo site → http://localhost:4321/demo
-cd emdash-app && pnpm run dev:clean
-
-# 2 — plugin rebuild on save (optional)
-cd freeform && pnpm run build:watch
+pnpm dlx @emdash-cms/plugin-cli@0.5.1 search freeform
+pnpm dlx @emdash-cms/plugin-cli@0.5.1 info solspace.com freeform
 ```
 
----
+### 3. Install the Astro integration
 
-## Repository layout
-
-```
-emdash-freeform/
-  freeform/               EmDash registry plugin
-  freeform-astro/         Astro integration + component library
-  emdash-freeform-mcp/    Standalone Cloudflare Worker MCP server
-  emdash-app/             Mars Rover Supply demo site (EmDash + Freeform consumer)
-  PLAN.md                 Phased product plan with progress tracking
-  LIMITATIONS.md          Known limitations and EmDash feature requests
-  FREEFORM-POC.md         Original POC handoff — architecture decisions and gotchas
-```
-
----
-
-## Packages
-
-### `freeform` — EmDash plugin
-
-The core plugin. Runs in EmDash's V8 sandbox (`format: "standard"`). Manages forms, submissions, email notifications, webhooks, spam scoring, and CSV exports via Block Kit admin UI and a full set of plugin routes.
-
-**Install** (for site owners): see [`freeform/README.md`](freeform/README.md#getting-started) — enable the registry in `astro.config.mjs`, install **freeform** from **Plugins → Registry**, then add **`@solspace/freeform-astro`** on the frontend.
-
-**Build locally:**
-```bash
-cd freeform
-pnpm install
-pnpm run build          # compile src/ → dist/
-pnpm run bundle         # produces dist/freeform-x.x.x.tar.gz
-```
-
-**Development:** see [Daily dev — start here every time](#daily-dev--start-here-every-time) in Development setup.
-
-**Publish to registry:** see [Publishing](#publishing) (`pnpm dlx @emdash-cms/plugin-cli@0.5.1 login` must run outside the monorepo).
-See [Publishing](#publishing) for CI via `freeform/v*` tags.
-
----
-
-### `freeform-astro` — `@solspace/freeform-astro`
-
-Astro integration and component library. Injects 6 Freeform-specific routes into any Astro site and provides unstyled `FreeformForm` and `FreeformChat` components.
-
-**Install:**
 ```bash
 pnpm add @solspace/freeform-astro
 ```
 
-**Usage:**
-```ts
+```js
 // astro.config.mjs
-import freeformAstro from "@solspace/freeform-astro"
-export default defineConfig({ integrations: [emdash(), freeformAstro()] })
+import freeformAstro from "@solspace/freeform-astro";
+
+export default defineConfig({
+  integrations: [
+    emdash({ /* … */ }),
+    freeformAstro(),
+  ],
+});
 ```
+
+This adds public routes (`/api/freeform/submit`, `/.well-known/freeform.json`, etc.). See the [freeform-astro README](https://www.npmjs.com/package/@solspace/freeform-astro) for the full route list.
+
+### 4. Create a form
+
+1. In the admin, open **Freeform** (sidebar)
+2. Click **New form**, give it a name and **handle** (e.g. `contact`)
+3. Add fields (or use **AI generate** if you configured an Anthropic API key under **Settings**)
+4. Save
+
+The **handle** is what you use in frontend components (`formId="contact"`).
+
+### 5. Embed a form on a page
 
 ```astro
 ---
-import { FreeformForm } from "@solspace/freeform-astro/components"
----
-<FreeformForm formId="contact" />
-```
-
-Components ship unstyled. Style them by targeting `data-freeform-*` attributes — see `emdash-app/src/pages/contact.astro` for a full dark-theme example.
-
+import { FreeformForm } from "@solspace/freeform-astro/components";
 ---
 
-### `emdash-freeform-mcp` — Cloudflare Worker MCP server
-
-Standalone Cloudflare Worker that exposes 25 MCP tools to AI agents (Claude Desktop, Cursor, etc.). Each customer deploys their own Worker instance pointed at their EmDash site.
-
-**Deploy:**
-```bash
-cd emdash-freeform-mcp
-pnpm install
-# Edit wrangler.jsonc — set your Worker name and custom domain
-wrangler secret put EMDASH_SITE_URL
-wrangler deploy
+<FreeformForm formId="contact" class="my-contact-form" />
 ```
 
-See `emdash-freeform-mcp/README.md` for full setup instructions including Claude Desktop config.
+Components are **unstyled**. Style them with CSS targeting `data-freeform-*` attributes:
 
----
-
-### `emdash-app` — Demo site
-
-Mars Rover Supply — a demo EmDash site that consumes all three packages. Used for development and as a reference implementation.
-
-The demo site is NOT published. It exists to validate the packages and demonstrate real-world usage.
-
----
-
-## Development setup
-
-**Requirements:** Node.js ≥ 22.12, pnpm ≥ 11 (see root `package.json`).
-
-### First time (clone)
-
-```bash
-git clone https://github.com/solspace/emdash-freeform
-cd emdash-freeform
-pnpm install
-
-# Build the plugin once (required before the demo site can load Freeform)
-cd freeform && pnpm run build
+```css
+[data-freeform-form] { display: grid; gap: 1rem; max-width: 32rem; }
+[data-freeform-field] { display: flex; flex-direction: column; gap: 0.25rem; }
+[data-freeform-input] { padding: 0.5rem 0.75rem; border: 1px solid #ccc; border-radius: 0.375rem; }
+[data-freeform-submit] { padding: 0.5rem 1rem; cursor: pointer; }
 ```
 
-### Daily dev — start here every time
+Visit the page, submit a test entry, then check **Freeform → Submissions** in the admin.
 
-Use **two terminals** from the repo root.
+### 6. Optional configuration
 
-**Terminal 1 — demo site (keep running)**
+| Area | Where | Notes |
+|------|--------|------|
+| AI form builder & spam scoring | **Freeform → Settings → AI** | Requires an [Anthropic](https://console.anthropic.com/) API key |
+| Email notifications | **Freeform → Notifications** | Mustache templates; attach to forms |
+| Webhooks | **Freeform → Settings → Webhooks** | HMAC-signed `POST` on each submission — see [Webhooks](#webhooks) below |
+| CSV export | **Freeform → Submissions** | Signed download links; also available via MCP |
+| AI chat widget | `<FreeformChat formHandle="contact" … />` | Streaming chat tied to a form — see [freeform-astro](https://www.npmjs.com/package/@solspace/freeform-astro) |
 
-```bash
-cd emdash-app
-pnpm run dev:clean
+### Updating
+
+When a new `freeform` version appears in **Plugins → Registry**, install the update from the admin (same flow as step 2). Bump `@solspace/freeform-astro` separately when a new npm release is published.
+
+### Self-hosted / monorepo development
+
+If you are hacking on this repo (not installing from the registry), declare the plugin as a **trusted** dependency instead:
+
+```js
+import { freeformPlugin } from "@local/freeform"; // or your package name
+
+emdash({
+  plugins: [freeformPlugin()],
+  // …
+});
 ```
 
-`dev:clean` builds the Freeform plugin first, clears Vite’s cache, and runs `npx emdash dev` (migrations + Astro on port **4321**). Wait until you see `astro … ready`, then open:
-
-| URL | What |
-|-----|------|
-| http://localhost:4321/demo | Freeform POC (contact form) |
-| http://localhost:4321/contact | Styled form example |
-| http://localhost:4321/_emdash/admin | EmDash admin → **Freeform** |
-
-On the **first start** after a cache clear, the terminal may log one `emdash/middleware` optimize + `program reload` — that’s normal. If a page shows `Astro is not defined`, wait a few seconds and refresh once.
-
-**Terminal 2 — plugin watch (while editing `freeform/`)**
-
-```bash
-cd freeform
-pnpm run build:watch
-```
-
-Rebuilds `dist/` on save; refresh the browser or admin after changes.
-
-**If the dev server acts up** (wrong port, stale errors): stop all dev processes, then run `pnpm run dev:clean` again in `emdash-app`. Only one server should use port 4321.
-
-**Plain start** (no cache clear — use when yesterday’s dev session was fine):
-
-```bash
-cd emdash-app && npx emdash dev
-```
+See the [repository README](https://github.com/solspace/emdash-freeform) for local dev setup.
 
 ---
 
-## Publishing
+## Features
 
-Releases are tag-driven GitHub Actions workflows. Push a scoped tag and CI builds + publishes automatically.
-
-| Tag pattern | Package | Destination |
-|---|---|---|
-| `freeform/v*` | EmDash plugin | [Plugin registry](https://registry.emdashcms.com) |
-| `freeform-astro/v*` | `@solspace/freeform-astro` | [npm](https://www.npmjs.com/package/@solspace/freeform-astro) |
-
-Sites install registry plugins with `experimental.registry: "https://registry.emdashcms.com"` in `astro.config.mjs`.
-
-### One-time setup (GitHub Actions secrets)
-
-In the repo → **Settings** → **Secrets and variables** → **Actions**, add:
-
-| Secret | How to get it |
+| Feature | Notes |
 |---|---|
-| `EMDASH_PLUGIN_OAUTH_SESSIONS` | After login (see below), copy the full contents of `~/.emdash/oauth/sessions.json`. CI also derives `~/.emdash/credentials.json` from this file (publish checks both). |
-| `NPM_TOKEN` | [npmjs.com](https://www.npmjs.com) → **Access Tokens** → granular token with **read/write** on `@solspace/*` |
-| `REGISTRY_TARBALL_URL` (optional) | Override the public tarball URL passed to `emdash-plugin publish`. By default CI publishes the tarball to npm as `@solspace/freeform-plugin-dist` and uses its unpkg URL (works with a private GitHub repo). |
+| Form builder | Rows + fields, AI-assisted via Claude Haiku |
+| Field types | text, email (Pro), textarea, number, phone, checkbox, checkbox_group, radio, select, multi_select |
+| Submissions | Stored in plugin KV, paginated admin view, AI brief per submission |
+| Email notifications | Mustache-templated, per-form recipient assignments |
+| AI spam scoring | Score 0–10 on each submission, threshold-based archiving |
+| CSV export | Signed short-lived download URL, MCP-accessible |
+| Webhooks | HMAC-signed POST on each submission, retry with backoff |
+| MCP server | 25 tools for AI agents — see `packages/emdash-freeform-mcp/` |
 
-The GitHub repo can stay **private** for source code — you do **not** need to make it public. Registry publish needs a **public HTTPS URL** for the tarball; CI mirrors each release to `@solspace/freeform-plugin-dist` on npm (same `NPM_TOKEN` as `freeform-astro`) and registers a jsDelivr/unpkg URL with the EmDash registry. CDNs can lag npm by a few minutes after first publish; re-run the workflow if that step times out. GitHub Releases are still created for your own archive. Override with `REGISTRY_TARBALL_URL` if you host the tarball elsewhere (R2, S3, etc.).
+---
 
-### Release checklist
+## Webhooks
 
-1. **Bump the version** in the package you are shipping:
-   - Registry plugin: `freeform/package.json` **and** `freeform/src/index.ts` (`version` field)
-   - npm package: `freeform-astro/package.json`
-   - Update `freeform/CHANGELOG.md` when releasing the plugin
-   - Add or update `freeform-astro/README.md` when releasing the Astro package (npm displays this on the package page)
+On every form submission Freeform can POST a signed JSON payload to one or more HTTPS endpoints. Useful for:
 
-2. **Commit and push** to `main` (merge `dev` → `main` first if needed).
+- Notifying Slack, Discord, or Teams channels
+- Triggering Zapier / Make automations
+- Syncing leads to a CRM
+- Running custom server-side logic
 
-3. **Tag and push** (one tag per package, or both for a combined release):
+### Setting up a webhook
 
-```bash
-# EmDash plugin registry
-git tag freeform/v0.1.0
-git push origin freeform/v0.1.0
+1. Go to **Freeform → Settings** in the EmDash admin.
+2. Scroll to the **Webhooks** section.
+3. Fill in the **Add Webhook** form:
+   - **Name** — a label for your own reference (e.g. `Slack Alerts`)
+   - **URL** — your HTTPS endpoint
+   - **Scope** — `All forms`, or pick a specific form to limit deliveries
+4. Click **Add Webhook**.
+5. **Copy the secret from the toast message immediately.** It is shown only once. You will need it to verify the signature on your endpoint.
 
-# npm Astro package
-git tag freeform-astro/v0.1.1
-git push origin freeform-astro/v0.1.1
+The webhook is enabled by default. You can pause, resume, rotate the secret, or delete it from the same Settings page.
+
+### Payload
+
+Every delivery is a `POST` request with `Content-Type: application/json`. The body is a JSON object:
+
+```json
+{
+  "event": "submission.created",
+  "submissionId": "01jq4k8v0000000000000000",
+  "formId": "01jq4k8v0000000000000001",
+  "formHandle": "contact",
+  "createdAt": "2026-05-20T11:30:00.000Z",
+  "data": {
+    "first_name": "Ada",
+    "last_name": "Lovelace",
+    "email": "ada@example.com",
+    "message": "Hello from the contact form",
+    "newsletter": "true"
+  },
+  "journey": [
+    {
+      "url": "https://example.com/",
+      "title": "Home",
+      "visitedAt": "2026-05-20T11:28:00.000Z"
+    },
+    {
+      "url": "https://example.com/contact",
+      "title": "Contact",
+      "visitedAt": "2026-05-20T11:29:45.000Z"
+    }
+  ]
+}
 ```
 
-4. Watch **Actions** in GitHub for the publish workflow result.
+**Field notes:**
+- `data` — field values keyed by handle. Multi-value fields (`checkbox_group`, `multi_select`) are arrays. Single `checkbox` is the string `"true"` when checked, absent when unchecked.
+- `journey` — pages the visitor browsed before submitting, captured client-side. Omitted if the tracker is not installed or no pages were recorded.
+- `event` — currently always `"submission.created"`. Future events will use different values.
 
-5. Verify:
-   - Registry: `npx emdash-plugin search freeform` or EmDash admin → **Plugins** → **Registry**
-   - npm: `npm view @solspace/freeform-astro`
+### Verifying the signature
 
-### Re-running a failed registry publish
+Every request includes an `X-Freeform-Signature` header:
 
-If bundle and GitHub Release succeeded but **Publish release record to registry** failed, re-run that job (or step) from **Actions** — you do not need a new tag.
-
-If the workflow failed earlier (e.g. bundle), delete the tag and push it again on the fixed commit:
-
-```bash
-git tag -d freeform-astro/v0.1.1
-git push origin :refs/tags/freeform-astro/v0.1.1
-git tag freeform-astro/v0.1.1
-git push origin freeform-astro/v0.1.1
+```
+X-Freeform-Signature: sha256=a1b2c3d4e5f6...
 ```
 
-If the version **already exists on npm or the registry**, bump the version — you cannot republish the same semver.
+The value is `sha256=` followed by a lowercase hex HMAC-SHA256 of the raw request body, signed with your webhook secret.
 
-### Publish locally (optional)
+**Always verify the signature before processing the payload.** This confirms the request came from Freeform and the body has not been tampered with.
 
-**Registry plugin:**
+#### Node.js
 
-Log in **outside the monorepo** (workspace dependency hoisting breaks `emdash-plugin login` here):
+```js
+import crypto from "node:crypto";
 
-```bash
-pnpm dlx @emdash-cms/plugin-cli@0.5.1 login solspace.com
-cat ~/.emdash/oauth/sessions.json   # → paste into EMDASH_PLUGIN_OAUTH_SESSIONS secret
+function verifySignature(secret, rawBody, signatureHeader) {
+  const expected = "sha256=" +
+    crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+  // Use timingSafeEqual to prevent timing attacks.
+  return crypto.timingSafeEqual(
+    Buffer.from(expected),
+    Buffer.from(signatureHeader)
+  );
+}
+
+// Express example
+app.post("/webhook", express.raw({ type: "application/json" }), (req, res) => {
+  const sig = req.headers["x-freeform-signature"];
+  if (!sig || !verifySignature(process.env.FREEFORM_WEBHOOK_SECRET, req.body, sig)) {
+    return res.status(401).send("Invalid signature");
+  }
+  const payload = JSON.parse(req.body);
+  // handle payload...
+  res.sendStatus(200);
+});
 ```
 
-Then bundle and publish:
+> **Important:** pass the raw bytes to the HMAC, not a parsed object. Use `express.raw()` (or equivalent) — not `express.json()` — on the webhook route.
 
-```bash
-cd freeform
-pnpm run bundle
-pnpm dlx @emdash-cms/plugin-cli@0.5.1 publish \
-  --url https://your-host/freeform-x.y.z.tar.gz \
-  --local dist/freeform-x.y.z.tar.gz
+#### Python
+
+```python
+import hashlib
+import hmac
+
+def verify_signature(secret: str, body: bytes, signature_header: str) -> bool:
+    expected = "sha256=" + hmac.new(
+        secret.encode(), body, hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(expected, signature_header)
+
+# Flask example
+from flask import Flask, request, abort
+app = Flask(__name__)
+
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    sig = request.headers.get("X-Freeform-Signature", "")
+    if not verify_signature(os.environ["FREEFORM_WEBHOOK_SECRET"], request.get_data(), sig):
+        abort(401)
+    payload = request.json
+    # handle payload...
+    return "", 200
 ```
 
-**npm package:**
+#### PHP
 
-```bash
-cd freeform-astro
-npm login   # first time
-pnpm publish --access public --no-git-checks --dry-run   # test
-pnpm publish --access public --no-git-checks             # publish
+```php
+function verifySignature(string $secret, string $rawBody, string $signatureHeader): bool {
+    $expected = "sha256=" . hash_hmac("sha256", $rawBody, $secret);
+    return hash_equals($expected, $signatureHeader);
+}
+
+$rawBody = file_get_contents("php://input");
+$sig = $_SERVER["HTTP_X_FREEFORM_SIGNATURE"] ?? "";
+
+if (!verifySignature($_ENV["FREEFORM_WEBHOOK_SECRET"], $rawBody, $sig)) {
+    http_response_code(401);
+    exit;
+}
+
+$payload = json_decode($rawBody, true);
+// handle payload...
+http_response_code(200);
 ```
+
+### Responding to deliveries
+
+Your endpoint must return a `2xx` status code within a reasonable timeout. Any non-2xx response is treated as a failure and triggers the retry schedule below.
+
+Return the response as quickly as possible. If your processing is slow, acknowledge the delivery with `200 OK` immediately and handle the payload asynchronously.
+
+### Retry behavior
+
+Failed deliveries (non-2xx response or connection error) are retried automatically:
+
+| Attempt | Delay after previous failure |
+|---|---|
+| Retry 1 | 1 minute |
+| Retry 2 | 5 minutes |
+| Retry 3 | 15 minutes |
+| Give up | — |
+
+After 3 retries (4 total attempts) the delivery is permanently marked as failed and removed from the queue.
+
+Retries are processed by a `cron` hook that runs every minute. They use the same payload and secret as the original attempt.
+
+### Delivery log
+
+The **Settings** page shows a **View Log** button next to each webhook. Clicking it displays the last 20 deliveries for that webhook, including status, HTTP response code, attempt count, timestamp, and any error message.
+
+The log is also accessible via the `get-webhook-log` plugin route (for MCP or custom tooling).
+
+### Scoping a webhook to a single form
+
+When creating a webhook, set **Scope** to a specific form instead of `All forms`. The webhook will only receive deliveries when that form is submitted.
+
+A webhook scoped to a form that is later deleted will become unreachable for new deliveries but its history is preserved in the log.
+
+### Rotating the secret
+
+If your secret is compromised:
+
+1. Go to **Freeform → Settings**.
+2. Find the webhook and click **Rotate Secret**.
+3. Confirm the prompt. The old secret stops working immediately.
+4. Copy the new secret from the toast and update your endpoint.
+
+Deliveries that are currently queued for retry will use the secret that was active at the time of the original submission attempt. If you rotate while retries are pending they will fail verification on your endpoint — clear the retry queue by temporarily disabling the webhook, or accept the failed retries.
+
+---
+
+## Email Notifications
+
+Attach email notification templates to forms. Templates use [Mustache](https://mustache.github.io/) syntax with these variables:
+
+| Variable | Value |
+|---|---|
+| `{{ form_name }}` | Form display name |
+| `{{ submission_id }}` | Submission ID |
+| `{{ submitted_at }}` | ISO 8601 timestamp |
+| `{{ all_fields }}` | All field values as `Label: value` lines |
+| `{{ <handle> }}` | Any field value by its handle |
+
+Recipient types:
+- **Submitter** — send to the email address entered in a named field
+- **Custom** — send to a fixed address
+
+Notifications are not sent for submissions that exceed the spam threshold.
+
+---
+
+## AI Features
+
+All AI features require an Anthropic API key configured in **Freeform → Settings → AI Configuration**.
+
+| Feature | How it works |
+|---|---|
+| Form generation | Describe a form in plain English; Claude Haiku adds fields |
+| Submission brief | After each submission, Claude generates a structured summary: intent, urgency, key facts, suggested next action |
+| Spam scoring | Each submission is scored 0–10; score and reason stored on the submission |
+| AI chat widget | `FreeformChat` Astro component — streaming conversation about the form |
+
+---
+
+## MCP Server
+
+The `packages/emdash-freeform-mcp/` directory is a standalone Cloudflare Worker that exposes 25 MCP tools to AI agents (Claude Desktop, Cursor, etc.). Covers form management, submissions, notifications, spam settings, and webhooks.
+
+See `packages/emdash-freeform-mcp/README.md` for deployment instructions.
+
+For PAT-based local setup with Claude Desktop see `MCP-SETUP.md` in this directory.
+
