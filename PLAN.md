@@ -208,6 +208,100 @@ Plugin bundle only contains `freeform/backend.js` + `manifest.json` + assets.
 
 ---
 
+## Path to 1.0 — Product Polish & Builder Program
+
+Decided 2026-10-20: **Block Kit-max builder (stay registry-eligible), builder first
+after branding, target release = 1.0. Reference product = Solspace Freeform for
+Craft CMS** (`~/solspace/craft/plugins/freeform`, v5.17.2) — mirror its feature
+model (field catalogue, integration categories, spam stack) within EmDash's
+Block Kit limits. Craft's builder is a React drag-and-drop app; ours cannot be,
+so we mirror the *features and taxonomy*, not the interaction model.
+This supersedes the old "out of scope" calls on conditional logic and multi-step
+forms — both are in scope for 1.0 (Phase 9).
+
+### Phase 7 — Product identity (do first)
+
+- [x] Icon: official Craft Freeform icon copied to `freeform/icon.svg` → `freeform/icon.png` (256×256), wired as `release.artifacts.icon`, bundle-validated
+- [ ] Banner image (`release.artifacts.banner`)
+- [x] Manifest: new short `description` (≤140 chars), better `keywords` (max 5), `release.requires` (`env:emdash >=1.0.0`)
+- [x] Manifest `sections`: long description, installation, FAQ, security (Markdown files under `freeform/docs/`; changelog section skipped — CHANGELOG exceeds the 2,000-grapheme section cap)
+- [ ] Replace emoji form-card glyphs (📋✉️📅…) with a cleaner treatment in the forms list
+- [ ] Admin page: better `label`/`icon` in manifest; in-admin headings/copy pass
+- [ ] `freeform/README.md` + `CHANGELOG.md` polish
+- [ ] Screenshots (4–5) — **deferred to Phase 14**, after the builder looks good
+
+### Phase 8 — Builder v2 (Block Kit-max, registry-safe)
+
+- [ ] Split the single `/forms` admin page into sidebar pages: **Forms · Submissions · Integrations · Settings** (manifest `admin.pages`)
+- [ ] Editor: move field ↑/↓, duplicate field, delete/duplicate row, add-row controls
+- [ ] Grouped field palette (Basic / Choice / Advanced) in the add-field panel
+- [ ] Starter template library: Contact, Newsletter, Job Application, Event RSVP, Survey, Support Ticket
+- [ ] Duplicate form, import/export form JSON
+- [ ] Better editor preview (label, type, required, help text, options at a glance)
+- [ ] Forms list: search, submission counts, updated-at, quick actions (submissions / duplicate / delete)
+
+### Phase 9 — Fields v2 (mirroring Craft Freeform's catalogue)
+
+Craft field set for reference — free: Text, Textarea, Email, Number, Dropdown,
+Checkboxes, Radios, Multiple Select, Hidden, HTML, File Upload; Pro: Phone,
+Website, Datetime, Opinion Scale, Rating, Range, Password, Confirmation,
+Regex, Table, Group, Cards, Calculation, Signature, Rich Text, Image, Summary,
+File Drag & Drop, Invisible.
+
+- [ ] New types (priority order): `website` (url), `datetime`, `phone` polish, `rating`, `opinion_scale`, `range`, `password`, `confirmation` (confirm email/password), `table`, `group` (repeater-lite), `calculation`
+- [ ] Per-field help text + field width (full / half / third)
+- [ ] Conditional logic (show/hide field when another field matches) — data model + frontend runtime
+- [ ] Multi-step forms (`page_break` field + frontend step navigation + progress)
+- [ ] File upload (`file`, drag-and-drop variant) — investigate EmDash media API; ship if sandbox-safe, else document blocker
+- [ ] Signature — canvas-free fallback (typed signature) unless frontend package can host canvas (it can: `freeform-astro` is our code)
+
+### Phase 10 — Spam v2 (mirroring Craft's SpamBlocking + Captchas)
+
+Craft model: SpamBlocking (AI, Emails, Keywords, IP Addresses, Gibberish) +
+Captchas (Turnstile, reCAPTCHA, hCaptcha, Friendly Captcha) + Honeypot +
+Javascript Test.
+
+- [ ] Captchas in Settings: Cloudflare Turnstile first, then reCAPTCHA / hCaptcha / Friendly Captcha
+- [ ] Blocklists: IP addresses, email domains, keywords (Craft parity); min-fill-time + JS-test token
+- [ ] Gibberish/duplicate detection; keep existing AI scoring as the "AI" spam integration
+- [ ] Spam queue in Submissions: flagged items reviewable (approve / reject / mark spam)
+
+### Phase 11 — Integrations (mirroring Craft's integration categories)
+
+Craft categories: **CRM** (HubSpot, Salesforce, Pipedrive, Zoho, ActiveCampaign…),
+**Email Marketing** (Mailchimp, Klaviyo, Brevo, MailerLite, Campaign Monitor…),
+**Payment Gateways** (Stripe, Mollie, PayPal, Square), **Captchas**, **Webhooks**
+(Generic, Slack, Zapier), **AI** (Anthropic, OpenAI, Gemini, xAI), **Elements**
+(create EmDash entries/users from submissions), **Other** (Google Sheets via
+Google, Supabase, Jira), **Single** (GTM, Post Forwarding, URL Parameter Tracking).
+
+- [ ] Generalize notification assignments into per-form **integration actions** (trigger, field mapping, enabled) with a category catalog UI
+- [ ] Wave 1: Slack + Zapier/generic webhook presets, Mailchimp, HubSpot, Google Sheets
+- [ ] Wave 2: Salesforce, Pipedrive, Klaviyo/Brevo, EmDash Elements (create entry from submission)
+- [ ] Wave 3 (stretch for 1.0): Stripe payments field/integration
+- [ ] AI providers: Anthropic (have) → OpenAI / Gemini as alternates for builder + spam + briefs
+- [ ] Test-send button + per-integration delivery log (reuse webhook log pattern)
+
+### Phase 12 — Submissions inbox
+
+- [ ] Search + filter (form, date, spam status), unread/starred status
+- [ ] Bulk actions (archive, delete, export selected), resend notification
+- [ ] Retention: auto-delete submissions older than N days (cron), GDPR export/delete per submitter
+
+### Phase 13 — Frontend forms polish (`freeform-astro`)
+
+- [ ] Optional default themes: light / dark / minimal (components stay unstyled by default)
+- [ ] Inline validation UX, error summary, success redirect option
+- [ ] Multi-step progress UI, conditional-logic runtime, accessibility (a11y) audit
+
+### Phase 14 — 1.0 release
+
+- [ ] Capture 4–5 admin screenshots → `release.artifacts.screenshots`
+- [ ] Docs + `LIMITATIONS.md` refresh, demo site pass
+- [ ] Version bump → `1.0.0` (`freeform/package.json`, `src/index.ts`, `CHANGELOG.md`), tag `freeform/v1.0.0`, publish, verify in registry
+
+---
+
 ## Known EmDash limitations & feature requests
 
 1. **Raw `Response` escape hatch in plugin routes** — needed for MCP, webhooks, OAuth callbacks
@@ -225,6 +319,6 @@ Plugin bundle only contains `freeform/backend.js` + `manifest.json` + assets.
 - **Layer B extension protocol**: Deferred. Revisit after webhook adoption.
 - **Real licensing (Lemon Squeezy)**: Deferred until Solspace licensing service is ready.
 - **Solspace MCP proxy**: Deferred. Worker is proxy-ready; proxy service TBD.
-- **Conditional logic**: Explicitly out of scope for v1.
-- **Multi-step / wizard forms**: Explicitly out of scope. AI-driven form building is the primary path.
+- **Conditional logic**: In scope for 1.0 (Phase 9).
+- **Multi-step / wizard forms**: In scope for 1.0 (Phase 9).
 - **llms.txt in freeform-astro**: Too site-specific for now. Kept as a template in the demo site.

@@ -7,6 +7,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.1.4] — 2026-10-20
+
+### Added
+
+- Official Freeform icon (from Solspace Freeform for Craft) shown on the registry listing.
+- Registry listing sections: long description, installation, FAQ, and security docs.
+
+### Changed
+
+- New registry description and keywords; listing now requires EmDash ≥ 1.0.0.
+- Built against EmDash 1.3.1 / plugin-cli 0.13.4.
+
 ## [0.1.3] — 2026-06-09
 
 ### Changed
