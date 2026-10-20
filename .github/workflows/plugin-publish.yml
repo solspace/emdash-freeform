@@ -66,6 +66,7 @@ jobs:
       - name: Restore registry publisher session
         env:
           EMDASH_PLUGIN_OAUTH_SESSIONS: ${{ secrets.EMDASH_PLUGIN_OAUTH_SESSIONS }}
+          EMDASH_PLUGIN_OAUTH_CLIENTS: ${{ secrets.EMDASH_PLUGIN_OAUTH_CLIENTS }}
         run: |
           if [ -z "$EMDASH_PLUGIN_OAUTH_SESSIONS" ]; then
             echo "EMDASH_PLUGIN_OAUTH_SESSIONS secret is empty or missing." >&2
@@ -74,6 +75,15 @@ jobs:
 
           mkdir -p ~/.emdash/oauth ~/.emdash
           printf '%s' "$EMDASH_PLUGIN_OAUTH_SESSIONS" > ~/.emdash/oauth/sessions.json
+
+          # plugin-cli >= 0.13 also stores the OAuth client registration in a
+          # separate clients.json; publish fails with "Stored OAuth client
+          # registration is missing or invalid" without it.
+          if [ -z "$EMDASH_PLUGIN_OAUTH_CLIENTS" ]; then
+            echo "EMDASH_PLUGIN_OAUTH_CLIENTS secret is empty or missing." >&2
+            exit 1
+          fi
+          printf '%s' "$EMDASH_PLUGIN_OAUTH_CLIENTS" > ~/.emdash/oauth/clients.json
 
           # publish reads identity from ~/.emdash/credentials.json; OAuth tokens
           # live in ~/.emdash/oauth/sessions.json (restored above).

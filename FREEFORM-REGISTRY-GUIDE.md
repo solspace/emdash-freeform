@@ -2,7 +2,7 @@
 
 **For:** Solspace team / site owners installing Freeform on EmDash  
 **Product:** [Freeform](https://github.com/solspace/emdash-freeform) — form builder plugin for [EmDash CMS](https://emdashcms.com)  
-**Current plugin release:** `freeform@0.1.2`  
+**Current plugin release:** `freeform@0.1.4`  
 **Publisher:** `solspace.com` (`did:plc:tsp7az5h6qsqjzqsgz37wonx`)  
 **Registry:** https://registry.emdashcms.com  
 
@@ -101,7 +101,7 @@ The plugin should appear as **Freeform**.
 
 The registry points at this tarball:
 
-https://cdn.jsdelivr.net/npm/@solspace/freeform-plugin-dist@0.1.2/freeform-0.1.2.tar.gz
+https://cdn.jsdelivr.net/npm/@solspace/freeform-plugin-dist@0.1.4/freeform-0.1.4.tar.gz
 
 Opening that URL in a browser should download the plugin bundle (HTTP 200).
 
@@ -249,7 +249,7 @@ Submit a test entry, then confirm it under **Freeform → Submissions**.
 | Source repo | https://github.com/solspace/emdash-freeform |
 | Plugin registry | https://registry.emdashcms.com |
 | Astro package (npm) | https://www.npmjs.com/package/@solspace/freeform-astro |
-| Plugin tarball CDN | https://cdn.jsdelivr.net/npm/@solspace/freeform-plugin-dist@0.1.2/freeform-0.1.2.tar.gz |
+| Plugin tarball CDN | https://cdn.jsdelivr.net/npm/@solspace/freeform-plugin-dist@0.1.4/freeform-0.1.4.tar.gz |
 | EmDash CMS | https://emdashcms.com |
 | Developer README (detailed) | [freeform/README.md](./freeform/README.md) |
 

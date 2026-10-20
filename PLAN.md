@@ -294,6 +294,28 @@ Google, Supabase, Jira), **Single** (GTM, Post Forwarding, URL Parameter Trackin
 - [ ] Inline validation UX, error summary, success redirect option
 - [ ] Multi-step progress UI, conditional-logic runtime, accessibility (a11y) audit
 
+### Repo split (after 0.1.4 ships, before Phase 8)
+
+Make this a plugin-only product repo — no CMS/site code inside it (same
+shape as the Craft Freeform repo). Decided 2026-10-20.
+
+```
+/Users/thejahid/solspace/emdash/
+  freeform/   ← this repo (moved from ~/solspace/emdash-freeform)
+                  freeform/          the EmDash plugin
+                  freeform-astro/    companion Astro package
+                  emdash-freeform-mcp/  companion MCP worker
+                  docs, PLAN.md, README, workflows
+  cms/        ← the EmDash demo/test site (moved out of emdash-app/)
+                consumes Freeform via registry / local package
+```
+
+- [ ] Move repo dir `~/solspace/emdash-freeform` → `~/solspace/emdash/freeform` (same GitHub remote: `solspace/emdash-freeform`)
+- [ ] Move `emdash-app/` → `~/solspace/emdash/cms` (separate repo or local-only site — decide at move time)
+- [ ] Fix references: `pnpm-workspace.yaml`, demo paths in README/PLAN, `MANAGER` docs, MCP worker site URL config
+- [ ] Remove `emdash-app` from workspace; verify `pnpm install`, plugin build, and CMS dev server from new locations
+- [ ] Re-run plugin publish workflow once from the new location to prove CI is unaffected
+
 ### Phase 14 — 1.0 release
 
 - [ ] Capture 4–5 admin screenshots → `release.artifacts.screenshots`
