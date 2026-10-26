@@ -119,13 +119,19 @@ jobs:
           rm -rf "$DIST_DIR"
           mkdir -p "$DIST_DIR"
           cp "dist/$TARBALL" "$DIST_DIR/"
+          cp docs/plugin-dist-README.md "$DIST_DIR/README.md"
           cat > "$DIST_DIR/package.json" <<EOF
           {
             "name": "@solspace/freeform-plugin-dist",
             "version": "${VERSION}",
-            "description": "EmDash plugin tarball for freeform@${VERSION} (registry distribution only)",
+            "description": "EmDash plugin tarball for freeform@${VERSION} (registry distribution only — not an installable SDK)",
             "license": "MIT",
-            "files": ["${TARBALL}"]
+            "files": ["${TARBALL}", "README.md"],
+            "repository": {
+              "type": "git",
+              "url": "https://github.com/solspace/emdash-freeform"
+            },
+            "homepage": "https://plugins.emdashcms.com/plugins/@solspace.com/freeform"
           }
           EOF
 
