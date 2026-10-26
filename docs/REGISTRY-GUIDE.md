@@ -30,9 +30,9 @@ npx @emdash-cms/plugin-cli info solspace.com freeform
 download URL. The registry index can lag a few minutes behind a fresh
 publish; if a new version doesn't appear yet, wait and retry.
 
-You can also check the public tarball mirror directly:
+You can also download the release tarball directly:
 
-https://cdn.jsdelivr.net/npm/@solspace/freeform-plugin-dist@1.0.0/freeform-1.0.0.tar.gz
+https://github.com/solspace/emdash-freeform/releases/download/freeform/v1.0.0/freeform-1.0.0.tar.gz
 
 ## Install on an EmDash site
 
