@@ -2,17 +2,21 @@
 // Centralises the env.SELF / globalThis fetcher pattern and the
 // X-Forwarded-* origin resolution that every Freeform route needs.
 
-// import { env } from "cloudflare:workers";
+import { env } from "cloudflare:workers";
+
+type Fetcher = { fetch: typeof fetch };
 
 /**
  * Returns the Cloudflare SELF service binding when running on a Worker,
  * or globalThis when running in local dev (Miniflare / Node).
  *
  * The SELF binding bypasses Cloudflare's same-hostname loopback restriction,
- * which would otherwise cause same-origin fetches to 404.
+ * which would otherwise cause same-origin fetches to 404 — and FreeformForm
+ * would mis-report that as "Form not found".
  */
-export function getFetcher(): { fetch: typeof fetch } {
-  return globalThis;
+export function getFetcher(): Fetcher {
+  const selfBinding = (env as { SELF?: Fetcher }).SELF;
+  return selfBinding ?? globalThis;
 }
 
 /**
@@ -63,7 +67,7 @@ export interface FreeformFormData {
 export async function fetchForm(
   formId: string,
   siteOrigin: string,
-  fetcher: { fetch: typeof fetch },
+  fetcher: Fetcher,
 ): Promise<FreeformFormData | null> {
   try {
     const url = `${siteOrigin}/_emdash/api/plugins/freeform/get-form?id=${encodeURIComponent(formId)}`;

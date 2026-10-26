@@ -17,7 +17,7 @@ const DEFAULT_TEMPLATES: DefaultTemplate[] = [
     id: SYSTEM_TEMPLATE_IDS.adminNotify,
     data: {
       name: "Admin Notify",
-      subject: "New submission: {{ form_name}}",
+      subject: "New submission: {{form_name}}",
       body: `A new submission was received for {{form_name}}.
 
 Submission ID: {{submission_id}}

@@ -7,6 +7,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.0.1] — 2026-10-26
+
+### Fixed
+
+- `@solspace/freeform-astro` same-origin form fetch on Cloudflare Workers now uses the `SELF` service binding (avoids false “Form not found” during SSR)
+- Built-in Admin Notify subject: `{{form_name}}` spacing (no space after `{{`)
+
 ## [1.0.0] — 2026-10-26
 
 ### Added
@@ -124,5 +131,6 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `cron` hook for webhook retry processing (runs every minute)
 - Idempotent demo seed via KV flag (`seed:contact_v1`) — works on both marketplace install and trusted-plugin first-load
 
+[1.0.1]: https://github.com/solspace/emdash-freeform/releases/tag/freeform/v1.0.1
 [1.0.0]: https://github.com/solspace/emdash-freeform/releases/tag/freeform/v1.0.0
 [0.1.0]: https://github.com/solspace/emdash-freeform/releases/tag/freeform/v0.1.0

@@ -388,7 +388,7 @@ export const TOOLS = [
   {
     name: "create_template",
     description:
-      "Create a notification template. Subject and body support Mustache variables: `{{ form_name }}`, `{{ submission_id }}`, `{{ submitted_at }}`, `{{ all_fields }}` (Label: value list), and any submission field by handle e.g. `{{ first_name }}`. Format defaults to 'text'; use 'html' for HTML emails (values are auto-escaped).",
+      "Create a notification template. Subject and body support Mustache variables: `{{form_name}}`, `{{submission_id}}`, `{{submitted_at}}`, `{{all_fields}}` (Label: value list), and any submission field by handle e.g. `{{first_name}}`. Format defaults to 'text'; use 'html' for HTML emails (values are auto-escaped).",
     inputSchema: {
       type: "object",
       required: ["name", "subject", "body"],

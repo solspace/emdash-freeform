@@ -4,7 +4,7 @@ import type { StoredTemplate } from "../types";
 import { freeformNavBlocks, pageHeader, shortDate } from "./layout";
 
 export const TEMPLATE_VARIABLE_REFERENCE =
-  "Variables: {{ form_name }}, {{ submission_id }}, {{ submitted_at }}, {{ all_fields }}, {{ field_handle }}";
+  "Variables: {{form_name}}, {{submission_id}}, {{submitted_at}}, {{all_fields}}, {{field_handle}}";
 
 export async function templatesPageBlocks(ctx: PluginContext): Promise<object[]> {
   await ensureDefaultTemplates(ctx);
@@ -204,7 +204,7 @@ export async function templateEditorBlocks(
           type: "text_input",
           action_id: "subject",
           label: "Email subject",
-          placeholder: "New submission on {{ form_name }}",
+          placeholder: "New submission on {{form_name}}",
           initial_value: initial.subject,
         },
         {
@@ -221,7 +221,7 @@ export async function templateEditorBlocks(
           type: "text_input",
           action_id: "body",
           label: "Email body",
-          placeholder: "Hi,\n\n{{ all_fields }}\n\n— {{ form_name }}",
+          placeholder: "Hi,\n\n{{all_fields}}\n\n— {{form_name}}",
           initial_value: initial.body,
           multiline: true,
         },

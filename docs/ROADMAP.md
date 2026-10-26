@@ -3,7 +3,7 @@
 Freeform is a form builder plugin for EmDash, modeled on the feature set of
 [Solspace Freeform for Craft CMS](https://plugins.craftcms.com/freeform).
 
-**Current release:** `1.0.0` — see the [changelog](../CHANGELOG.md).
+**Current release:** `1.0.1` — see the [changelog](../CHANGELOG.md).
 
 ## Distribution strategy (decided 2026-10-25)
 
