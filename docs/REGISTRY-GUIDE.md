@@ -140,5 +140,5 @@ Submit a test entry and confirm it under **Freeform → Submissions**.
 | Source repository | https://github.com/solspace/emdash-freeform |
 | Plugin page | https://plugins.emdashcms.com/plugins/@solspace.com/freeform |
 | Astro package (npm) | https://www.npmjs.com/package/@solspace/freeform-astro |
-| Plugin tarball (CDN) | https://cdn.jsdelivr.net/npm/@solspace/freeform-plugin-dist@1.0.0/freeform-1.0.0.tar.gz |
+| Plugin tarball | https://github.com/solspace/emdash-freeform/releases/download/freeform/v1.0.0/freeform-1.0.0.tar.gz |
 | EmDash CMS | https://emdashcms.com |
