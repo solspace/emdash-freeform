@@ -16,33 +16,34 @@ export type FormCardIconId =
 
 export const FORM_CARD_ICON_OPTIONS: Array<{ value: FormCardIconId; label: string }> = [
   { value: "auto", label: "Auto (from name & fields)" },
-  { value: "clipboard", label: "📋 General" },
-  { value: "email", label: "✉️ Contact / email" },
-  { value: "phone", label: "📞 Phone" },
-  { value: "mobile", label: "📱 Email & phone" },
-  { value: "calendar", label: "📅 Calendar / booking" },
-  { value: "newsletter", label: "📰 Newsletter" },
-  { value: "support", label: "🎧 Support" },
-  { value: "survey", label: "📊 Survey / feedback" },
-  { value: "cart", label: "🛒 Orders / checkout" },
-  { value: "briefcase", label: "💼 Jobs / applications" },
-  { value: "ticket", label: "🎟️ Events / RSVP" },
-  { value: "note", label: "📝 Long form" },
+  { value: "clipboard", label: "General" },
+  { value: "email", label: "Contact / email" },
+  { value: "phone", label: "Phone" },
+  { value: "mobile", label: "Email & phone" },
+  { value: "calendar", label: "Calendar / booking" },
+  { value: "newsletter", label: "Newsletter" },
+  { value: "support", label: "Support" },
+  { value: "survey", label: "Survey / feedback" },
+  { value: "cart", label: "Orders / checkout" },
+  { value: "briefcase", label: "Jobs / applications" },
+  { value: "ticket", label: "Events / RSVP" },
+  { value: "note", label: "Long form" },
 ];
 
-const GLYPH_BY_ID: Record<Exclude<FormCardIconId, "auto">, string> = {
-  clipboard: "📋",
-  email: "✉️",
-  phone: "📞",
-  mobile: "📱",
-  calendar: "📅",
-  newsletter: "📰",
-  support: "🎧",
-  survey: "📊",
-  cart: "🛒",
-  briefcase: "💼",
-  ticket: "🎟️",
-  note: "📝",
+/** Short category label for form cards (EmDash empty blocks have no custom icon slot). */
+const LABEL_BY_ID: Record<Exclude<FormCardIconId, "auto">, string> = {
+  clipboard: "General",
+  email: "Contact",
+  phone: "Phone",
+  mobile: "Contact",
+  calendar: "Booking",
+  newsletter: "Newsletter",
+  support: "Support",
+  survey: "Survey",
+  cart: "Orders",
+  briefcase: "Jobs",
+  ticket: "Events",
+  note: "Long form",
 };
 
 const VALID_ICON_IDS = new Set(FORM_CARD_ICON_OPTIONS.map((o) => o.value));
@@ -84,10 +85,12 @@ export function inferFormCardIconId(
   return "clipboard";
 }
 
-export function resolveFormCardGlyph(form: IconInferInput & { cardIcon?: string }): string {
+export function resolveFormCardCategory(
+  form: IconInferInput & { cardIcon?: string },
+): string {
   const id = form.cardIcon ?? "auto";
-  if (id !== "auto" && isFormCardIconId(id) && id in GLYPH_BY_ID) {
-    return GLYPH_BY_ID[id as Exclude<FormCardIconId, "auto">];
+  if (id !== "auto" && isFormCardIconId(id) && id in LABEL_BY_ID) {
+    return LABEL_BY_ID[id as Exclude<FormCardIconId, "auto">];
   }
-  return GLYPH_BY_ID[inferFormCardIconId(form)];
+  return LABEL_BY_ID[inferFormCardIconId(form)];
 }

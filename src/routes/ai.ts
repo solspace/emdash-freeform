@@ -34,7 +34,28 @@ export const aiRoutes = {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      const { newForm, summary } = await editFormWithAI(description, baseForm, ctx, creds);
+      let newForm: StoredForm;
+      let summary: { added: number; updated: number; removed: number };
+      try {
+        ({ newForm, summary } = await editFormWithAI(description, baseForm, ctx, creds));
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (/\b401\b/.test(msg) || /Incorrect API key/i.test(msg)) {
+          throw PluginRouteError.badRequest(
+            "OpenAI rejected the API key. Update it in Settings → AI & spam.",
+          );
+        }
+        if (/\b403\b/.test(msg) || /\b429\b/.test(msg)) {
+          throw PluginRouteError.badRequest(
+            `AI request failed: ${msg.slice(0, 180)}`,
+          );
+        }
+        throw PluginRouteError.badRequest(
+          msg.startsWith("OpenAI") || msg.startsWith("Anthropic")
+            ? msg.slice(0, 220)
+            : `AI generation failed: ${msg.slice(0, 180)}`,
+        );
+      }
 
       const anyChange = summary.added > 0 || summary.updated > 0 || summary.removed > 0;
       if (apply && formId && form && anyChange) {

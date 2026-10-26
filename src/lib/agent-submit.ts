@@ -4,6 +4,7 @@ import { scoreSubmissionWithAI } from "../ai/spam";
 import { getAiCredentials } from "./ai-config";
 import { sendNotificationsForSubmission } from "./notifications";
 import { effectiveSpamSettings, getSpamSettings } from "./spam-settings";
+import { deliverWebhooks } from "./webhooks";
 import { uid } from "./handles";
 import type {
   FieldType,
@@ -151,6 +152,9 @@ export async function runAgentSubmission(
       spamScore: submission.spamScore,
     });
   }
+
+  // Same as public HTML submit: webhooks always fire (including spam-scored).
+  await deliverWebhooks(ctx, resolvedId, formData.handle, submission, submissionId);
 
   return {
     success: true,

@@ -1,6 +1,23 @@
 import { PluginRouteError, type PluginContext } from "emdash";
 import type { StoredSubmission } from "../types";
 
+function serializeSubmission(id: string, data: StoredSubmission) {
+  return {
+    id,
+    formId: data.formId,
+    formName: data.formName,
+    data: data.data,
+    createdAt: data.createdAt,
+    spamScore: data.spamScore ?? null,
+    spamReason: data.spamReason ?? null,
+    archived: data.archived === true,
+    brief: data.brief ?? null,
+    journey: data.journey ?? null,
+    ip: data.ip ?? null,
+    consent: data.consent ?? null,
+  };
+}
+
 export const submissionsRoutes = {
   "list-submissions": {
     handler: async (routeCtx: any, ctx: PluginContext) => {
@@ -17,19 +34,31 @@ export const submissionsRoutes = {
         (s) => includeArchived || !s.data.archived,
       );
       return {
-        submissions: subs.map((s) => ({
-          id: s.id,
-          formId: s.data.formId,
-          formName: s.data.formName,
-          data: s.data.data,
-          createdAt: s.data.createdAt,
-          spamScore: s.data.spamScore ?? null,
-          spamReason: s.data.spamReason ?? null,
-          archived: s.data.archived === true,
-          brief: s.data.brief ?? null,
-          journey: s.data.journey ?? null,
-        })),
+        submissions: subs.map((s) => serializeSubmission(s.id, s.data)),
       };
+    },
+  },
+
+  "get-submission": {
+    handler: async (routeCtx: any, ctx: PluginContext) => {
+      const id =
+        (routeCtx.input as { id?: string } | undefined)?.id ??
+        new URL(routeCtx.request.url).searchParams.get("id");
+      if (!id) throw PluginRouteError.badRequest("Missing id");
+      const data = (await ctx.storage.submissions.get(id)) as StoredSubmission | null;
+      if (!data) throw PluginRouteError.notFound("Submission not found");
+      return serializeSubmission(id, data);
+    },
+  },
+
+  "delete-submission": {
+    handler: async (routeCtx: any, ctx: PluginContext) => {
+      const { id } = routeCtx.input as { id: string };
+      if (!id) throw PluginRouteError.badRequest("Missing id");
+      const existing = (await ctx.storage.submissions.get(id)) as StoredSubmission | null;
+      if (!existing) throw PluginRouteError.notFound("Submission not found");
+      await ctx.storage.submissions.delete(id);
+      return { ok: true, id };
     },
   },
 

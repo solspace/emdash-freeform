@@ -17,7 +17,8 @@ Build forms, collect submissions, and act on them — without leaving EmDash.
 
 **Automation & protection**
 
-- Email notifications with reusable templates, sent to you or the submitter
+- Email notifications with reusable templates (delivery via EmDash’s email provider — Settings → Email)
+- Privacy tooling: consent fields, retention auto-delete, export/delete submissions
 - Signed webhooks (HMAC-SHA256) with automatic retries and a delivery log
 - Spam scoring with honeypot + CSRF protection on every submission
 - Optional MCP server so AI agents can manage forms and read submissions

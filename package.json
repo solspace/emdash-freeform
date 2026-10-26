@@ -1,32 +1,53 @@
 {
   "name": "@local/freeform",
-  "version": "0.1.4",
+  "version": "1.0.0",
   "description": "Build forms, collect submissions, and send notifications directly from EmDash.",
   "type": "module",
   "packageManager": "pnpm@11.8.0",
   "scripts": {
-    "build": "mkdir -p .tmp dist && tsdown src/index.ts --format esm --outDir dist --dts false && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin build",
+    "build": "mkdir -p .tmp dist && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin build && tsdown src/index.ts src/native-entry.ts --format esm --outDir dist --dts false --no-clean --external emdash --external ../dist/plugin.mjs && node -e \"const fs=require('fs');const p='dist/native-entry.js';fs.writeFileSync(p,fs.readFileSync(p,'utf8').replaceAll('../dist/plugin.mjs','./plugin.mjs'))\"",
     "build:registry": "mkdir -p .tmp && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin build",
-    "build:watch": "mkdir -p .tmp dist && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin build && tsdown src/index.ts --format esm --outDir dist --dts false --no-clean --watch",
+    "build:watch": "pnpm run build && tsdown src/index.ts src/native-entry.ts --format esm --outDir dist --dts false --no-clean --external emdash --external ../dist/plugin.mjs --watch",
     "bundle": "mkdir -p .tmp && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin bundle",
     "bundle:validate": "mkdir -p .tmp && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin bundle --validate-only",
     "typecheck": "tsc --noEmit"
   },
   "exports": {
     ".": "./dist/index.js",
-    "./sandbox": "./dist/plugin.mjs"
+    "./sandbox": "./dist/plugin.mjs",
+    "./native": "./dist/native-entry.js",
+    "./admin": {
+      "types": "./src/admin.tsx",
+      "default": "./src/admin.tsx"
+    }
   },
   "files": [
     "dist",
+    "src",
     "emdash-plugin.jsonc",
+    "icon.png",
     "README.md"
   ],
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2"
+  },
   "peerDependencies": {
-    "emdash": ">=0.12.0"
+    "@emdash-cms/admin": ">=1.3.0",
+    "emdash": ">=0.12.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@emdash-cms/admin": "1.3.1",
     "@emdash-cms/plugin-cli": "0.13.4",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
     "emdash": "1.3.1",
-    "tsdown": "^0.12.0"
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "tsdown": "^0.12.0",
+    "typescript": "^5.9.0"
   }
 }

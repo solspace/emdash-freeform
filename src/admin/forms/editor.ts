@@ -1,5 +1,6 @@
 import type { PluginContext } from "emdash";
 import { ensureFormHandle } from "../../lib/form-handles";
+import { exportFormJson } from "../../lib/form-json";
 import {
   backToFormsButton,
   editorTopActions,
@@ -32,12 +33,15 @@ export interface EditorUiState {
   showAddField?: boolean;
   /** Show AI prompt first (new form with AI flow). */
   focusAiBuilder?: boolean;
+  /** Show exported form JSON in the build panel. */
+  showExportJson?: boolean;
 }
 
 export const defaultEditorUi: EditorUiState = {
   section: "build",
   selectedFieldId: null,
   showAddField: false,
+  showExportJson: false,
 };
 
 const SECTIONS: Array<{ id: EditorSection; label: string }> = [
@@ -61,8 +65,7 @@ function sectionNav(formId: string, active: EditorSection): object {
 }
 
 function fieldRowBlocks(formId: string, formData: StoredForm): object[] {
-  const flat = formData.rows.flatMap((r) => r.fields);
-  if (flat.length === 0) {
+  if (formData.rows.length === 0) {
     return [
       {
         type: "empty",
@@ -73,30 +76,83 @@ function fieldRowBlocks(formId: string, formData: StoredForm): object[] {
     ];
   }
 
-  return flat.flatMap((f) => {
-    const details = [
-      f.type,
-      f.required ? "required" : "optional",
-      f.handle,
-    ].join(" · ");
-    return [
-      {
-        type: "fields",
-        fields: [
-          {
-            label: f.label,
-            value: details,
+  const flatIds = formData.rows.flatMap((r) => r.fields.map((f) => f.id));
+  const blocks: object[] = [];
+
+  formData.rows.forEach((row, rowIndex) => {
+    blocks.push({
+      type: "context",
+      text: `Row ${rowIndex + 1}`,
+    });
+    blocks.push({
+      type: "actions",
+      elements: [
+        {
+          type: "button",
+          label: "Duplicate row",
+          action_id: `dup_row:${formId}:${row.id}`,
+          style: "secondary",
+        },
+        {
+          type: "button",
+          label: "Delete row",
+          action_id: `del_row:${formId}:${row.id}`,
+          style: "danger",
+          confirm: {
+            title: `Delete row ${rowIndex + 1}?`,
+            text: `${row.fields.length} field${row.fields.length === 1 ? "" : "s"} will be removed.`,
+            confirm: "Delete",
+            deny: "Cancel",
           },
-        ],
-      },
-      {
+        },
+      ],
+    });
+
+    for (const f of row.fields) {
+      const flatIndex = flatIds.indexOf(f.id);
+      const details = [
+        f.type,
+        f.required ? "required" : "optional",
+        f.handle,
+      ].join(" · ");
+      blocks.push({
+        type: "fields",
+        fields: [{ label: f.label, value: details }],
+      });
+
+      const moveButtons: object[] = [];
+      if (flatIndex > 0) {
+        moveButtons.push({
+          type: "button",
+          label: "↑",
+          action_id: `move_field_up:${formId}:${f.id}`,
+          style: "secondary",
+        });
+      }
+      if (flatIndex < flatIds.length - 1) {
+        moveButtons.push({
+          type: "button",
+          label: "↓",
+          action_id: `move_field_down:${formId}:${f.id}`,
+          style: "secondary",
+        });
+      }
+
+      blocks.push({
         type: "actions",
         elements: [
           {
             type: "button",
-            label: "Edit field",
+            label: "Edit",
             action_id: `select_field:${formId}:${f.id}`,
           },
+          {
+            type: "button",
+            label: "Duplicate",
+            action_id: `dup_field:${formId}:${f.id}`,
+            style: "secondary",
+          },
+          ...moveButtons,
           {
             type: "button",
             label: "Remove",
@@ -104,9 +160,13 @@ function fieldRowBlocks(formId: string, formData: StoredForm): object[] {
             style: "danger",
           },
         ],
-      },
-    ];
+      });
+    }
+
+    blocks.push({ type: "divider" });
   });
+
+  return blocks;
 }
 
 function aiBuilderColumnBlocks(formId: string): object[] {
@@ -206,6 +266,32 @@ async function mainPanelBlocks(
             type: "button",
             label: "Start with a blank form",
             action_id: `dismiss_ai_builder:${formId}`,
+            style: "secondary",
+          },
+        ],
+      },
+    ];
+  }
+
+  if (ui.showExportJson) {
+    return [
+      { type: "header", text: "Export form JSON" },
+      {
+        type: "context",
+        text: "Copy this JSON to back up the form or import it on another site.",
+      },
+      {
+        type: "code",
+        code: exportFormJson(formData),
+        language: "jsonc",
+      },
+      {
+        type: "actions",
+        elements: [
+          {
+            type: "button",
+            label: "Back to fields",
+            action_id: `deselect_field:${formId}`,
             style: "secondary",
           },
         ],

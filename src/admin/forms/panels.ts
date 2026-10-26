@@ -157,13 +157,13 @@ export async function notificationsPanelBlocks(
         type: "empty",
         title: "Create a template first",
         description:
-          "Go to Templates in the sidebar, create an email template, then return here to attach it.",
+          "Go to Integrations, create an email template, then return here to attach it.",
         size: "base",
         actions: [
           {
             type: "button",
-            label: "Go to Templates",
-            action_id: "nav:templates",
+            label: "Go to Integrations",
+            action_id: "nav:integrations",
             style: "primary",
           },
         ],

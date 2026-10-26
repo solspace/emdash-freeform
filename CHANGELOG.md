@@ -7,6 +7,28 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.0.0] — 2026-10-26
+
+### Added
+
+- React admin shell (Forms · Submissions · Settings) with Freeform brand color and icon
+- Native DnD form builder: layout, field props, starter templates, Notifications / Protection tabs
+- Email templates CRUD in Settings with built-in Admin Notify and Submitter Receipt
+- Per-form notification attachments (submitter field or custom recipient)
+- Webhooks React UI: create, pause, rotate secret, delivery log
+- Cloudflare Turnstile on public forms (render + verify) alongside honeypot
+- Consent field type with evidence stored on submission
+- Per-form privacy notice, retention auto-delete cron, and opt-in IP storage
+- Submissions detail drawer, CSV export, and hard delete
+- Form card colors / tinted backgrounds; AI generate multi-row layout reflow
+- Agent submit path delivers signed webhooks (parity with public submit)
+- Privacy docs (`docs/privacy.md`)
+
+### Changed
+
+- OpenAI-first AI Settings (generate, spam score, brief) with clearer 401 / Settings link UX
+- Registry bundle kept under the 128 KB per-file limit
+
 ## [0.1.4] — 2026-10-20
 
 ### Added
@@ -102,4 +124,5 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `cron` hook for webhook retry processing (runs every minute)
 - Idempotent demo seed via KV flag (`seed:contact_v1`) — works on both marketplace install and trusted-plugin first-load
 
+[1.0.0]: https://github.com/solspace/emdash-freeform/releases/tag/freeform/v1.0.0
 [0.1.0]: https://github.com/solspace/emdash-freeform/releases/tag/freeform/v0.1.0

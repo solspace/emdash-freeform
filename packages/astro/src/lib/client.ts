@@ -51,6 +51,9 @@ export interface FreeformFormData {
   }>;
   successMessage: string;
   csrfToken: string;
+  honeypotEnabled?: boolean;
+  captcha?: { provider: string; siteKey?: string };
+  privacy?: { notice?: string; privacyPolicyUrl?: string };
 }
 
 /**

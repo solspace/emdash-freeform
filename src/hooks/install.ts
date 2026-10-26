@@ -1,4 +1,5 @@
 import type { PluginContext } from "emdash";
+import { ensureRetentionCronScheduled } from "../lib/retention";
 import { ensureDemoSeed } from "../lib/seed";
 import { ensureRetryCronScheduled } from "../routes/webhooks";
 
@@ -11,5 +12,6 @@ export const installHook = {
     // Schedule the webhook retry cron task. For trusted plugins this is also
     // called lazily on first webhook creation via ensureRetryCronScheduled().
     await ensureRetryCronScheduled(ctx);
+    await ensureRetentionCronScheduled(ctx);
   },
 };

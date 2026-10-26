@@ -8,6 +8,7 @@ import {
 } from "../lib/form-handles";
 import { toHandle, uid } from "../lib/handles";
 import { isMultiType, isOptionType } from "../lib/options";
+import { ensureRetentionCronScheduled } from "../lib/retention";
 import type {
   FieldOption,
   FieldType,
@@ -72,19 +73,46 @@ export const formsRoutes = {
           subCount: subCountMap.get(f.id) ?? 0,
           createdAt: f.data.createdAt,
           updatedAt: f.data.updatedAt,
+          cardIcon: f.data.cardIcon,
+          cardColor: f.data.cardColor,
         })),
       };
     },
   },
 
+  /** Full form document for the trusted React builder (includes rows). */
+  "admin-get-form": {
+    handler: async (routeCtx: any, ctx: PluginContext) => {
+      const { id } = routeCtx.input as { id?: string };
+      if (!id) throw PluginRouteError.badRequest("Missing id");
+      const form = (await ctx.storage.forms.get(id)) as StoredForm | null;
+      if (!form) throw PluginRouteError.notFound("Form not found");
+      return { id, ...form };
+    },
+  },
+
   "save-form": {
     handler: async (routeCtx: any, ctx: PluginContext) => {
-      const { id, name, handle, rows, successMessage } = routeCtx.input as {
+      const {
+        id,
+        name,
+        handle,
+        rows,
+        successMessage,
+        captcha,
+        honeypotEnabled,
+        privacy,
+        cardColor,
+      } = routeCtx.input as {
         id?: string;
         name?: string;
         handle?: string;
         rows?: FormRow[];
         successMessage?: string;
+        captcha?: StoredForm["captcha"] | null;
+        honeypotEnabled?: boolean;
+        privacy?: StoredForm["privacy"] | null;
+        cardColor?: string | null;
       };
       const formId = id ?? uid();
       const existing = id
@@ -131,7 +159,58 @@ export const formsRoutes = {
         createdAt: existing?.createdAt ?? new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+      if (existing?.spam) form.spam = existing.spam;
+      if (existing?.cardIcon) form.cardIcon = existing.cardIcon;
+      if (cardColor !== undefined) {
+        if (cardColor === null || cardColor === "") {
+          delete form.cardColor;
+        } else if (/^#[0-9a-fA-F]{6}$/.test(cardColor.trim())) {
+          form.cardColor = cardColor.trim().toLowerCase();
+        }
+      } else if (existing?.cardColor) {
+        form.cardColor = existing.cardColor;
+      }
+      if (typeof honeypotEnabled === "boolean") {
+        form.honeypotEnabled = honeypotEnabled;
+      } else if (typeof existing?.honeypotEnabled === "boolean") {
+        form.honeypotEnabled = existing.honeypotEnabled;
+      }
+      if (captcha !== undefined) {
+        if (captcha === null || captcha.provider === "none") {
+          delete form.captcha;
+        } else {
+          form.captcha = {
+            provider: captcha.provider,
+            siteKey: captcha.siteKey?.trim() || undefined,
+            secretKey: captcha.secretKey?.trim() || undefined,
+          };
+        }
+      } else if (existing?.captcha) {
+        form.captcha = existing.captcha;
+      }
+      if (privacy !== undefined) {
+        if (privacy === null) {
+          delete form.privacy;
+        } else {
+          const days = privacy.retentionDays;
+          form.privacy = {
+            notice: privacy.notice?.trim() || undefined,
+            privacyPolicyUrl: privacy.privacyPolicyUrl?.trim() || undefined,
+            storeIp: privacy.storeIp === true,
+            retentionDays:
+              typeof days === "number" && days > 0 ? Math.floor(days) : null,
+          };
+        }
+      } else if (existing?.privacy) {
+        form.privacy = existing.privacy;
+      }
       await ctx.storage.forms.put(formId, form);
+
+      // Ensure retention cron exists when any form uses auto-delete.
+      if (form.privacy?.retentionDays && form.privacy.retentionDays > 0) {
+        await ensureRetentionCronScheduled(ctx);
+      }
+
       return { id: formId, ...form };
     },
   },

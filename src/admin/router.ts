@@ -20,7 +20,14 @@ import {
   type FieldFormValues,
 } from "../lib/field-form-values";
 import { setMcpWorkerUrl } from "../lib/mcp-settings";
-import { deleteFormAndSubmissions, removeField } from "../lib/field-ops";
+import {
+  deleteFormAndSubmissions,
+  deleteRow,
+  duplicateField,
+  duplicateRow,
+  moveField,
+  removeField,
+} from "../lib/field-ops";
 import {
   deriveUniqueFormHandle,
   ensureUniqueFormHandle,
@@ -30,6 +37,11 @@ import {
   isValidFormHandle,
 } from "../lib/form-handles";
 import { inferFormCardIconId, isFormCardIconId } from "../lib/form-icons";
+import { duplicateFormData, importFormJson } from "../lib/form-json";
+import {
+  formFromTemplate,
+  isFormTemplateId,
+} from "../lib/form-templates";
 import { uid } from "../lib/handles";
 import { deleteTemplateAndDetach } from "../lib/notifications";
 import { ensureDemoSeed } from "../lib/seed";
@@ -51,6 +63,7 @@ import {
   type EditorUiState,
 } from "./forms";
 import { setCreateFormAiModalOpen } from "./create-form-ai";
+import { setListModal } from "./forms/list-modals";
 import {
   clearWebhookSecretReveal,
   setWebhookSecretReveal,
@@ -132,7 +145,9 @@ export const adminRoute = {
       // the seed flag is set.
       await ensureDemoSeed(ctx);
       if (page === "/settings") return { blocks: await settingsBlocks(ctx, siteOrigin) };
-      if (page === "/templates") return { blocks: await templatesPageBlocks(ctx) };
+      if (page === "/templates" || page === "/integrations") {
+        return { blocks: await templatesPageBlocks(ctx) };
+      }
       if (page === "/submissions") {
         return { blocks: await submissionsBlocks(null, ctx) };
       }
@@ -141,12 +156,26 @@ export const adminRoute = {
 
     if (actionId === "nav:forms") {
       await setCreateFormAiModalOpen(ctx, false);
+      await setListModal(ctx, null);
       return { blocks: await listPageBlocks(ctx) };
     }
     if (actionId === "nav:settings") return { blocks: await settingsBlocks(ctx, siteOrigin) };
-    if (actionId === "nav:templates") return { blocks: await templatesPageBlocks(ctx) };
+    if (actionId === "nav:integrations" || actionId === "nav:templates") {
+      return { blocks: await templatesPageBlocks(ctx) };
+    }
     if (actionId === "nav:submissions") {
       return { blocks: await submissionsBlocks(null, ctx) };
+    }
+
+    if (actionId === "cancel_list_modal") {
+      await setListModal(ctx, null);
+      return { blocks: await listPageBlocks(ctx) };
+    }
+
+    if (actionId === "import_form_show") {
+      await setCreateFormAiModalOpen(ctx, false);
+      await setListModal(ctx, "import_form");
+      return { blocks: await listPageBlocks(ctx) };
     }
 
     if (actionId === "cancel_del") {
@@ -194,17 +223,66 @@ export const adminRoute = {
     }
 
     if (actionId === "new_form") {
+      await setCreateFormAiModalOpen(ctx, false);
+      await setListModal(ctx, "new_form");
+      return { blocks: await listPageBlocks(ctx) };
+    }
+
+    if (actionId === "submit_new_form_template") {
+      const templateRaw = ((values.template_id as string) ?? "blank").trim();
+      const templateId = isFormTemplateId(templateRaw) ? templateRaw : "blank";
+      const customName = ((values.form_name as string) ?? "").trim();
+      const metaName =
+        customName ||
+        (templateId === "blank"
+          ? "New Form"
+          : formFromTemplate(templateId, { name: "", handle: "tmp" }).name);
       const id = uid();
-      const handle = await deriveUniqueFormHandle(ctx, "New Form");
+      const handle = await deriveUniqueFormHandle(ctx, metaName);
+      const form = formFromTemplate(templateId, { name: metaName, handle });
+      await ctx.storage.forms.put(id, form);
+      await setListModal(ctx, null);
+      return {
+        ...(await renderEditor(id, ctx, siteOrigin)),
+        toast: {
+          message:
+            templateId === "blank"
+              ? "Blank form created."
+              : `Form created from “${metaName}” template.`,
+          type: "success",
+        },
+      };
+    }
+
+    if (actionId === "submit_import_form") {
+      const raw = ((values.form_json as string) ?? "").trim();
+      if (!raw) {
+        return {
+          blocks: await listPageBlocks(ctx),
+          toast: { message: "Paste form JSON to import.", type: "error" },
+        };
+      }
+      const parsed = importFormJson(raw);
+      if (!parsed.ok) {
+        return {
+          blocks: await listPageBlocks(ctx),
+          toast: { message: parsed.message, type: "error" },
+        };
+      }
+      const id = uid();
+      const handle = await ensureUniqueFormHandle(ctx, parsed.form.handle);
+      const now = new Date().toISOString();
       await ctx.storage.forms.put(id, {
-        name: "New Form",
+        ...parsed.form,
         handle,
-        rows: [],
-        successMessage: "Thank you for your submission!",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as StoredForm);
-      return renderEditor(id, ctx, siteOrigin);
+        createdAt: now,
+        updatedAt: now,
+      });
+      await setListModal(ctx, null);
+      return {
+        ...(await renderEditor(id, ctx, siteOrigin)),
+        toast: { message: `Imported “${parsed.form.name}”.`, type: "success" },
+      };
     }
 
     if (actionId === "new_form_ai") {
@@ -348,6 +426,30 @@ export const adminRoute = {
       return renderEditor(actionId.slice(5), ctx, siteOrigin);
     }
 
+    if (actionId.startsWith("dup_form:")) {
+      const sourceId = actionId.slice("dup_form:".length);
+      const source = (await ctx.storage.forms.get(sourceId)) as StoredForm | null;
+      if (!source) return { blocks: await listPageBlocks(ctx) };
+      const name = `${source.name} (copy)`;
+      const handle = await deriveUniqueFormHandle(ctx, name);
+      const id = uid();
+      await ctx.storage.forms.put(id, duplicateFormData(source, { name, handle }));
+      return {
+        ...(await renderEditor(id, ctx, siteOrigin)),
+        toast: { message: `Duplicated “${source.name}”.`, type: "success" },
+      };
+    }
+
+    if (actionId.startsWith("export_form:")) {
+      const fid = actionId.slice("export_form:".length);
+      return renderEditor(
+        fid,
+        ctx,
+        siteOrigin,
+        editorUi({ section: "build", showExportJson: true }),
+      );
+    }
+
     if (actionId.startsWith("del:")) {
       return { blocks: await listPageBlocks(ctx) };
     }
@@ -359,6 +461,97 @@ export const adminRoute = {
       return {
         blocks: await listPageBlocks(ctx),
         toast: { message: "Form deleted", type: "success" },
+      };
+    }
+
+    const moveUp = parseFormAndFieldId("move_field_up:", actionId);
+    if (moveUp) {
+      const form = (await ctx.storage.forms.get(moveUp.formId)) as StoredForm | null;
+      if (!form) return { blocks: await listPageBlocks(ctx) };
+      const next = moveField(form.rows, moveUp.fieldId, "up");
+      if (!next) {
+        return {
+          ...(await renderEditor(moveUp.formId, ctx, siteOrigin)),
+          toast: { message: "Already at the top.", type: "info" },
+        };
+      }
+      await ctx.storage.forms.put(moveUp.formId, {
+        ...form,
+        rows: next,
+        updatedAt: new Date().toISOString(),
+      });
+      return renderEditor(moveUp.formId, ctx, siteOrigin);
+    }
+
+    const moveDown = parseFormAndFieldId("move_field_down:", actionId);
+    if (moveDown) {
+      const form = (await ctx.storage.forms.get(moveDown.formId)) as StoredForm | null;
+      if (!form) return { blocks: await listPageBlocks(ctx) };
+      const next = moveField(form.rows, moveDown.fieldId, "down");
+      if (!next) {
+        return {
+          ...(await renderEditor(moveDown.formId, ctx, siteOrigin)),
+          toast: { message: "Already at the bottom.", type: "info" },
+        };
+      }
+      await ctx.storage.forms.put(moveDown.formId, {
+        ...form,
+        rows: next,
+        updatedAt: new Date().toISOString(),
+      });
+      return renderEditor(moveDown.formId, ctx, siteOrigin);
+    }
+
+    const dupField = parseFormAndFieldId("dup_field:", actionId);
+    if (dupField) {
+      const form = (await ctx.storage.forms.get(dupField.formId)) as StoredForm | null;
+      if (!form) return { blocks: await listPageBlocks(ctx) };
+      const next = duplicateField(form.rows, dupField.fieldId);
+      if (!next) return renderEditor(dupField.formId, ctx, siteOrigin);
+      await ctx.storage.forms.put(dupField.formId, {
+        ...form,
+        rows: next,
+        updatedAt: new Date().toISOString(),
+      });
+      return {
+        ...(await renderEditor(dupField.formId, ctx, siteOrigin)),
+        toast: { message: "Field duplicated.", type: "success" },
+      };
+    }
+
+    const dupRowMatch = actionId.match(/^dup_row:([^:]+):(.+)$/);
+    if (dupRowMatch) {
+      const [, formId, rowId] = dupRowMatch;
+      const form = (await ctx.storage.forms.get(formId)) as StoredForm | null;
+      if (!form) return { blocks: await listPageBlocks(ctx) };
+      const next = duplicateRow(form.rows, rowId);
+      if (!next) return renderEditor(formId, ctx, siteOrigin);
+      await ctx.storage.forms.put(formId, {
+        ...form,
+        rows: next,
+        updatedAt: new Date().toISOString(),
+      });
+      return {
+        ...(await renderEditor(formId, ctx, siteOrigin)),
+        toast: { message: "Row duplicated.", type: "success" },
+      };
+    }
+
+    const delRowMatch = actionId.match(/^del_row:([^:]+):(.+)$/);
+    if (delRowMatch) {
+      const [, formId, rowId] = delRowMatch;
+      const form = (await ctx.storage.forms.get(formId)) as StoredForm | null;
+      if (!form) return { blocks: await listPageBlocks(ctx) };
+      const next = deleteRow(form.rows, rowId);
+      if (!next) return renderEditor(formId, ctx, siteOrigin);
+      await ctx.storage.forms.put(formId, {
+        ...form,
+        rows: next,
+        updatedAt: new Date().toISOString(),
+      });
+      return {
+        ...(await renderEditor(formId, ctx, siteOrigin)),
+        toast: { message: "Row deleted.", type: "success" },
       };
     }
 
@@ -790,7 +983,18 @@ export const adminRoute = {
       };
     }
     if (actionId.startsWith("del_template:")) {
-      await deleteTemplateAndDetach(ctx, actionId.slice("del_template:".length));
+      const delId = actionId.slice("del_template:".length);
+      const delTpl = (await ctx.storage.templates.get(delId)) as StoredTemplate | null;
+      if (delTpl?.system) {
+        return {
+          blocks: await templatesPageBlocks(ctx),
+          toast: {
+            message: "Built-in templates can’t be deleted.",
+            type: "error",
+          },
+        };
+      }
+      await deleteTemplateAndDetach(ctx, delId);
       return {
         blocks: await templatesPageBlocks(ctx),
         toast: { message: "Template deleted", type: "success" },
@@ -833,6 +1037,15 @@ export const adminRoute = {
         return {
           blocks: await templatesPageBlocks(ctx),
           toast: { message: "Template not found", type: "error" },
+        };
+      }
+      if (existing.system) {
+        return {
+          blocks: await templatesPageBlocks(ctx),
+          toast: {
+            message: "Built-in templates can’t be edited. Duplicate one to customize.",
+            type: "error",
+          },
         };
       }
       await ctx.storage.templates.put(idPart, {

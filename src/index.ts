@@ -1,15 +1,16 @@
 import type { PluginDescriptor } from "emdash";
 
+/**
+ * Trusted / self-hosted descriptor — React DnD admin via `adminEntry`.
+ * Registry publishes still use `emdash-plugin.jsonc` + `./sandbox` (Block Kit).
+ */
 export function freeformPlugin(): PluginDescriptor {
   return {
     id: "freeform",
-    version: "0.1.4",
-    format: "standard",
-    entrypoint: "@local/freeform/sandbox",
-    // network:request:unrestricted is required for webhook delivery to
-    // arbitrary customer-supplied URLs. It implies network:request, so
-    // allowedHosts is removed — the Anthropic API is reachable under the
-    // broader capability.
+    version: "1.0.0",
+    format: "native",
+    entrypoint: "@local/freeform/native",
+    adminEntry: "@local/freeform/admin",
     capabilities: ["network:request:unrestricted", "email:send"],
     storage: {
       forms: { indexes: ["createdAt"] },
@@ -18,10 +19,11 @@ export function freeformPlugin(): PluginDescriptor {
       notification_assignments: { indexes: ["formId"] },
       webhooks: { indexes: ["createdAt"] },
     },
-    // One sidebar entry — section nav is inside the plugin (see freeformNavBlocks).
-    adminPages: [{ path: "/forms", label: "Freeform", icon: "form-input" }],
-    adminWidgets: [
-      { id: "stats", title: "Freeform", size: "third" },
+    adminPages: [
+      { path: "/forms", label: "Forms", icon: "form-input" },
+      { path: "/submissions", label: "Submissions", icon: "inbox" },
+      { path: "/settings", label: "Settings", icon: "settings" },
     ],
+    adminWidgets: [{ id: "stats", title: "Freeform", size: "third" }],
   };
 }

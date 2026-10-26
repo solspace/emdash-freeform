@@ -1,4 +1,5 @@
 import type { PluginContext } from "emdash";
+import { ensureDefaultTemplates } from "../lib/default-templates";
 import type { StoredTemplate } from "../types";
 import { freeformNavBlocks, pageHeader, shortDate } from "./layout";
 
@@ -6,18 +7,26 @@ export const TEMPLATE_VARIABLE_REFERENCE =
   "Variables: {{ form_name }}, {{ submission_id }}, {{ submitted_at }}, {{ all_fields }}, {{ field_handle }}";
 
 export async function templatesPageBlocks(ctx: PluginContext): Promise<object[]> {
+  await ensureDefaultTemplates(ctx);
   const { items } = await ctx.storage.templates.query({
     orderBy: { createdAt: "desc" },
   });
-  const templates = items as Array<{ id: string; data: StoredTemplate }>;
+  const templates = (items as Array<{ id: string; data: StoredTemplate }>).slice().sort(
+    (a, b) =>
+      Number(Boolean(b.data.system)) - Number(Boolean(a.data.system)) ||
+      a.data.name.localeCompare(b.data.name),
+  );
 
   if (templates.length === 0) {
     return [
-      ...freeformNavBlocks("templates"),
-      ...pageHeader("Templates"),
+      ...freeformNavBlocks("integrations"),
+      ...pageHeader(
+        "Integrations",
+        "Email notification templates. Webhooks live under Settings.",
+      ),
       {
         type: "empty",
-        title: "No templates yet",
+        title: "No email templates yet",
         description: TEMPLATE_VARIABLE_REFERENCE,
         size: "lg",
         actions: [
@@ -36,7 +45,10 @@ export async function templatesPageBlocks(ctx: PluginContext): Promise<object[]>
     {
       type: "fields",
       fields: [
-        { label: "Name", value: t.data.name },
+        {
+          label: "Name",
+          value: t.data.system ? `${t.data.name} (Built-in)` : t.data.name,
+        },
         { label: "Subject", value: t.data.subject || "—" },
         { label: "Format", value: t.data.format === "html" ? "HTML" : "Text" },
         { label: "Updated", value: shortDate(t.data.updatedAt) },
@@ -44,33 +56,45 @@ export async function templatesPageBlocks(ctx: PluginContext): Promise<object[]>
     },
     {
       type: "actions",
-      elements: [
-        {
-          type: "button",
-          label: "Edit",
-          action_id: `edit_template:${t.id}`,
-          style: "primary",
-        },
-        {
-          type: "button",
-          label: "Delete",
-          action_id: `del_template:${t.id}`,
-          style: "danger",
-          confirm: {
-            title: `Delete "${t.data.name}"?`,
-            text: "Forms using this template will stop sending this email.",
-            confirm: "Delete",
-            deny: "Cancel",
-          },
-        },
-      ],
+      elements: t.data.system
+        ? [
+            {
+              type: "button",
+              label: "View",
+              action_id: `edit_template:${t.id}`,
+              style: "primary",
+            },
+          ]
+        : [
+            {
+              type: "button",
+              label: "Edit",
+              action_id: `edit_template:${t.id}`,
+              style: "primary",
+            },
+            {
+              type: "button",
+              label: "Delete",
+              action_id: `del_template:${t.id}`,
+              style: "danger",
+              confirm: {
+                title: `Delete "${t.data.name}"?`,
+                text: "Forms using this template will stop sending this email.",
+                confirm: "Delete",
+                deny: "Cancel",
+              },
+            },
+          ],
     },
     { type: "divider" },
   ]);
 
   return [
-    ...freeformNavBlocks("templates"),
-    ...pageHeader("Templates", "Edit a template or create a new one."),
+    ...freeformNavBlocks("integrations"),
+    ...pageHeader(
+      "Integrations",
+      "Email notification templates. Webhooks live under Settings.",
+    ),
     {
       type: "actions",
       elements: [
@@ -101,7 +125,11 @@ export async function templateEditorBlocks(
       {
         type: "actions",
         elements: [
-          { type: "button", label: "Back to templates", action_id: "nav:templates" },
+          {
+            type: "button",
+            label: "Back to integrations",
+            action_id: "nav:integrations",
+          },
         ],
       },
     ];
@@ -116,13 +144,49 @@ export async function templateEditorBlocks(
     updatedAt: "",
   };
 
+  if (t?.system) {
+    return [
+      ...pageHeader(`Built-in: ${initial.name}`),
+      {
+        type: "banner",
+        title: "Read-only",
+        text: "Built-in templates can’t be edited or deleted. Create a new template to customize.",
+        variant: "info",
+      },
+      { type: "context", text: TEMPLATE_VARIABLE_REFERENCE },
+      {
+        type: "actions",
+        elements: [
+          {
+            type: "button",
+            label: "Back to integrations",
+            action_id: "nav:integrations",
+          },
+        ],
+      },
+      {
+        type: "fields",
+        fields: [
+          { label: "Name", value: initial.name },
+          { label: "Subject", value: initial.subject || "—" },
+          { label: "Format", value: initial.format === "html" ? "HTML" : "Text" },
+          { label: "Body", value: initial.body || "—" },
+        ],
+      },
+    ];
+  }
+
   return [
     ...pageHeader(templateId ? `Edit: ${initial.name}` : "New template"),
     { type: "context", text: TEMPLATE_VARIABLE_REFERENCE },
     {
       type: "actions",
       elements: [
-        { type: "button", label: "Back to templates", action_id: "nav:templates" },
+        {
+          type: "button",
+          label: "Back to integrations",
+          action_id: "nav:integrations",
+        },
       ],
     },
     {

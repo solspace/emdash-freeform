@@ -1,10 +1,14 @@
 import type { PluginContext } from "emdash";
 import { hasApiKey } from "../lib/ai-key";
-import { resolveFormCardGlyph } from "../lib/form-icons";
+import { resolveFormCardCategory } from "../lib/form-icons";
 
 export const FORMS_PER_ROW = 3;
 
-export type FreeformNavSection = "forms" | "submissions" | "templates" | "settings";
+export type FreeformNavSection =
+  | "forms"
+  | "submissions"
+  | "integrations"
+  | "settings";
 
 /** In-plugin section nav (one Plugins sidebar entry). */
 export function freeformNavBlocks(active: FreeformNavSection): object[] {
@@ -15,7 +19,11 @@ export function freeformNavBlocks(active: FreeformNavSection): object[] {
   }> = [
     { section: "forms", label: "Forms", action_id: "nav:forms" },
     { section: "submissions", label: "Submissions", action_id: "nav:submissions" },
-    { section: "templates", label: "Templates", action_id: "nav:templates" },
+    {
+      section: "integrations",
+      label: "Integrations",
+      action_id: "nav:integrations",
+    },
     { section: "settings", label: "Settings", action_id: "nav:settings" },
   ];
 
@@ -75,7 +83,7 @@ export function backToFormsButton(): object {
   };
 }
 
-/** Form editor top bar — back, submissions, plugin settings (once). */
+/** Form editor top bar — back, submissions, export, plugin settings. */
 export function editorTopActions(formId: string): object {
   return {
     type: "actions",
@@ -90,6 +98,18 @@ export function editorTopActions(formId: string): object {
         type: "button",
         label: "View submissions",
         action_id: `subs:${formId}`,
+        style: "secondary",
+      },
+      {
+        type: "button",
+        label: "Export JSON",
+        action_id: `export_form:${formId}`,
+        style: "secondary",
+      },
+      {
+        type: "button",
+        label: "Duplicate",
+        action_id: `dup_form:${formId}`,
         style: "secondary",
       },
       settingsNavButton(),
@@ -192,6 +212,13 @@ export async function formsPageHeader(ctx: PluginContext): Promise<object[]> {
     style: "secondary",
   };
 
+  const importButton = {
+    type: "button",
+    label: "Import JSON",
+    action_id: "import_form_show",
+    style: "secondary",
+  };
+
   const blocks: object[] = [
     {
       type: "section",
@@ -217,8 +244,9 @@ export async function formsPageHeader(ctx: PluginContext): Promise<object[]> {
               style: "primary",
             },
             createFormButton,
+            importButton,
           ]
-        : [createFormButton],
+        : [createFormButton, importButton],
     },
   ];
 
@@ -267,13 +295,12 @@ export function formCardColumnBlocks(
       ? "No submissions yet"
       : `${subCount} submission${subCount === 1 ? "" : "s"}`;
 
-  const meta = `${form.handle} · ${fieldCount} field${fieldCount === 1 ? "" : "s"} · Updated ${shortDate(form.updatedAt)}`;
-  const glyph = resolveFormCardGlyph(form);
+  const category = resolveFormCardCategory(form);
+  const meta = `${category} · ${form.handle} · ${fieldCount} field${fieldCount === 1 ? "" : "s"} · Updated ${shortDate(form.updatedAt)}`;
 
   return [
     {
       type: "empty",
-      icon: glyph,
       title: form.name,
       description: meta,
       size: "sm",
@@ -288,6 +315,12 @@ export function formCardColumnBlocks(
           type: "button",
           label: "Edit",
           action_id: `edit:${formId}`,
+          style: "secondary",
+        },
+        {
+          type: "button",
+          label: "Duplicate",
+          action_id: `dup_form:${formId}`,
           style: "secondary",
         },
         {

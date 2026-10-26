@@ -6,6 +6,9 @@
     "jsx": "react-jsx",
     "jsxImportSource": "react",
     "strict": true,
-    "skipLibCheck": true
-  }
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist", "packages"]
 }

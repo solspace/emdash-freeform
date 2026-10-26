@@ -1,11 +1,8 @@
-import { ALL_FIELD_TYPES } from "../../constants";
+import { fieldTypeSelectOptions } from "../../constants";
 import type { FormField, FormRow, StoredForm } from "../../types";
 
 function fieldTypeOptions() {
-  return ALL_FIELD_TYPES.map((t) => ({
-    label: t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-    value: t,
-  }));
+  return fieldTypeSelectOptions();
 }
 
 function validationFields(f?: FormField): object[] {

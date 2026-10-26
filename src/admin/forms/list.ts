@@ -3,10 +3,20 @@ import { ensureFormHandle } from "../../lib/form-handles";
 import { createFormAiModalBlocks, isCreateFormAiModalOpen } from "../create-form-ai";
 import { formGridBlocks, formsPageHeader, freeformNavBlocks } from "../layout";
 import type { StoredForm, StoredSubmission } from "../../types";
+import {
+  getListModal,
+  importFormModalBlocks,
+  newFormTemplateModalBlocks,
+} from "./list-modals";
 
 export async function listPageBlocks(ctx: PluginContext): Promise<object[]> {
   const showCreateAiModal = await isCreateFormAiModalOpen(ctx);
-  const createAiModal = showCreateAiModal ? createFormAiModalBlocks() : [];
+  const listModal = await getListModal(ctx);
+  const topModals: object[] = [];
+  if (showCreateAiModal) topModals.push(...createFormAiModalBlocks());
+  else if (listModal === "new_form") topModals.push(...newFormTemplateModalBlocks());
+  else if (listModal === "import_form") topModals.push(...importFormModalBlocks());
+
   const { items: forms } = await ctx.storage.forms.query({
     orderBy: { createdAt: "desc" },
   });
@@ -30,7 +40,7 @@ export async function listPageBlocks(ctx: PluginContext): Promise<object[]> {
     return [
       ...freeformNavBlocks("forms"),
       ...header,
-      ...createAiModal,
+      ...topModals,
       {
         type: "empty",
         title: "No forms yet",
@@ -43,7 +53,7 @@ export async function listPageBlocks(ctx: PluginContext): Promise<object[]> {
   return [
     ...freeformNavBlocks("forms"),
     ...header,
-    ...createAiModal,
+    ...topModals,
     ...formGridBlocks(formItems, subCountMap),
   ];
 }

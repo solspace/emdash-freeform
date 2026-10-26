@@ -1,4 +1,6 @@
 import type { PluginContext } from "emdash";
+import { ensureDefaultTemplates } from "./default-templates";
+import { ensureRetentionCronScheduled } from "./retention";
 import { uid } from "./handles";
 import type { StoredForm } from "../types";
 
@@ -16,6 +18,11 @@ import type { StoredForm } from "../types";
 // so the public routes need to seed lazily too. The KV-flag guard makes
 // every call after the first one effectively free (one KV read).
 export async function ensureDemoSeed(ctx: PluginContext): Promise<void> {
+  // Built-in email templates (Admin Notify, Submitter Receipt) — always ensure,
+  // even on installs that already have the Contact form seed flag.
+  await ensureDefaultTemplates(ctx);
+  await ensureRetentionCronScheduled(ctx);
+
   // Cheap guard: a single KV key marks the seed as already run for this
   // install, so we don't pay the storage query cost on every admin page load.
   const flag = await ctx.kv.get<string>("seed:contact_v1");
@@ -74,8 +81,25 @@ export async function ensureDemoSeed(ctx: PluginContext): Promise<void> {
           },
         ],
       },
+      {
+        id: uid(),
+        fields: [
+          {
+            id: uid(),
+            type: "consent",
+            label: "I agree to the privacy policy",
+            handle: "privacy_consent",
+            required: true,
+          },
+        ],
+      },
     ],
     successMessage: "Thanks for getting in touch. We'll be in contact shortly.",
+    privacy: {
+      notice: "We use your details only to respond to this enquiry.",
+      retentionDays: 90,
+      storeIp: false,
+    },
     createdAt: now,
     updatedAt: now,
   };

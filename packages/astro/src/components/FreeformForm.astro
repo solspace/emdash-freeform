@@ -45,6 +45,7 @@ interface FormField {
   // Per-field range (number/date)
   min?: number | string;
   max?: number | string;
+  privacyPolicyUrl?: string;
 }
 
 const asStringDefault = (v: string | string[] | undefined): string =>
@@ -68,6 +69,13 @@ interface FormData {
   rows: FormRow[];
   successMessage: string;
   csrfToken: string;
+  /** Default true when omitted. */
+  honeypotEnabled?: boolean;
+  captcha?: { provider: string; siteKey?: string };
+  privacy?: {
+    notice?: string;
+    privacyPolicyUrl?: string;
+  };
 }
 
 interface Props {
@@ -259,7 +267,8 @@ const agentActionLd = formData
                 );
               }
 
-              const isStandaloneCheckbox = field.type === "checkbox";
+              const isStandaloneCheckbox =
+                field.type === "checkbox" || field.type === "consent";
               const isOptionGroup =
                 field.type === "radio" || field.type === "checkbox_group";
               const showTopLabel = !isStandaloneCheckbox && !isOptionGroup;
@@ -401,23 +410,44 @@ const agentActionLd = formData
                         </div>
                       );
                     })()
-                  ) : field.type === "checkbox" ? (
+                  ) : field.type === "checkbox" || field.type === "consent" ? (
                     <label data-freeform-option data-freeform-option-single>
                       <input
                         id={`ff-${formId}-${field.handle}`}
                         type="checkbox"
                         name={field.handle}
                         value="true"
-                        required={field.required}
-                        checked={asStringDefault(field.defaultValue) === "true"}
+                        required={field.type === "consent" ? true : field.required}
+                        checked={
+                          field.type === "consent"
+                            ? false
+                            : asStringDefault(field.defaultValue) === "true"
+                        }
                       />
                       <span>
                         {field.label}
-                        {field.required && (
+                        {(field.type === "consent" || field.required) && (
                           <span data-freeform-required-mark aria-hidden="true">
                             {" "}
                             *
                           </span>
+                        )}
+                        {(field.privacyPolicyUrl ||
+                          formData.privacy?.privacyPolicyUrl) && (
+                          <>
+                            {" "}
+                            <a
+                              href={
+                                field.privacyPolicyUrl ||
+                                formData.privacy?.privacyPolicyUrl
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              data-freeform-privacy-link
+                            >
+                              Privacy policy
+                            </a>
+                          </>
                         )}
                       </span>
                     </label>
@@ -454,22 +484,53 @@ const agentActionLd = formData
         <input type="hidden" name="__ff_csrf" value={formData.csrfToken} />
 
         {/* Honeypot — visually hidden, still in DOM so bots fill it */}
-        <div
-          data-freeform-hp
-          aria-hidden="true"
-          style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"
-        >
-          <label>
-            Leave this field empty
-            <input
-              type="text"
-              name="__ff_hp_url"
-              tabindex={-1}
-              autocomplete="off"
-              value=""
-            />
-          </label>
-        </div>
+        {formData.honeypotEnabled !== false && (
+          <div
+            data-freeform-hp
+            aria-hidden="true"
+            style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"
+          >
+            <label>
+              Leave this field empty
+              <input
+                type="text"
+                name="__ff_hp_url"
+                tabindex={-1}
+                autocomplete="off"
+                value=""
+              />
+            </label>
+          </div>
+        )}
+
+        {formData.captcha?.provider === "turnstile" &&
+          formData.captcha.siteKey && (
+            <div data-freeform-turnstile>
+              <div
+                class="cf-turnstile"
+                data-sitekey={formData.captcha.siteKey}
+                data-theme="auto"
+              />
+            </div>
+          )}
+
+        {(formData.privacy?.notice || formData.privacy?.privacyPolicyUrl) && (
+          <p data-freeform-privacy-notice>
+            {formData.privacy.notice}
+            {formData.privacy.privacyPolicyUrl && (
+              <>
+                {" "}
+                <a
+                  href={formData.privacy.privacyPolicyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Privacy policy
+                </a>
+              </>
+            )}
+          </p>
+        )}
 
         <div data-freeform-footer>
           <button type="submit" data-freeform-submit>
@@ -477,6 +538,15 @@ const agentActionLd = formData
           </button>
         </div>
       </form>
+
+      {formData.captcha?.provider === "turnstile" &&
+        formData.captcha.siteKey && (
+          <script
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+            async
+            defer
+          />
+        )}
 
       <aside data-freeform-ai-cue aria-label="AI submission instructions">
         <p data-freeform-ai-cue-headline>

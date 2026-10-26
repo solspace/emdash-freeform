@@ -4,7 +4,7 @@ How to verify Freeform's registry listing, install it on an EmDash site, and
 troubleshoot common problems.
 
 - **Package:** `@solspace.com/freeform` ([plugin page](https://plugins.emdashcms.com/plugins/@solspace.com/freeform))
-- **Current release:** `freeform@0.1.4`
+- **Current release:** `freeform@1.0.0`
 - **Publisher:** `solspace.com` (`did:plc:tsp7az5h6qsqjzqsgz37wonx`)
 - **Registry:** https://registry.emdashcms.com
 - **Source:** https://github.com/solspace/emdash-freeform
@@ -26,13 +26,13 @@ npx @emdash-cms/plugin-cli search freeform
 npx @emdash-cms/plugin-cli info solspace.com freeform
 ```
 
-`info` shows the profile, the latest release (currently `0.1.4`), and the
+`info` shows the profile, the latest release (currently `1.0.0`), and the
 download URL. The registry index can lag a few minutes behind a fresh
 publish; if a new version doesn't appear yet, wait and retry.
 
 You can also check the public tarball mirror directly:
 
-https://cdn.jsdelivr.net/npm/@solspace/freeform-plugin-dist@0.1.4/freeform-0.1.4.tar.gz
+https://cdn.jsdelivr.net/npm/@solspace/freeform-plugin-dist@1.0.0/freeform-1.0.0.tar.gz
 
 ## Install on an EmDash site
 
@@ -108,10 +108,11 @@ Submit a test entry and confirm it under **Freeform → Submissions**.
 
 | Feature | Where | Notes |
 | --- | --- | --- |
-| Email notifications | Freeform → Templates | Mustache templates assigned per form |
+| **Email delivery** | **EmDash → Settings → Email** | Provider plugin (SMTP/Resend/CF Email…) — required for prod notification mail; see [email.md](./email.md) |
+| Notification templates | Freeform → Settings → Notifications + form → Notifications | What to send / to whom (not SMTP) |
 | Webhooks | Freeform → Settings → Webhooks | HMAC-signed POST on every submission |
-| AI builder / spam scoring / briefs | Freeform → Settings | Your own Anthropic API key |
-| CSV export | Freeform → Submissions | Signed, short-lived download links |
+| AI / spam scoring | Freeform → Settings → AI & spam | Your own OpenAI API key |
+| CSV export / delete | Freeform → Submissions | Access / erasure helpers |
 | AI chat widget | `<FreeformChat />` component | See `packages/astro/README.md` |
 | MCP server | `packages/mcp/` | Optional Worker for AI agents |
 
@@ -129,6 +130,7 @@ Submit a test entry and confirm it under **Freeform → Submissions**.
 | CLI finds Freeform but the admin doesn't | Site config | Add `registry:`, restart/redeploy |
 | Plugin installed but no public form | Missing Astro package | Install `@solspace/freeform-astro` and add `freeformAstro()` |
 | "Form not found" on a page | Wrong handle | Use the form **handle** from the admin (e.g. `contact`), not its internal ID |
+| Notification emails never arrive (prod) | No EmDash email provider | **Settings → Email** — select provider, send test; see [email.md](./email.md) |
 | Registry root URL shows an error in the browser | Expected — it's an API, not a website | Use the CLI commands above |
 
 ## Links
@@ -138,5 +140,5 @@ Submit a test entry and confirm it under **Freeform → Submissions**.
 | Source repository | https://github.com/solspace/emdash-freeform |
 | Plugin page | https://plugins.emdashcms.com/plugins/@solspace.com/freeform |
 | Astro package (npm) | https://www.npmjs.com/package/@solspace/freeform-astro |
-| Plugin tarball (CDN) | https://cdn.jsdelivr.net/npm/@solspace/freeform-plugin-dist@0.1.4/freeform-0.1.4.tar.gz |
+| Plugin tarball (CDN) | https://cdn.jsdelivr.net/npm/@solspace/freeform-plugin-dist@1.0.0/freeform-1.0.0.tar.gz |
 | EmDash CMS | https://emdashcms.com |

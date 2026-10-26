@@ -1,5 +1,12 @@
 import { PluginRouteError, type PluginContext } from "emdash";
 import {
+  clearOpenAiApiKey,
+  getOpenAiApiKey,
+  hasOpenAiKey,
+  setAiProvider,
+  setOpenAiApiKey,
+} from "../lib/ai-config";
+import {
   effectiveSpamSettings,
   getSpamSettings,
   setFormSpamOverride,
@@ -7,11 +14,79 @@ import {
 } from "../lib/spam-settings";
 import type { SpamSettings, StoredForm } from "../types";
 
+function maskKey(key: string | null): { configured: boolean; hint: string | null } {
+  if (!key) return { configured: false, hint: null };
+  const trimmed = key.trim();
+  if (trimmed.length < 8) return { configured: true, hint: "••••" };
+  return { configured: true, hint: `…${trimmed.slice(-4)}` };
+}
+
 export const settingsRoutes = {
   "get-settings": {
     handler: async (_routeCtx: any, ctx: PluginContext) => {
       const spam = await getSpamSettings(ctx);
-      return { spam };
+      const key = await getOpenAiApiKey(ctx);
+      return {
+        spam,
+        ai: {
+          provider: "openai" as const,
+          ...maskKey(key),
+        },
+      };
+    },
+  },
+
+  "get-ai-settings": {
+    handler: async (_routeCtx: any, ctx: PluginContext) => {
+      const spam = await getSpamSettings(ctx);
+      const key = await getOpenAiApiKey(ctx);
+      return {
+        provider: "openai" as const,
+        ...maskKey(key),
+        spam,
+      };
+    },
+  },
+
+  "save-ai-settings": {
+    handler: async (routeCtx: any, ctx: PluginContext) => {
+      const input = routeCtx.input as {
+        apiKey?: string;
+        clearKey?: boolean;
+        spamEnabled?: boolean;
+        spamThreshold?: number;
+      };
+
+      await setAiProvider(ctx, "openai");
+
+      if (input.clearKey) {
+        await clearOpenAiApiKey(ctx);
+      } else if (typeof input.apiKey === "string" && input.apiKey.trim()) {
+        await setOpenAiApiKey(ctx, input.apiKey.trim());
+      }
+
+      if (
+        typeof input.spamEnabled === "boolean" ||
+        typeof input.spamThreshold === "number"
+      ) {
+        await setSpamSettings(ctx, {
+          ...(typeof input.spamEnabled === "boolean"
+            ? { enabled: input.spamEnabled }
+            : {}),
+          ...(typeof input.spamThreshold === "number"
+            ? { threshold: input.spamThreshold }
+            : {}),
+        });
+      }
+
+      const key = await getOpenAiApiKey(ctx);
+      const spam = await getSpamSettings(ctx);
+      return {
+        provider: "openai" as const,
+        ...maskKey(key),
+        spam,
+        configured: await hasOpenAiKey(ctx),
+      };
     },
   },
 

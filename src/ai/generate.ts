@@ -18,6 +18,7 @@ import type {
   FieldOption,
   FieldType,
   FormField,
+  FormRow,
   StoredForm,
 } from "../types";
 
@@ -96,36 +97,12 @@ const OPTION_ITEM_SCHEMA = {
 } as const;
 
 const VALIDATION_SCHEMA_PROPS = {
-  minLength: {
-    oneOf: [{ type: "number" }, { type: "null" }],
-    description:
-      "Minimum character count. Applies to text, email, textarea, phone. Pass null to clear.",
-  },
-  maxLength: {
-    oneOf: [{ type: "number" }, { type: "null" }],
-    description:
-      "Maximum character count. Applies to text, email, textarea, phone. Pass null to clear.",
-  },
-  pattern: {
-    oneOf: [{ type: "string" }, { type: "null" }],
-    description:
-      "Regex validation pattern (HTML5 `pattern` attribute). Applies to text, email, textarea, phone. Pass null to clear.",
-  },
-  patternError: {
-    oneOf: [{ type: "string" }, { type: "null" }],
-    description:
-      "Message shown when the pattern does not match (rendered as HTML `title`). Applies to text, email, textarea, phone. Pass null to clear.",
-  },
-  min: {
-    oneOf: [{ type: "number" }, { type: "string" }, { type: "null" }],
-    description:
-      "Minimum value (number) or earliest allowed date in YYYY-MM-DD (date). Pass null to clear.",
-  },
-  max: {
-    oneOf: [{ type: "number" }, { type: "string" }, { type: "null" }],
-    description:
-      "Maximum value (number) or latest allowed date in YYYY-MM-DD (date). Pass null to clear.",
-  },
+  minLength: { oneOf: [{ type: "number" }, { type: "null" }], description: "Min chars; null clears." },
+  maxLength: { oneOf: [{ type: "number" }, { type: "null" }], description: "Max chars; null clears." },
+  pattern: { oneOf: [{ type: "string" }, { type: "null" }], description: "Regex; null clears." },
+  patternError: { oneOf: [{ type: "string" }, { type: "null" }], description: "Mismatch msg; null clears." },
+  min: { oneOf: [{ type: "number" }, { type: "string" }, { type: "null" }], description: "Min num/date; null clears." },
+  max: { oneOf: [{ type: "number" }, { type: "string" }, { type: "null" }], description: "Max num/date; null clears." },
 } as const;
 
 function buildFieldInputSchema(allowedTypes: readonly FieldType[]) {
@@ -134,32 +111,17 @@ function buildFieldInputSchema(allowedTypes: readonly FieldType[]) {
     required: ["type", "label"],
     properties: {
       type: { type: "string", enum: allowedTypes },
-      label: {
-        type: "string",
-        description:
-          "Human-readable label shown above the input. For `html`, this is an internal admin label only — not shown to users.",
-      },
-      handle: {
-        type: "string",
-        description: "snake_case identifier. Auto-derived from label if omitted.",
-      },
+      label: { type: "string", description: "Label (admin-only for html)." },
+      handle: { type: "string", description: "snake_case; from label if omitted." },
       required: { type: "boolean" },
-      placeholder: {
-        type: "string",
-        description: "Hint text inside the input. Not applicable to html or hidden.",
-      },
+      placeholder: { type: "string", description: "Hint (not html/hidden)." },
       options: {
         type: "array",
-        description:
-          "Required for radio, select, multi_select, checkbox_group (≥ 2 entries). Omit for all other types.",
+        description: "≥2 for option types.",
         items: OPTION_ITEM_SCHEMA,
       },
       defaultValue: {
-        description:
-          "Pre-filled value. String for single-value types; array for checkbox_group/multi_select. " +
-          "For `checkbox` (single), use 'true' to default-checked. " +
-          "For `html`, this IS the HTML content to render (not a default value). " +
-          "For `hidden`, this is the fixed value submitted with the form.",
+        description: "Prefill; checkbox 'true'; html=body; hidden=value.",
         oneOf: [
           { type: "string" },
           { type: "array", items: { type: "string" } },
@@ -213,11 +175,7 @@ export async function editFormWithAI(
     tool: {
       name: "apply_form_edits",
       description:
-        "Apply a batch of edits to the existing form. Each operation is one of: " +
-        "`add_row` (append a new row of one or more fields), " +
-        "`update_field` (change properties of an existing field referenced by handle), " +
-        "or `remove_field` (delete an existing field by handle). " +
-        "Use the minimum number of operations needed to satisfy the user's request.",
+        "Edit a form via add_row / update_field / remove_field. Prefer the fewest ops.",
       input_schema: {
         type: "object",
         required: applyFormMeta
@@ -226,15 +184,11 @@ export async function editFormWithAI(
         properties: {
           form_name: {
             type: "string",
-            description:
-              "Display name for the form (e.g. Contact Us, Job Application). " +
-              "Required when the form has no fields yet.",
+            description: "Form title. Required for empty forms.",
           },
           form_handle: {
             type: "string",
-            description:
-              "URL slug: lowercase snake_case, starts with a letter (e.g. contact_us). " +
-              "Required when the form has no fields yet. Must not collide with field handles.",
+            description: "snake_case slug (e.g. contact_us). Required for empty forms.",
           },
           operations: {
             type: "array",
@@ -249,29 +203,25 @@ export async function editFormWithAI(
                 fields: {
                   type: "array",
                   minItems: 1,
-                  maxItems: 4,
+                  maxItems: 2,
                   description:
-                    "For `add_row` only. Fields displayed side-by-side on the new row. " +
-                    "All field properties including validation are accepted here.",
+                    "add_row only: 1 field, or 2 related short fields. Never pair textarea/html/checkbox_group.",
                   items: FIELD_INPUT_SCHEMA,
                 },
                 handle: {
                   type: "string",
-                  description:
-                    "For `update_field` and `remove_field`: the handle of an EXISTING field listed in the form summary above.",
+                  description: "Existing field handle for update/remove.",
                 },
                 label: { type: "string" },
                 required: { type: "boolean" },
                 placeholder: { type: "string" },
                 options: {
                   type: "array",
-                  description:
-                    "For `update_field` on option-bearing types only: full replacement options array (≥ 2 entries). Only include when the user wants the choice list changed.",
+                  description: "Replace options (≥2) when user asks.",
                   items: OPTION_ITEM_SCHEMA,
                 },
                 defaultValue: {
-                  description:
-                    "For `update_field`: new default/content/value (same rules as add_row). Pass null to clear.",
+                  description: "New default; null clears.",
                   oneOf: [
                     { type: "string" },
                     { type: "array", items: { type: "string" } },
@@ -287,52 +237,22 @@ export async function editFormWithAI(
     },
     userMessage:
       (applyFormMeta
-        ? `You are creating a new form from the user's description. Set form_name and form_handle, then add fields.\n\n`
-        : `You are editing an existing form. Emit the minimum operations to satisfy the request.\n\n`) +
+        ? `Create a form from the description. Set form_name + form_handle, then add fields.\n\n`
+        : `Edit the form with the fewest operations.\n\n`) +
       formMetaHint +
       `Existing fields:\n${existingSummary}\n\n` +
-      `User request: "${description}"\n\n` +
-      `## Rules\n\n` +
+      `Request: "${description}"\n\n` +
+      `Rules:\n` +
       (applyFormMeta
-        ? `### Form metadata (required)\n` +
-          `- \`form_name\`: short title inferred from the request (not "New Form").\n` +
-          `- \`form_handle\`: unique snake_case slug from the name (e.g. contact_us, demo_request).\n\n`
-        : `### Form metadata\n` +
-          `- Omit \`form_name\` and \`form_handle\` unless the user explicitly asks to rename the form.\n\n`) +
-      `### Operations\n` +
-      `- \`add_row\` — append new fields in a new row. Each row can hold 1–4 fields side-by-side.\n` +
-      `- \`update_field\` — patch an existing field by its handle. Only include properties that should change; omit everything else.\n` +
-      `- \`remove_field\` — delete an existing field by its handle.\n` +
-      `- Never invent handles for update_field/remove_field. Only use handles from the "Existing fields" list.\n` +
-      `- Do not duplicate existing fields in add_row. Skip if already present.\n` +
-      `- Return an empty operations array if the request is already satisfied.\n\n` +
-      `### Field types\n` +
-      `Available: ${allowed.join(", ")}\n` +
-      `- \`text\` — single-line text input.\n` +
-      `- \`email\` — email input (validated by browser).\n` +
-      `- \`textarea\` — multi-line text.\n` +
-      `- \`number\` — numeric input. Use min/max for range constraints.\n` +
-      `- \`phone\` — telephone input (type="tel").\n` +
-      `- \`date\` — date picker (type="date"). Use min/max for YYYY-MM-DD bounds.\n` +
-      `- \`checkbox\` — a single yes/no toggle. defaultValue "true" = pre-checked.\n` +
-      `- \`checkbox_group\` — multi-pick checkboxes. REQUIRES options array (≥ 2).\n` +
-      `- \`radio\` — pick exactly one. REQUIRES options array (≥ 2).\n` +
-      `- \`select\` — dropdown, pick one. REQUIRES options array (≥ 2).\n` +
-      `- \`multi_select\` — dropdown, pick many. REQUIRES options array (≥ 2).\n` +
-      `- \`hidden\` — invisible field submitted with the form. No label shown to users. Set defaultValue to the fixed submitted value.\n` +
-      `- \`html\` — a static HTML content block inside the form (instructions, headings, copy). No user input. label is an internal admin name only. Set defaultValue to the raw HTML string to display.\n\n` +
-      `### Validation (applies to specific types)\n` +
-      `- \`minLength\` / \`maxLength\` — character limits. Apply to: text, email, textarea, phone.\n` +
-      `- \`pattern\` — HTML5 regex pattern. Apply to: text, email, textarea, phone.\n` +
-      `- \`patternError\` — message shown on pattern mismatch (browser title attribute). Apply to: text, email, textarea, phone.\n` +
-      `- \`min\` / \`max\` — numeric range for number fields; YYYY-MM-DD date bounds for date fields.\n` +
-      `- Pass \`null\` for any validation prop in \`update_field\` to clear an existing rule.\n` +
-      `- Only set validation props when the user requests them. Do not invent constraints.\n\n` +
-      `### Other rules\n` +
-      `- "Make only X required" → set required=true on X AND required=false on all other currently-required fields. One op per affected field.\n` +
-      `- For defaultValue: string for single-value types; array for checkbox_group/multi_select.\n` +
-      `- New handles (in add_row) must be unique snake_case, not colliding with any existing handle.\n` +
-      `- Only include "options" in update_field when the user explicitly wants the choice list replaced.\n`,
+        ? `- form_name: short title (not "New Form"). form_handle: unique snake_case.\n`
+        : `- Omit form_name/form_handle unless asked to rename.\n`) +
+      `- Ops: add_row (one visual row), update_field, remove_field. Empty ops if already done.\n` +
+      `- update/remove handles must exist above. No duplicate add_row handles.\n` +
+      `- Layout: separate add_row per row. Full-width alone: textarea, html, checkbox_group, consent.\n` +
+      `- Pair only related shorts (max 2): first+last, email+phone, city+state/zip, start+end dates. Else 1/row.\n` +
+      `- Types: ${allowed.join(", ")}. Option types need ≥2 options. hidden/html use defaultValue.\n` +
+      `- Validation only if asked (minLength/maxLength/pattern/min/max). null clears on update.\n` +
+      `- "Only X required" → set X required true and others false. New handles unique snake_case.\n`,
   });
 
   const operations = toolInput.operations;
@@ -341,13 +261,102 @@ export async function editFormWithAI(
   }
 
   const result = applyOps(existingForm, operations as AIOp[]);
-  const newForm = applyAiFormMeta(
+  let newForm = applyAiFormMeta(
     result.newForm,
     toolInput,
     description,
     applyFormMeta,
   );
+  // New forms (and fat single-row dumps) get a Craft-like multi-row reflow.
+  if (applyFormMeta || shouldReflowRows(newForm.rows)) {
+    newForm = { ...newForm, rows: reflowFormRows(newForm.rows) };
+  }
   return { newForm, summary: result.summary };
+}
+
+/** Types that should sit alone on a full-width row. */
+const FULL_WIDTH_TYPES = new Set<FieldType>([
+  "textarea",
+  "html",
+  "checkbox_group",
+  "hidden",
+]);
+
+function isFullWidthField(field: FormField): boolean {
+  if (FULL_WIDTH_TYPES.has(field.type)) return true;
+  if (field.type === "checkbox") return true;
+  if (field.type === "radio" && (field.options?.length ?? 0) >= 4) return true;
+  return false;
+}
+
+function isCompactField(field: FormField): boolean {
+  return !isFullWidthField(field);
+}
+
+/** Heuristic pairs that look good side-by-side. */
+function areNaturalPair(a: FormField, b: FormField): boolean {
+  const ha = a.handle.toLowerCase();
+  const hb = b.handle.toLowerCase();
+  const pair = (x: string, y: string) =>
+    (ha.includes(x) && hb.includes(y)) || (ha.includes(y) && hb.includes(x));
+
+  if (pair("first", "last")) return true;
+  if (pair("first_name", "last_name")) return true;
+  if (pair("email", "phone") || pair("email", "tel") || pair("email", "mobile"))
+    return true;
+  if (pair("city", "state") || pair("city", "zip") || pair("state", "zip") || pair("state", "postal"))
+    return true;
+  if (pair("start", "end")) return true;
+  if (a.type === "date" && b.type === "date") return true;
+  if (
+    (a.type === "text" || a.type === "number") &&
+    (b.type === "text" || b.type === "number" || b.type === "select")
+  ) {
+    // Short adjacent text-ish fields — allow pairing when labels are short.
+    return a.label.length <= 18 && b.label.length <= 18;
+  }
+  return false;
+}
+
+function shouldReflowRows(rows: FormRow[]): boolean {
+  if (rows.length === 0) return false;
+  // Single packed row with 3+ fields — AI dumped everything together.
+  if (rows.length === 1 && (rows[0]?.fields.length ?? 0) >= 3) return true;
+  // Any row wider than 2 compact fields.
+  return rows.some((r) => r.fields.length > 2);
+}
+
+/**
+ * Reflow fields into a nicer multi-row layout:
+ * full-width alone, natural pairs side-by-side, otherwise one per row.
+ */
+export function reflowFormRows(rows: FormRow[]): FormRow[] {
+  const fields = rows.flatMap((r) => r.fields);
+  if (fields.length === 0) return [];
+
+  const out: FormRow[] = [];
+  let i = 0;
+  while (i < fields.length) {
+    const field = fields[i]!;
+    const next = fields[i + 1];
+
+    if (isFullWidthField(field) || !next || !isCompactField(field) || !isCompactField(next)) {
+      out.push({ id: uid(), fields: [field] });
+      i += 1;
+      continue;
+    }
+
+    if (areNaturalPair(field, next)) {
+      out.push({ id: uid(), fields: [field, next] });
+      i += 2;
+      continue;
+    }
+
+    // Default: one field per row (cleaner than forcing pairs).
+    out.push({ id: uid(), fields: [field] });
+    i += 1;
+  }
+  return out;
 }
 
 function shouldApplyAiFormMeta(form: StoredForm, fieldCount: number): boolean {

@@ -50,13 +50,21 @@ export async function clearOpenAiApiKey(ctx: PluginContext): Promise<void> {
   await ctx.kv.delete(OPENAI_KV);
 }
 
-/** Active provider's API key, or null if that provider has no key. */
+/**
+ * Active credentials for AI features.
+ * 1.0 UI is OpenAI-first: prefer an OpenAI key whenever one is stored.
+ * Anthropic still works if only that key exists (legacy Block Kit installs).
+ */
 export async function getAiCredentials(ctx: PluginContext): Promise<AiCredentials | null> {
+  const openai = await getOpenAiApiKey(ctx);
+  if (openai) return { provider: "openai", apiKey: openai };
+
   const provider = await getAiProvider(ctx);
-  const apiKey =
-    provider === "openai" ? await getOpenAiApiKey(ctx) : await getAnthropicApiKey(ctx);
-  if (!apiKey) return null;
-  return { provider, apiKey };
+  if (provider === "anthropic") {
+    const anthropic = await getAnthropicApiKey(ctx);
+    if (anthropic) return { provider: "anthropic", apiKey: anthropic };
+  }
+  return null;
 }
 
 export async function hasApiKey(ctx: PluginContext): Promise<boolean> {

@@ -14,7 +14,40 @@ export const ALL_FIELD_TYPES: FieldType[] = [
   "date",
   "hidden",
   "html",
+  "consent",
 ];
+
+/** Grouped labels for the add-field palette (Block Kit select has no optgroups). */
+export const FIELD_TYPE_GROUPS: Array<{
+  group: string;
+  types: FieldType[];
+}> = [
+  {
+    group: "Basic",
+    types: ["text", "email", "textarea", "number", "phone", "date"],
+  },
+  {
+    group: "Choice",
+    types: ["checkbox", "checkbox_group", "radio", "select", "multi_select"],
+  },
+  {
+    group: "Privacy",
+    types: ["consent"],
+  },
+  {
+    group: "Advanced",
+    types: ["hidden", "html"],
+  },
+];
+
+export function fieldTypeSelectOptions(): Array<{ label: string; value: string }> {
+  return FIELD_TYPE_GROUPS.flatMap(({ group, types }) =>
+    types.map((t) => ({
+      value: t,
+      label: `${group} · ${t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}`,
+    })),
+  );
+}
 
 // Field types that accept per-field length/pattern validation.
 export const TEXT_VALIDATION_TYPES: FieldType[] = [

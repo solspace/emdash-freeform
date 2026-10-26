@@ -1,82 +1,115 @@
 # Freeform Roadmap
 
 Freeform is a form builder plugin for EmDash, modeled on the feature set of
-[Solspace Freeform for Craft CMS](https://plugins.craftcms.com/freeform),
-adapted to EmDash's sandboxed plugin platform (Block Kit admin UI — no
-custom JavaScript in the admin).
+[Solspace Freeform for Craft CMS](https://plugins.craftcms.com/freeform).
 
-**Current release:** `0.1.4` — see the [changelog](../CHANGELOG.md).
+**Current release:** `1.0.0` — see the [changelog](../CHANGELOG.md).
+
+## Distribution strategy (decided 2026-10-25)
+
+| Surface | Admin UI | Format | Notes |
+| --- | --- | --- | --- |
+| **Trusted / self-hosted** (`plugins: [freeformPlugin()]`) | **React + `@dnd-kit`** drag-and-drop builder | `native` | Hero UX for demos & marketing screenshots |
+| **Registry / sandboxed** | Block Kit (buttons, no custom JS) | `standard` | Stays marketplace-eligible |
+
+## 1.0 status
+
+**Shipped in `1.0.0`.** Post-1.0 work is under [Later](#later-post-10).
+
+### Explicitly deferred past 1.0
+
+- Anthropic (and other) providers in the React Settings UI (OpenAI-first for 1.0)
+- Full integrations CRM wave, Stripe, multi-step, file uploads, conditional logic
+- Duplicate form; import / export form JSON; marketing screenshot pack
 
 ## Shipped
 
-- Form builder with 13 field types, row layout, and per-field validation
-- AI form builder (plain-English prompt → form), AI submission briefs
-- Submissions inbox with pagination, detail view, and CSV export
-- Email notifications with Mustache templates and per-form assignments
-- Signed webhooks (HMAC-SHA256) with retries and a delivery log
-- Spam protection: honeypot, CSRF tokens, AI spam scoring with thresholds
-- Companion packages: `@solspace/freeform-astro` (routes + components) and an
-  MCP server (25 tools) for AI agents
+- Form builder with 13+ field types (incl. consent), row layout, and per-field validation
+- React admin shell with Forms · Submissions · Settings (+ Freeform icon / brand color)
+- Native DnD builder: Layout · Notifications · Protection; starter templates
+- Submissions inbox (detail, CSV export, hard delete, spam score when present)
+- Email templates CRUD + built-ins; per-form notification attachments
+- Signed webhooks (HMAC-SHA256) with React UI, retries, and delivery log
+- Honeypot + Turnstile + CSRF on public submit
+- EU / privacy: consent evidence, notice, retention cron, opt-in IP
+- OpenAI AI generate / spam / brief (Settings)
+- Companion packages: `@solspace/freeform-astro` and MCP server
 - Published on the EmDash plugin registry as `@solspace.com/freeform`
 
-## Path to 1.0
+## Path to 1.0 — checklist
 
-### Product identity
+### Form builder
 
-- [x] Official Freeform icon and registry listing (description, keywords, docs sections)
-- [ ] Banner and admin screenshots for the registry listing
-- [ ] Replace emoji form-card markers with a cleaner treatment
+- [x] Native React DnD palette → canvas → property editor
+- [x] Starter templates on create
+- [x] Top nav on every Freeform page
+- [x] Builder tabs: **Layout · Notifications · Protection**
+- [ ] Duplicate form; import / export form JSON (React UI)
+- [ ] Marketing screenshots from React builder
 
-### Builder v2 (Block Kit-max)
+### Notifications (1.0)
 
-- [ ] Separate admin sections: Forms · Submissions · Integrations · Settings
-- [ ] Field reorder (move up/down), duplicate field, duplicate/delete rows
-- [ ] Grouped field palette and a starter template library (Contact, Job
-  Application, Event RSVP, Survey, Support Ticket, …)
-- [ ] Duplicate form, import/export form JSON
+- [x] Settings → **Email templates** CRUD (React)
+- [x] Built-in **Admin Notify** + **Submitter Receipt** (locked; duplicate to edit)
+- [x] Form builder → **Notifications** tab (attach / enable / remove)
+- [x] Backend routes already exist (`list-templates`, `attach-notification`, …)
 
-### Fields v2
+### Webhooks (1.0)
 
-Modeled on the Craft Freeform field catalogue. Priority additions:
-`website`, `datetime`, `rating`, opinion scale, range, password +
-confirmation, table, group, calculation — plus per-field help text and
-field widths.
+- [x] Backend signed deliveries + retry queue + delivery log
+- [x] Settings → **Webhooks** tab (React): create, pause, rotate secret, log
+- [x] Settings sub-nav: Notifications · Webhooks · AI & spam
 
-- [ ] Conditional logic (show/hide fields based on other fields)
-- [ ] Multi-step forms (page breaks with progress)
-- [ ] File upload (pending a sandbox-safe media path — see Limitations)
+### Protection / captcha (1.0)
 
-### Spam v2
+- [x] Honeypot on public submit
+- [x] Form builder → **Protection** tab (Turnstile site/secret keys)
+- [x] Verify Turnstile on submit when configured
+- [x] Render Turnstile widget on public forms when configured
+- [ ] Later: reCAPTCHA / hCaptcha / Friendly Captcha
 
-- [ ] Captchas: Cloudflare Turnstile, then reCAPTCHA / hCaptcha / Friendly Captcha
-- [ ] IP, email-domain, and keyword blocklists; minimum fill time
-- [ ] Spam review queue (approve / reject / mark as spam)
+### AI (1.0 — OpenAI only)
 
-### Integrations
+- [x] Settings → **AI & spam**: OpenAI API key + global spam threshold
+- [x] Forms → **Generate with AI**
+- [x] Submit pipeline: spam score + brief when key present (existing backend)
+- [ ] Later: Anthropic in React UI; per-form spam override UI
 
-Generalize notifications into per-form integration actions with field
-mapping, test sends, and delivery logs. Waves:
+### EU / privacy (1.0)
 
-1. Slack, Zapier/generic webhooks, Mailchimp, HubSpot, Google Sheets
-2. Salesforce, Pipedrive, Klaviyo/Brevo, create EmDash entries from submissions
-3. Stripe payments (stretch)
+- [x] **Consent** field type (required, never pre-checked, evidence on submission)
+- [x] Per-form privacy notice + policy URL on public form
+- [x] Per-form retention + daily hard-delete cron
+- [x] Store IP opt-in (default off)
+- [x] Submissions: detail drawer, CSV export, hard delete
+- [x] Docs: [privacy.md](./privacy.md)
 
-### Submissions inbox
+### Submissions
 
-- [ ] Search and filters, unread/starred status, bulk actions
-- [ ] Resend notification, export selected, retention/auto-delete, GDPR tools
-
-### Frontend polish (`packages/astro`)
-
-- [ ] Optional light/dark themes (components stay unstyled by default)
-- [ ] Inline validation UX, multi-step progress, accessibility audit
+- [x] List with preview + search
+- [x] Detail view in React (export / delete)
+- [x] CSV export (prepare-export + download)
 
 ### 1.0 release
 
-- [ ] Fresh listing screenshots, docs pass, publish `1.0.0`
+- [x] Publish `1.0.0`
+- [ ] Marketing screenshots / docs polish (ongoing)
+
+## Later (post-1.0)
+
+### Fields v2
+
+`website`, `datetime`, `rating`, opinion scale, range, password + confirmation,
+table, group, calculation; conditional logic; multi-step; file upload.
+
+### Integrations
+
+Slack, Zapier, Mailchimp, HubSpot, Sheets → CRM → Stripe (stretch).
+
+### Frontend (`packages/astro`)
+
+Optional themes, inline validation UX, a11y audit.
 
 ## Platform constraints
 
-Some roadmap items depend on EmDash platform capabilities (for example,
-raw `Response` returns from plugin routes). These are tracked in
-[Known limitations](LIMITATIONS.md).
+See [Known limitations](LIMITATIONS.md).

@@ -63,8 +63,9 @@ This injects the public routes (`/api/freeform/submit`, `/.well-known/freeform.j
 ### 4. Create and embed a form
 
 1. Admin → **Freeform** → **New form** — set a name and a **handle** (e.g. `contact`)
-2. Add fields manually, or use the AI builder (needs an Anthropic API key, step below)
-3. Embed it anywhere:
+2. Add fields manually, or use **Generate with AI** (needs an OpenAI API key under Freeform → Settings → AI & spam)
+3. For email notifications in production, configure EmDash **Settings → Email** first — see [Email & notifications](docs/email.md)
+4. Embed it anywhere:
 
 ```astro
 ---
@@ -87,21 +88,22 @@ Submit a test entry, then check **Freeform → Submissions** in the admin.
 ## Features
 
 - **Form builder** — 13 field types (text, email, textarea, number, phone, date, checkbox, checkbox groups, radio, select, multi-select, hidden, HTML), row layout, per-field validation
-- **AI builder** — describe a form in plain English and Freeform creates it (optional, bring your own Anthropic key)
-- **Submissions inbox** — paginated admin view, full detail, AI-generated brief per submission, CSV export
-- **Email notifications** — Mustache templates assigned per form, sent to the submitter or a fixed address
+- **AI builder** — describe a form in plain English (optional, bring your own OpenAI key)
+- **Submissions inbox** — list + detail, AI brief when configured, CSV export / hard delete
+- **Email notifications** — Mustache templates; delivery via EmDash’s email provider (not IMAP/SMTP inside Freeform)
 - **Webhooks** — HMAC-signed `POST` on every submission, automatic retries, delivery log
-- **Spam protection** — honeypot + signed CSRF tokens on every form, optional AI spam scoring with per-form thresholds
-- **MCP server** — 25 tools so AI agents (Claude, Cursor, …) can manage forms and read submissions
+- **Spam / privacy** — honeypot, CSRF, optional Turnstile + AI spam scoring; consent field, retention, privacy notice
+- **MCP server** — tools so AI agents can manage forms and read submissions
 
 ## Configuration
 
 | Area | Where | Notes |
 | --- | --- | --- |
-| AI builder, spam scoring, briefs | Freeform → Settings | Requires an [Anthropic](https://console.anthropic.com/) API key, stored in your site |
-| Email notifications | Freeform → Templates + form settings | Mustache templates; recipient = submitter field or custom address |
+| **Email delivery (SMTP / Resend / etc.)** | **EmDash → Settings → Email** | Required for real notification mail in production — [docs/email.md](docs/email.md) |
+| Notification templates & recipients | Freeform → Settings → Notifications + form → Notifications | What to send and to whom |
+| AI builder, spam scoring, briefs | Freeform → Settings → AI & spam | OpenAI API key, stored in your site |
 | Webhooks | Freeform → Settings → Webhooks | Signed with HMAC-SHA256 — see [Webhooks](#webhooks) |
-| CSV export | Freeform → Submissions | Signed, short-lived download links |
+| CSV export / delete | Freeform → Submissions | Access / erasure helpers |
 
 ## Webhooks
 
@@ -139,23 +141,34 @@ crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(req.headers["x-freefor
 
 ## Email notifications
 
-Templates use [Mustache](https://mustache.github.io/) syntax: `{{ form_name }}`, `{{ submission_id }}`, `{{ submitted_at }}`, `{{ all_fields }}`, plus any field by handle (`{{ email }}`). Assign a template to a form and choose the recipient — the submitter's email field, or a fixed address. Notifications are skipped for submissions flagged as spam.
+Freeform does **not** ask for IMAP, POP3, or SMTP credentials. Delivery is
+handled by EmDash’s email provider (Settings → Email). Full setup, dev console
+provider, and troubleshooting: **[Email & notifications](docs/email.md)**.
+
+Templates use a Mustache subset: `{{form_name}}`, `{{submission_id}}`,
+`{{submitted_at}}`, `{{all_fields}}`, plus any field by handle (`{{email}}`).
+Assign a template on the form’s **Notifications** tab (submitter field or
+custom address). Notifications are skipped for submissions flagged as spam.
 
 ## AI features
 
-All AI features are optional and use **your own** Anthropic API key (Freeform → Settings; stored in your site's plugin storage, never sent to Solspace):
+Optional; use **your own** [OpenAI](https://platform.openai.com/api-keys) API
+key under Freeform → Settings → AI & spam (stored in your site, never sent to
+Solspace):
 
-- **Form generation** — plain-English prompt → ready-made form
-- **Submission brief** — intent, urgency, key facts, suggested next action per submission
-- **Spam scoring** — 0–10 score with reason, stored on each submission
-- **AI chat widget** — the `FreeformChat` component submits through the same pipeline
+- **Generate with AI** — plain-English prompt → form (button only shows when a key is saved)
+- **Submission brief** — intent, urgency, key facts, suggested next action
+- **Spam scoring** — 0–10 score with reason; threshold skips notification emails
+- **AI chat widget** — `FreeformChat` submits through the same pipeline
 
 ## MCP server
 
-`packages/mcp/` is a standalone Cloudflare Worker exposing 25 MCP tools to AI agents. See its [README](packages/mcp/README.md) for deployment, and [docs/MCP-SETUP.md](docs/MCP-SETUP.md) for the local Claude Desktop setup.
+`packages/mcp/` is a standalone Cloudflare Worker exposing MCP tools to AI agents. See its [README](packages/mcp/README.md) for deployment, and [docs/MCP-SETUP.md](docs/MCP-SETUP.md) for the local Claude Desktop setup.
 
 ## Documentation
 
+- [Email & notifications](docs/email.md) — EmDash provider setup (required for prod mail)
+- [Privacy / GDPR tooling](docs/privacy.md) — consent, retention, export/delete
 - [Registry guide](docs/REGISTRY-GUIDE.md) — verify the publish, install, update, troubleshoot
 - [Roadmap](docs/ROADMAP.md) — what's built and what's next
 - [Known limitations](docs/LIMITATIONS.md) — current constraints and EmDash feature requests

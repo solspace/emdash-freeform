@@ -24,20 +24,17 @@ export async function scoreSubmissionWithAI(
       tier: "fast",
       tool: {
         name: "score_spam",
-        description:
-          "Score a form submission for spam likelihood on a 0-10 scale where 0 is clearly legitimate and 10 is clearly spam (gibberish, link-stuffing, scam offers, irrelevant marketing, abusive language, etc.).",
+        description: "Spam score 0–10 (0=legit, 10=spam).",
         input_schema: {
           type: "object",
           required: ["score", "reason"],
           properties: {
             score: { type: "integer", minimum: 0, maximum: 10 },
-            reason: { type: "string", description: "Brief explanation (< 1 sentence)" },
+            reason: { type: "string", description: "One sentence." },
           },
         },
       },
-      userMessage:
-        `Form "${formName}" received this submission. Score the spam likelihood and explain briefly.\n\n` +
-        payload,
+      userMessage: `Form "${formName}" submission — score spam:\n\n` + payload,
     });
 
     const score = toolInput.score;
