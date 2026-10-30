@@ -18,7 +18,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- `@solspace/freeform-astro` **0.2.0** — streamlined form rendering (no prompt cue text) and Cloudflare Workers `SELF` service binding support for same-origin SSR fetches
+- `@solspace/freeform-astro` **1.1.0** — streamlined form rendering (no prompt cue text) and Cloudflare Workers `SELF` service binding support for same-origin SSR fetches
 
 ## [1.0.1] — 2026-10-26
 
