@@ -4,6 +4,8 @@ Build forms, collect submissions, and act on them — without leaving EmDash.
 
 **Form builder**
 
+![Freeform Form Builder](https://raw.githubusercontent.com/solspace/emdash-freeform/main/screenshots/form-builder.jpg)
+
 - 13 field types: text, email, textarea, number, phone, date, checkboxes, radio, dropdowns, multi-select, hidden, and HTML blocks
 - Row-based layout with per-field validation (length, pattern, min/max)
 - An AI builder that creates and edits forms from a plain-English description
@@ -11,11 +13,15 @@ Build forms, collect submissions, and act on them — without leaving EmDash.
 
 **Submissions**
 
+![Freeform Forms Dashboard](https://raw.githubusercontent.com/solspace/emdash-freeform/main/screenshots/forms-dashboard.jpg)
+
 - A searchable submissions inbox with pagination and full detail views
 - AI submission briefs: intent, urgency, key facts, and a suggested next action
 - CSV export for spreadsheets and reporting
 
 **Automation & protection**
+
+![Freeform Email Templates and Settings](https://raw.githubusercontent.com/solspace/emdash-freeform/main/screenshots/email-templates.jpg)
 
 - Email notifications with reusable templates (delivery via EmDash’s email provider — Settings → Email)
 - Privacy tooling: consent fields, retention auto-delete, export/delete submissions

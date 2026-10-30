@@ -22,7 +22,12 @@
 			"env:emdash": ">=1.0.0"
 		},
 		"artifacts": {
-			"icon": { "file": "icon.png" }
+			"icon": { "file": "icon.png" },
+			"screenshots": [
+				{ "file": "screenshots/form-builder.jpg" },
+				{ "file": "screenshots/forms-dashboard.jpg" },
+				{ "file": "screenshots/email-templates.jpg" }
+			]
 		}
 	},
 

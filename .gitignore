@@ -87,6 +87,7 @@ data.db*
 .vscode/*
 !.vscode/extensions.json
 !.vscode/mcp.json
+.mcp.json
 
 # Screenshots staging (oversized; properly resized ones go in screenshots/)
 freeform/.screenshots-staging/

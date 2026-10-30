@@ -10,6 +10,15 @@ Freeform is published on the EmDash plugin registry as `@solspace.com/freeform` 
 | **[@solspace/freeform-astro](https://www.npmjs.com/package/@solspace/freeform-astro)** (`packages/astro`) | Astro integration — public form routes + `FreeformForm` / `FreeformChat` components |
 | **MCP server** (`packages/mcp`) | Optional Cloudflare Worker exposing Freeform to AI agents |
 
+<p align="center">
+  <img src="screenshots/form-builder.jpg" alt="Freeform Visual Form Builder" width="100%">
+</p>
+
+<p align="center">
+  <img src="screenshots/forms-dashboard.jpg" alt="Freeform Forms Dashboard" width="49%">
+  <img src="screenshots/email-templates.jpg" alt="Freeform Settings & Notifications" width="49%">
+</p>
+
 ## Requirements
 
 - EmDash **≥ 1.0** site (Astro 6+, server output)
