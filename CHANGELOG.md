@@ -7,6 +7,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.2.0] — 2026-10-30
+
+### Added
+
+- **EmDash 1.4+ support** — verified compatibility and compiled with EmDash `1.4.0` and `@emdash-cms/admin` `1.4.0`
+- **Marketplace screenshots & media artifacts** — high-resolution UI screenshots bundled into release artifacts and embedded in registry description
+- **Production demo updates** — dark mode showcase gallery, clean form card layouts, click-to-open nav menu, and direct documentation links
+
 ## [1.1.1] — 2026-10-30
 
 ### Added
