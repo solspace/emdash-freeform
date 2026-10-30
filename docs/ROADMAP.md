@@ -3,7 +3,7 @@
 Freeform is a form builder plugin for EmDash, modeled on the feature set of
 [Solspace Freeform for Craft CMS](https://plugins.craftcms.com/freeform).
 
-**Current release:** `1.0.1` — see the [changelog](../CHANGELOG.md).
+**Current release:** `1.1.0` — see the [changelog](../CHANGELOG.md).
 
 ## Distribution strategy (decided 2026-10-25)
 
@@ -29,11 +29,13 @@ Freeform is a form builder plugin for EmDash, modeled on the feature set of
 - Native DnD builder: Layout · Notifications · Protection; starter templates
 - Submissions inbox (detail, CSV export, hard delete, spam score when present)
 - Email templates CRUD + built-ins; per-form notification attachments
-- Signed webhooks (HMAC-SHA256) with React UI, retries, and delivery log
+- Email providers in Settings (SMTP, Resend, SendGrid, Postmark, webhook)
+- Form builder field options editor, live preview cards, field icons
+- Signed webhooks (HMAC-SHA256) with React UI, secret rotation, retries, delivery log
 - Honeypot + Turnstile + CSRF on public submit
 - EU / privacy: consent evidence, notice, retention cron, opt-in IP
 - OpenAI AI generate / spam / brief (Settings)
-- Companion packages: `@solspace/freeform-astro` and MCP server
+- Companion packages: `@solspace/freeform-astro` (Workers `SELF` fetch) and MCP server
 - Published on the EmDash plugin registry as `@solspace.com/freeform`
 
 ## Path to 1.0 — checklist

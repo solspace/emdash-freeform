@@ -1,7 +1,7 @@
 import type { PluginContext } from "emdash";
 import type { StoredForm, StoredSubmission } from "../types";
 
-const RETENTION_CRON = "submissions:retention";
+const RETENTION_CRON = "submissions_retention";
 
 /**
  * Hard-delete submissions older than each form’s privacy.retentionDays.

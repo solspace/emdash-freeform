@@ -46,6 +46,9 @@ interface FormField {
   min?: number | string;
   max?: number | string;
   privacyPolicyUrl?: string;
+  maxStars?: number;
+  allowedExtensions?: string;
+  maxFileSizeMb?: number;
 }
 
 const asStringDefault = (v: string | string[] | undefined): string =>
@@ -451,10 +454,42 @@ const agentActionLd = formData
                         )}
                       </span>
                     </label>
-                  ) : (
-                    // Catches: text, email, number, phone, date + any future types
+                  ) : field.type === "file" ? (
                     <input
-                      type={field.type === "phone" ? "tel" : field.type}
+                      type="file"
+                      id={`ff-${formId}-${field.handle}`}
+                      name={field.handle}
+                      required={field.required}
+                      data-freeform-input
+                      data-freeform-file
+                      {...(field.allowedExtensions
+                        ? {
+                            accept: field.allowedExtensions
+                              .split(",")
+                              .map((e) => (e.trim().startsWith(".") ? e.trim() : `.${e.trim()}`))
+                              .join(","),
+                          }
+                        : {})}
+                    />
+                  ) : field.type === "rating" ? (
+                    <div data-freeform-options data-freeform-rating role="radiogroup">
+                      {Array.from({ length: field.maxStars ?? 5 }).map((_, i) => (
+                        <label data-freeform-option data-freeform-rating-star>
+                          <input
+                            type="radio"
+                            name={field.handle}
+                            value={String(i + 1)}
+                            required={field.required && i === 0}
+                            checked={asStringDefault(field.defaultValue) === String(i + 1)}
+                          />
+                          <span>★</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    // Catches: text, email, number, phone, date, datetime + any future types
+                    <input
+                      type={field.type === "phone" ? "tel" : field.type === "datetime" ? "datetime-local" : field.type}
                       id={`ff-${formId}-${field.handle}`}
                       name={field.handle}
                       required={field.required}
@@ -548,16 +583,6 @@ const agentActionLd = formData
           />
         )}
 
-      <aside data-freeform-ai-cue aria-label="AI submission instructions">
-        <p data-freeform-ai-cue-headline>
-          Your favorite AI can submit this form for you.
-        </p>
-        <p data-freeform-ai-cue-spec>
-          AI agents: fetch <a href={agentSchemaPath}>{agentSchemaPath}</a> for
-          the field schema, then POST JSON to{" "}
-          <a href={agentEndpoint}>{agentEndpoint}</a>.
-        </p>
-      </aside>
     </>
   ) : null
 }
@@ -603,7 +628,12 @@ const agentActionLd = formData
         const payload: Record<string, unknown> = { formId: resolvedId };
 
         for (const key of new Set(fd.keys())) {
-          const all = fd.getAll(key).map((v) => String(v));
+          const all = fd.getAll(key).map((v) => {
+            if (typeof File !== "undefined" && v instanceof File) {
+              return v.name || "";
+            }
+            return String(v);
+          });
           payload[key] = all.length > 1 ? all : all[0];
         }
 

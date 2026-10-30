@@ -28,7 +28,7 @@ export function FormsPage() {
   }, [refresh]);
 
   return (
-    <FreeformShell section="forms">
+    <FreeformShell section="forms" hideNav={Boolean(editingId)}>
       {editingId ? (
         <FormBuilder
           formId={editingId}

@@ -1,27 +1,32 @@
 import { useEffect, useState } from "react";
 import { AiSettingsPanel } from "./AiSettingsPanel";
+import { EmailProviderPanel } from "./EmailProviderPanel";
 import { EmailTemplatesPanel } from "./EmailTemplatesPanel";
 import { FreeformShell } from "./FreeformShell";
 import { WebhooksPanel } from "./WebhooksPanel";
 import "./styles.css";
 
-type SettingsTab = "notifications" | "webhooks" | "ai";
+type SettingsTab = "email" | "templates" | "webhooks" | "ai";
 
 const TABS: Array<{ id: SettingsTab; label: string }> = [
-  { id: "notifications", label: "Notifications" },
+  { id: "email", label: "Email Delivery" },
+  { id: "templates", label: "Email Templates" },
   { id: "webhooks", label: "Webhooks" },
   { id: "ai", label: "AI & spam" },
 ];
 
 function tabFromHash(): SettingsTab {
   const raw = (window.location.hash || "").replace(/^#/, "").toLowerCase();
-  if (raw === "webhooks" || raw === "ai" || raw === "notifications") return raw;
-  return "notifications";
+  if (raw === "email" || raw === "templates" || raw === "webhooks" || raw === "ai") {
+    return raw;
+  }
+  if (raw === "notifications") return "templates";
+  return "email";
 }
 
 export function SettingsPage() {
   const [tab, setTab] = useState<SettingsTab>(() =>
-    typeof window !== "undefined" ? tabFromHash() : "notifications",
+    typeof window !== "undefined" ? tabFromHash() : "email",
   );
   const [toast, setToast] = useState<string | null>(null);
 
@@ -40,42 +45,57 @@ export function SettingsPage() {
 
   const showToast = (msg: string) => {
     setToast(msg);
-    window.setTimeout(() => setToast(null), 2000);
+    window.setTimeout(() => setToast(null), 2500);
   };
 
   return (
     <FreeformShell section="settings">
-      <div className="ff-header">
+      <div className="space-y-6">
         <div>
-          <h1>Settings</h1>
-          <p>Email templates, webhooks, and plugin defaults.</p>
+          <h1 className="text-2xl font-semibold leading-tight text-kumo-strong">
+            Settings
+          </h1>
+          <p className="text-sm text-kumo-subtle mt-1">
+            Manage your email delivery credentials, notification templates, webhooks, and AI spam protection.
+          </p>
         </div>
+
+        <div className="border-b border-kumo-line" role="tablist">
+          <nav className="flex space-x-6 -mb-px" aria-label="Settings sections">
+            {TABS.map((t) => {
+              const active = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  className={`inline-flex items-center gap-2 border-b-2 py-2 px-1 text-sm font-medium transition-colors cursor-pointer ${
+                    active
+                      ? "border-kumo-brand text-kumo-strong"
+                      : "border-transparent text-kumo-subtle hover:text-kumo-default hover:border-kumo-line"
+                  }`}
+                  onClick={() => selectTab(t.id)}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div>
+          {tab === "email" && <EmailProviderPanel onToast={showToast} />}
+
+          {tab === "templates" && <EmailTemplatesPanel onToast={showToast} />}
+
+          {tab === "webhooks" && <WebhooksPanel />}
+
+          {tab === "ai" && <AiSettingsPanel onToast={showToast} />}
+        </div>
+
+        {toast && <div className="ff-toast">{toast}</div>}
       </div>
-
-      <div className="ff-builder-tabs" style={{ marginBottom: "1rem" }} role="tablist">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            className={`ff-builder-tab${tab === t.id ? " is-active" : ""}`}
-            onClick={() => selectTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {tab === "notifications" && (
-        <EmailTemplatesPanel onToast={showToast} />
-      )}
-
-      {tab === "webhooks" && <WebhooksPanel />}
-
-      {tab === "ai" && <AiSettingsPanel onToast={showToast} />}
-
-      {toast && <div className="ff-toast">{toast}</div>}
     </FreeformShell>
   );
 }

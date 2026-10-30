@@ -166,13 +166,56 @@ export function moveFieldTo(
   return next;
 }
 
-/** Drop onto canvas bottom → new row at end. */
-export function moveFieldToNewRowAtEnd(rows: FormRow[], fieldId: string): FormRow[] {
+/** Insert a new field from the palette as its own row at `atRowIndex`. */
+export function insertFieldAsNewRow(
+  rows: FormRow[],
+  type: FieldType,
+  atRowIndex: number,
+): { rows: FormRow[]; fieldId: string } {
+  const field = createField(type, rows);
+  const newRow: FormRow = { id: clientUid(), fields: [field] };
+  const next = [...rows];
+  const clampedIndex = Math.max(0, Math.min(atRowIndex, next.length));
+  next.splice(clampedIndex, 0, newRow);
+  return { rows: next, fieldId: field.id };
+}
+
+/**
+ * Move an existing field into its own new row at `atRowIndex`.
+ * If the field was the only one in its row, the old row is removed.
+ */
+export function moveFieldToNewRow(
+  rows: FormRow[],
+  fieldId: string,
+  atRowIndex: number,
+): FormRow[] {
   const loc = findField(rows, fieldId);
   if (!loc) return rows;
+
   let next = rows.map((r) => ({ ...r, fields: [...r.fields] }));
   const [moved] = next[loc.rowIndex].fields.splice(loc.fieldIndex, 1);
+
+  const sourceRowEmptied = next[loc.rowIndex].fields.length === 0;
+  let targetIndex = atRowIndex;
+  if (sourceRowEmptied && loc.rowIndex < targetIndex) {
+    targetIndex -= 1;
+  }
+
   next = next.filter((r) => r.fields.length > 0);
-  next.push({ id: clientUid(), fields: [moved] });
+
+  if (sourceRowEmptied && targetIndex === loc.rowIndex) {
+    const newRow: FormRow = { id: rows[loc.rowIndex].id, fields: [moved] };
+    next.splice(loc.rowIndex, 0, newRow);
+    return next;
+  }
+
+  const newRow: FormRow = { id: clientUid(), fields: [moved] };
+  const clampedIndex = Math.max(0, Math.min(targetIndex, next.length));
+  next.splice(clampedIndex, 0, newRow);
   return next;
+}
+
+/** Drop onto canvas bottom → new row at end. */
+export function moveFieldToNewRowAtEnd(rows: FormRow[], fieldId: string): FormRow[] {
+  return moveFieldToNewRow(rows, fieldId, rows.length);
 }

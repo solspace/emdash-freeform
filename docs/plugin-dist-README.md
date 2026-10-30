@@ -19,4 +19,4 @@ It publishes the Freeform EmDash plugin tarball (`freeform-<version>.tar.gz`) to
 
 ## Source
 
-Built from [solspace/emdash-freeform](https://github.com/solspace/emdash-freeform). Version matches the Freeform plugin release (e.g. `1.0.1`).
+Built from [solspace/emdash-freeform](https://github.com/solspace/emdash-freeform). Version matches the Freeform plugin release (e.g. `1.1.0`).

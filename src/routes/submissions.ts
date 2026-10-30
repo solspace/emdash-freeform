@@ -1,4 +1,5 @@
 import { PluginRouteError, type PluginContext } from "emdash";
+import { resendNotificationsForSubmission } from "../lib/notifications";
 import type { StoredSubmission } from "../types";
 
 function serializeSubmission(id: string, data: StoredSubmission) {
@@ -15,6 +16,7 @@ function serializeSubmission(id: string, data: StoredSubmission) {
     journey: data.journey ?? null,
     ip: data.ip ?? null,
     consent: data.consent ?? null,
+    notificationLogs: data.notificationLogs ?? [],
   };
 }
 
@@ -87,6 +89,15 @@ export const submissionsRoutes = {
         await ctx.storage.submissions.put(m.id, { ...m.data, archived: true });
       }
       return { archived: matches.length, ids: matches.map((m) => m.id) };
+    },
+  },
+
+  "resend-submission-notifications": {
+    handler: async (routeCtx: any, ctx: PluginContext) => {
+      const { id } = (routeCtx.input || {}) as { id?: string };
+      if (!id) throw PluginRouteError.badRequest("Missing submission id");
+      const res = await resendNotificationsForSubmission(ctx, id);
+      return res;
     },
   },
 };

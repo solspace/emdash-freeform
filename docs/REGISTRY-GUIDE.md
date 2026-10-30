@@ -4,7 +4,7 @@ How to verify Freeform's registry listing, install it on an EmDash site, and
 troubleshoot common problems.
 
 - **Package:** `@solspace.com/freeform` ([plugin page](https://plugins.emdashcms.com/plugins/@solspace.com/freeform))
-- **Current release:** `freeform@1.0.1`
+- **Current release:** `freeform@1.1.0`
 - **Publisher:** `solspace.com` (`did:plc:tsp7az5h6qsqjzqsgz37wonx`)
 - **Registry:** https://registry.emdashcms.com
 - **Source:** https://github.com/solspace/emdash-freeform
@@ -26,13 +26,13 @@ npx @emdash-cms/plugin-cli search freeform
 npx @emdash-cms/plugin-cli info solspace.com freeform
 ```
 
-`info` shows the profile, the latest release (currently `1.0.1`), and the
+`info` shows the profile, the latest release (currently `1.1.0`), and the
 download URL. The registry index can lag a few minutes behind a fresh
 publish; if a new version doesn't appear yet, wait and retry.
 
 You can also download the release tarball directly:
 
-https://github.com/solspace/emdash-freeform/releases/download/freeform/v1.0.1/freeform-1.0.1.tar.gz
+https://github.com/solspace/emdash-freeform/releases/download/freeform/v1.1.0/freeform-1.1.0.tar.gz
 
 ## Install on an EmDash site
 
@@ -140,5 +140,5 @@ Submit a test entry and confirm it under **Freeform → Submissions**.
 | Source repository | https://github.com/solspace/emdash-freeform |
 | Plugin page | https://plugins.emdashcms.com/plugins/@solspace.com/freeform |
 | Astro package (npm) | https://www.npmjs.com/package/@solspace/freeform-astro |
-| Plugin tarball | https://github.com/solspace/emdash-freeform/releases/download/freeform/v1.0.1/freeform-1.0.1.tar.gz |
+| Plugin tarball | https://github.com/solspace/emdash-freeform/releases/download/freeform/v1.1.0/freeform-1.1.0.tar.gz |
 | EmDash CMS | https://emdashcms.com |

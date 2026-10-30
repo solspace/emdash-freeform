@@ -14,6 +14,9 @@ export const FIELD_TYPES = [
   "select",
   "multi_select",
   "date",
+  "datetime",
+  "rating",
+  "file",
   "hidden",
   "html",
 ] as const;
@@ -61,15 +64,20 @@ const FIELD_SCHEMA = {
     maxLength: { type: "number", description: "Maximum character count. Applies to: text, email, textarea, phone." },
     pattern: { type: "string", description: "HTML5 pattern attribute (regex). Applies to: text, email, textarea, phone." },
     patternError: { type: "string", description: "Message shown when pattern does not match (rendered as HTML title). Applies to: text, email, textarea, phone." },
-    // ── Range (number, date) ──────────────────────────────────────
+    // ── Range (number, date, datetime) ───────────────────────────
     min: {
-      description: "Minimum value (number) or earliest date in YYYY-MM-DD format. Applies to: number, date.",
+      description: "Minimum value (number) or earliest date/datetime. Applies to: number, date, datetime.",
       oneOf: [{ type: "number" }, { type: "string" }],
     },
     max: {
-      description: "Maximum value (number) or latest date in YYYY-MM-DD format. Applies to: number, date.",
+      description: "Maximum value (number) or latest date/datetime. Applies to: number, date, datetime.",
       oneOf: [{ type: "number" }, { type: "string" }],
     },
+    // ── Rating ────────────────────────────────────────────────────
+    maxStars: { type: "number", description: "Maximum stars for rating (e.g. 5, 10). Applies to: rating." },
+    // ── File upload ───────────────────────────────────────────────
+    allowedExtensions: { type: "string", description: "Comma-separated extensions, e.g. '.pdf, .png'. Applies to: file." },
+    maxFileSizeMb: { type: "number", description: "Max file size in megabytes. Applies to: file." },
   },
   additionalProperties: false,
 } as const;

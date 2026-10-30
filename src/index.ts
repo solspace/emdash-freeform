@@ -7,7 +7,7 @@ import type { PluginDescriptor } from "emdash";
 export function freeformPlugin(): PluginDescriptor {
   return {
     id: "freeform",
-    version: "1.0.1",
+    version: "1.1.0",
     format: "native",
     entrypoint: "@local/freeform/native",
     adminEntry: "@local/freeform/admin",

@@ -22,8 +22,8 @@ const FORM_PAGE_PATH = (handle: string) => `/forms/${encodeURIComponent(handle)}
 
 interface PrefillParam {
   name: string;
-  type: "string" | "array" | "boolean";
-  format?: "email";
+  type: "string" | "number" | "array" | "boolean";
+  format?: "email" | "date" | "date-time";
   enum?: string[];
   repeat?: true;
   true_value?: "true";
@@ -47,6 +47,15 @@ function fieldToPrefillParam(field: FormField): PrefillParam {
   if (field.type === "email") {
     return { name: field.handle, type: "string", format: "email" };
   }
+  if (field.type === "date") {
+    return { name: field.handle, type: "string", format: "date" };
+  }
+  if (field.type === "datetime") {
+    return { name: field.handle, type: "string", format: "date-time" };
+  }
+  if (field.type === "rating") {
+    return { name: field.handle, type: "number" };
+  }
   return { name: field.handle, type: "string" };
 }
 
@@ -55,6 +64,14 @@ export const fieldToSchema = (field: FormField): Record<string, unknown> => {
   switch (field.type) {
     case "email":
       return { ...base, type: "string", format: "email" };
+    case "date":
+      return { ...base, type: "string", format: "date" };
+    case "datetime":
+      return { ...base, type: "string", format: "date-time" };
+    case "rating":
+      return { ...base, type: "integer", minimum: 1, maximum: field.maxStars ?? 5 };
+    case "file":
+      return { ...base, type: "string", description: "File attachment" };
     case "number":
       return { ...base, type: "string", pattern: "^-?\\d+(\\.\\d+)?$" };
     case "phone":

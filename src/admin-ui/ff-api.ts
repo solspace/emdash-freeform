@@ -1,8 +1,11 @@
 import { apiFetch, parseApiResponse } from "@emdash-cms/admin";
 import type {
+  EmailProviderSettings,
+  EmailProviderType,
   FormCaptchaSettings,
   FormRow,
   NotificationFormat,
+  NotificationLogEntry,
   RecipientType,
   StoredAssignment,
   StoredForm,
@@ -44,6 +47,7 @@ export type SubmissionListItem = {
     consentedAt: string;
     privacyPolicyUrl?: string;
   }> | null;
+  notificationLogs?: NotificationLogEntry[];
 };
 
 export type TemplateDocument = StoredTemplate & { id: string };
@@ -193,6 +197,11 @@ export async function saveTemplate(input: {
   subject: string;
   body: string;
   format?: NotificationFormat;
+  replyTo?: string;
+  fromName?: string;
+  fromEmail?: string;
+  cc?: string;
+  bcc?: string;
 }): Promise<TemplateDocument> {
   const res = await apiFetch(`${BASE}/save-template`, {
     method: "POST",
@@ -200,6 +209,79 @@ export async function saveTemplate(input: {
     body: JSON.stringify(input),
   });
   return parseApiResponse<TemplateDocument>(res);
+}
+
+export async function sendTestEmail(input: {
+  toEmail: string;
+  templateId?: string;
+  subject?: string;
+  body?: string;
+  format?: NotificationFormat;
+  replyTo?: string;
+  fromName?: string;
+  fromEmail?: string;
+  cc?: string;
+  bcc?: string;
+}): Promise<{ ok: boolean; provider: string; messageId: string; to: string }> {
+  const res = await apiFetch(`${BASE}/send-test-email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return parseApiResponse<{ ok: boolean; provider: string; messageId: string; to: string }>(res);
+}
+
+export type EmailSettingsResponse = {
+  provider: EmailProviderType;
+  resendApiKey: string;
+  hasResendApiKey: boolean;
+  resendFrom: string;
+  smtpHost: string;
+  smtpPort: number;
+  smtpUser: string;
+  smtpPass: string;
+  hasSmtpPass: boolean;
+  smtpFrom: string;
+  smtpSecure: boolean;
+};
+
+export async function getEmailSettings(): Promise<EmailSettingsResponse> {
+  const res = await apiFetch(`${BASE}/get-email-settings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  return parseApiResponse<EmailSettingsResponse>(res);
+}
+
+export async function saveEmailSettings(input: Partial<EmailProviderSettings> & {
+  clearResendKey?: boolean;
+  clearSmtpPass?: boolean;
+}): Promise<EmailSettingsResponse> {
+  const res = await apiFetch(`${BASE}/save-email-settings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return parseApiResponse<EmailSettingsResponse>(res);
+}
+
+export async function testEmailSettings(toEmail: string): Promise<{ ok: boolean; provider: string; messageId: string }> {
+  const res = await apiFetch(`${BASE}/test-email-settings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ toEmail }),
+  });
+  return parseApiResponse<{ ok: boolean; provider: string; messageId: string }>(res);
+}
+
+export async function resendSubmissionNotifications(id: string): Promise<{ ok: boolean; logs: NotificationLogEntry[] }> {
+  const res = await apiFetch(`${BASE}/resend-submission-notifications`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  });
+  return parseApiResponse<{ ok: boolean; logs: NotificationLogEntry[] }>(res);
 }
 
 export async function deleteTemplate(id: string): Promise<void> {

@@ -1,4 +1,3 @@
-import { adminRoute } from "./admin/router";
 import { cronHook } from "./hooks/cron";
 import { installHook } from "./hooks/install";
 import { agentRoutes } from "./routes/agent";
@@ -20,7 +19,9 @@ export default {
     cron: cronHook,
   },
   routes: {
-    admin: adminRoute,
+    admin: {
+      handler: async () => ({ ok: true }),
+    },
     ...publicRoutes,
     ...agentRoutes,
     ...chatRoutes,

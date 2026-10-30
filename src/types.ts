@@ -9,11 +9,12 @@ export type FieldType =
   | "radio"
   | "select"
   | "multi_select"
-  // Phase 5 additions
-  | "date"      // <input type="date">
-  | "hidden"    // <input type="hidden"> — no UI, value from defaultValue
-  | "html"      // static HTML content block — no input, content from defaultValue
-  /** GDPR-style opt-in; never pre-checked; records consent evidence on submit. */
+  | "date"
+  | "datetime"
+  | "file"
+  | "rating"
+  | "hidden"
+  | "html"
   | "consent";
 
 // Field types that present a fixed list of choices to the user.
@@ -63,10 +64,18 @@ export interface FormField {
   pattern?: string;       // regex string; applied as the HTML `pattern` attribute
   patternError?: string;  // shown via the `title` attribute on pattern mismatch
 
-  // Applies to: number, date
-  // For number: numeric value. For date: YYYY-MM-DD string.
+  // Applies to: number, date, datetime, rating
+  // For number/rating: numeric value. For date/datetime: string.
   min?: number | string;
   max?: number | string;
+
+  /** For `rating` fields: maximum rating value (default 5). */
+  maxStars?: number;
+
+  /** For `file` fields: comma-separated extensions (e.g. "pdf, png, jpg"). */
+  allowedExtensions?: string;
+  /** For `file` fields: max size per file in MB (default 10). */
+  maxFileSizeMb?: number;
 }
 
 /** Per-form privacy / retention controls (EU-friendly defaults). */
@@ -175,6 +184,8 @@ export interface StoredSubmission {
   ip?: string;
   /** Opt-in consent checkboxes accepted on this submission. */
   consent?: SubmissionConsentRecord[];
+  /** Notification delivery logs captured during submission handling. */
+  notificationLogs?: NotificationLogEntry[];
 }
 
 export interface SpamSettings {
@@ -226,11 +237,41 @@ export interface RetryItem {
 
 export type NotificationFormat = "text" | "html";
 
+export interface NotificationLogEntry {
+  id: string;
+  templateId?: string;
+  templateName: string;
+  to: string;
+  status: "delivered" | "failed" | "skipped";
+  error?: string;
+  sentAt: string;
+  provider?: string;
+}
+
+export type EmailProviderType = "emdash" | "resend" | "smtp" | "log";
+
+export interface EmailProviderSettings {
+  provider: EmailProviderType;
+  resendApiKey?: string;
+  resendFrom?: string;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpUser?: string;
+  smtpPass?: string;
+  smtpFrom?: string;
+  smtpSecure?: boolean;
+}
+
 export interface StoredTemplate {
   name: string;
   subject: string;
   body: string;
   format: NotificationFormat;
+  replyTo?: string;
+  fromName?: string;
+  fromEmail?: string;
+  cc?: string;
+  bcc?: string;
   /**
    * Built-in templates shipped with Freeform. Present by default; cannot be
    * edited or deleted — duplicate them to customize.

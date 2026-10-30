@@ -7,6 +7,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.1.0] — 2026-10-30
+
+### Added
+
+- **Email service providers** — Settings panel for direct SMTP, Resend, SendGrid, Postmark, and webhook delivery (alongside EmDash’s email pipeline when available)
+- **Form builder upgrades** — field options editor, real-time field preview cards, and custom field icon rendering
+- **Webhooks & notifications** — attachment manager polish, webhook secret rotation, and delivery logs in the React admin
+- **Showcase demo site** (companion `emdash-cms`) — dark-mode gallery on `/`, form pages on `/forms/[handle]`, and docs link
+
+### Changed
+
+- `@solspace/freeform-astro` **0.2.0** — streamlined form rendering (no prompt cue text) and Cloudflare Workers `SELF` service binding support for same-origin SSR fetches
+
 ## [1.0.1] — 2026-10-26
 
 ### Fixed
@@ -131,6 +144,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `cron` hook for webhook retry processing (runs every minute)
 - Idempotent demo seed via KV flag (`seed:contact_v1`) — works on both marketplace install and trusted-plugin first-load
 
+[1.1.0]: https://github.com/solspace/emdash-freeform/releases/tag/freeform/v1.1.0
 [1.0.1]: https://github.com/solspace/emdash-freeform/releases/tag/freeform/v1.0.1
 [1.0.0]: https://github.com/solspace/emdash-freeform/releases/tag/freeform/v1.0.0
 [0.1.0]: https://github.com/solspace/emdash-freeform/releases/tag/freeform/v0.1.0

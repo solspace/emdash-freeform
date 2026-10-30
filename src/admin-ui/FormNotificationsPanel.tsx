@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormField, RecipientType } from "../types";
+import { ActionIcon } from "./field-icons";
 import {
   attachNotification,
   detachNotification,
@@ -136,7 +137,7 @@ export function FormNotificationsPanel({ formId, emailFields }: Props) {
                   <td className="ff-table-actions">
                     <button
                       type="button"
-                      className="ff-btn"
+                      className="ff-btn ff-btn-secondary ff-btn-sm"
                       disabled={busy}
                       onClick={() => {
                         void updateFormNotification({
@@ -153,7 +154,7 @@ export function FormNotificationsPanel({ formId, emailFields }: Props) {
                     </button>
                     <button
                       type="button"
-                      className="ff-btn ff-btn-danger"
+                      className="ff-btn ff-btn-danger ff-btn-sm"
                       disabled={busy}
                       onClick={() => {
                         if (!confirm("Remove this notification?")) return;
@@ -164,7 +165,7 @@ export function FormNotificationsPanel({ formId, emailFields }: Props) {
                           });
                       }}
                     >
-                      Remove
+                      <ActionIcon name="delete" size={13} /> Remove
                     </button>
                   </td>
                 </tr>

@@ -12,6 +12,9 @@ export const ALL_FIELD_TYPES: FieldType[] = [
   "select",
   "multi_select",
   "date",
+  "datetime",
+  "file",
+  "rating",
   "hidden",
   "html",
   "consent",
@@ -24,11 +27,11 @@ export const FIELD_TYPE_GROUPS: Array<{
 }> = [
   {
     group: "Basic",
-    types: ["text", "email", "textarea", "number", "phone", "date"],
+    types: ["text", "email", "textarea", "number", "phone", "date", "datetime"],
   },
   {
     group: "Choice",
-    types: ["checkbox", "checkbox_group", "radio", "select", "multi_select"],
+    types: ["checkbox", "checkbox_group", "radio", "select", "multi_select", "rating"],
   },
   {
     group: "Privacy",
@@ -36,7 +39,7 @@ export const FIELD_TYPE_GROUPS: Array<{
   },
   {
     group: "Advanced",
-    types: ["hidden", "html"],
+    types: ["file", "hidden", "html"],
   },
 ];
 
@@ -55,7 +58,7 @@ export const TEXT_VALIDATION_TYPES: FieldType[] = [
 ];
 
 // Field types that accept min/max value validation.
-export const RANGE_VALIDATION_TYPES: FieldType[] = ["number", "date"];
+export const RANGE_VALIDATION_TYPES: FieldType[] = ["number", "date", "datetime", "rating"];
 
 // Double-underscore prefix avoids collisions with user-defined handles,
 // which are snake_case derived from labels and cannot contain "__".

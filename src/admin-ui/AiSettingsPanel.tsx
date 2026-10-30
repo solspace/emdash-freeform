@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getAiSettings, saveAiSettings, type AiSettings } from "./ff-api";
+import "./styles.css";
 
 type Props = {
   onToast?: (msg: string) => void;
@@ -13,6 +14,7 @@ export function AiSettingsPanel({ onToast }: Props) {
   const [apiKey, setApiKey] = useState("");
   const [spamEnabled, setSpamEnabled] = useState(false);
   const [spamThreshold, setSpamThreshold] = useState(5);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -53,7 +55,7 @@ export function AiSettingsPanel({ onToast }: Props) {
   };
 
   const onClearKey = async () => {
-    if (!confirm("Remove the saved OpenAI API key?")) return;
+    setShowClearConfirm(false);
     setSaving(true);
     setError(null);
     try {
@@ -68,114 +70,143 @@ export function AiSettingsPanel({ onToast }: Props) {
     }
   };
 
-  if (loading) return <p className="ff-meta">Loading AI settings…</p>;
+  if (loading) return <p className="text-sm text-kumo-subtle py-4 text-center">Loading AI settings…</p>;
 
   return (
-    <div className="ff-settings-section">
-      {error && <p className="ff-error">{error}</p>}
+    <div className="space-y-6 max-w-2xl">
+      {error && (
+        <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">
+          {error}
+        </div>
+      )}
 
-      <div className="ff-panel ff-prop">
-        <h2>OpenAI</h2>
-        <p className="ff-meta" style={{ marginBottom: "0.75rem" }}>
-          Freeform 1.0 uses OpenAI for form generation, submission briefs, and
-          spam scoring. Paste a key from{" "}
-          <a
-            href="https://platform.openai.com/api-keys"
-            target="_blank"
-            rel="noreferrer"
-          >
-            platform.openai.com
-          </a>
-          . The key is stored in your EmDash install — never sent to Solspace.
+      <div className="ff-settings-card space-y-4">
+        <h2 className="text-base font-semibold text-kumo-strong">OpenAI Integration</h2>
+        <p className="text-sm text-kumo-subtle">
+          Used for natural-language form generation, automatic submission summaries, and AI spam scoring. The key is stored securely in your database.
         </p>
 
-        <label htmlFor="ff-openai-key">
-          API key
-          {settings?.configured && settings.hint
-            ? ` (saved ${settings.hint})`
-            : ""}
-        </label>
-        <input
-          id="ff-openai-key"
-          type="password"
-          autoComplete="off"
-          placeholder={
-            settings?.configured ? "••••••••  (leave blank to keep)" : "sk-…"
-          }
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-        />
+        <div>
+          <label htmlFor="ff-openai-key" className="text-xs font-medium uppercase tracking-wider text-kumo-subtle block mb-1">
+            API Key {settings?.configured && settings.hint ? `(currently saved ${settings.hint})` : ""}
+          </label>
+          <input
+            id="ff-openai-key"
+            type="password"
+            className="h-9 w-full rounded-md border border-kumo-line bg-kumo-control px-3 text-sm text-kumo-default font-mono placeholder:font-sans focus:outline-none focus:ring-2 focus:ring-kumo-focus"
+            placeholder={settings?.configured ? "••••••••••••••••" : "sk-..."}
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+          />
+        </div>
 
-        <div className="ff-actions" style={{ marginTop: "0.75rem" }}>
+        <div className="flex items-center gap-3 pt-2">
+          <button
+            type="button"
+            className="ff-btn ff-btn-primary"
+            disabled={saving || (!apiKey.trim() && !settings?.configured)}
+            onClick={() => void onSave()}
+          >
+            {saving ? "Saving…" : "Save Settings"}
+          </button>
           {settings?.configured && (
             <button
               type="button"
               className="ff-btn ff-btn-danger"
               disabled={saving}
-              onClick={() => void onClearKey()}
+              onClick={() => setShowClearConfirm(true)}
             >
-              Remove key
+              Remove Key
             </button>
           )}
         </div>
       </div>
 
-      <div className="ff-panel ff-prop" style={{ marginTop: "0.85rem" }}>
-        <h2>AI spam scoring</h2>
-        <p className="ff-meta" style={{ marginBottom: "0.75rem" }}>
-          When enabled, each submission is scored 0–10. At or above the
-          threshold, email notifications are skipped (submission is still saved).
-          Needs an OpenAI key above.
+      <div className="ff-settings-card space-y-4">
+        <h2 className="text-base font-semibold text-kumo-strong">AI Spam Protection</h2>
+        <p className="text-sm text-kumo-subtle">
+          When enabled, submissions are scored by AI (0–10). Submissions that score above the threshold are flagged in the submissions list.
         </p>
 
-        <label htmlFor="ff-spam-enabled" className="ff-check-row">
+        <label className="flex items-center gap-3 cursor-pointer">
           <input
-            id="ff-spam-enabled"
             type="checkbox"
+            className="h-4 w-4 rounded border-kumo-line text-kumo-brand focus:ring-kumo-focus"
             checked={spamEnabled}
             onChange={(e) => setSpamEnabled(e.target.checked)}
           />
-          Enable AI spam scoring
+          <span className="text-sm font-medium text-kumo-strong">Enable AI Spam Scoring</span>
         </label>
 
-        <label htmlFor="ff-spam-threshold">
-          Spam threshold ({spamThreshold})
-        </label>
-        <input
-          id="ff-spam-threshold"
-          type="range"
-          min={0}
-          max={10}
-          step={1}
-          value={spamThreshold}
-          disabled={!spamEnabled}
-          onChange={(e) => setSpamThreshold(Number(e.target.value))}
-        />
-        <p className="ff-meta">
-          Lower = stricter (more submissions treated as spam). Typical: 5–7.
-        </p>
+        {spamEnabled && (
+          <div>
+            <label htmlFor="ff-spam-threshold" className="text-xs font-medium uppercase tracking-wider text-kumo-subtle block mb-1">
+              Spam Threshold (Score 1-10)
+            </label>
+            <input
+              id="ff-spam-threshold"
+              type="number"
+              min={1}
+              max={10}
+              className="h-9 w-32 rounded-md border border-kumo-line bg-kumo-control px-3 text-sm text-kumo-default focus:outline-none focus:ring-2 focus:ring-kumo-focus"
+              value={spamThreshold}
+              onChange={(e) => setSpamThreshold(Number(e.target.value))}
+            />
+            <p className="text-xs text-kumo-subtle mt-1">
+              Submissions scoring at or above this value will be flagged as spam. (Default: 5)
+            </p>
+          </div>
+        )}
+
+        <div className="pt-2">
+          <button
+            type="button"
+            className="ff-btn ff-btn-primary"
+            disabled={saving}
+            onClick={() => void onSave()}
+          >
+            {saving ? "Saving…" : "Save Spam Settings"}
+          </button>
+        </div>
       </div>
 
-      <div className="ff-actions" style={{ marginTop: "0.85rem" }}>
-        <button
-          type="button"
-          className="ff-btn ff-btn-primary"
-          disabled={saving}
-          onClick={() => void onSave()}
+      {showClearConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
+          onClick={() => setShowClearConfirm(false)}
         >
-          {saving ? "Saving…" : "Save AI settings"}
-        </button>
-      </div>
-
-      <div className="ff-panel" style={{ marginTop: "0.85rem" }}>
-        <h2>What this unlocks</h2>
-        <p className="ff-meta">
-          On the Forms page, use <strong>Generate with AI</strong> to draft a
-          form from a short description. Submissions get optional AI briefs when
-          a key is present. Spam scoring runs on public submit when enabled
-          above.
-        </p>
-      </div>
+          <div
+            className="ff-modal-card w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="clear-key-title"
+          >
+            <h3 id="clear-key-title" className="text-lg font-semibold text-kumo-strong">
+              Remove OpenAI Key?
+            </h3>
+            <p className="mt-2 text-sm text-kumo-subtle">
+              Removing the saved key will disable AI form generation, automatic summaries, and AI spam scoring until a new key is added.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                className="ff-btn ff-btn-secondary"
+                onClick={() => setShowClearConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="ff-btn ff-btn-danger-solid"
+                onClick={() => void onClearKey()}
+              >
+                Remove Key
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

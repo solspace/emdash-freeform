@@ -102,7 +102,8 @@ export const publicRoutes = {
       if (!formData) return { success: false, error: "Form not found" };
 
       if (formData.honeypotEnabled !== false) {
-        const honeypotValue = rawData[HONEYPOT_FIELD];
+        const honeypotValue =
+          rawData[HONEYPOT_FIELD] ?? rawData.__ff_honeypot ?? rawData.__ff_hp;
         if (typeof honeypotValue === "string" && honeypotValue.trim() !== "") {
           ctx.log.info("Freeform: honeypot triggered, dropping submission", { formId });
           return {
@@ -112,7 +113,7 @@ export const publicRoutes = {
         }
       }
 
-      const csrfToken = rawData[CSRF_FIELD];
+      const csrfToken = rawData[CSRF_FIELD] ?? rawData.csrfToken ?? rawData.__ff_csrf;
       const csrfOk =
         typeof csrfToken === "string" && (await verifyCsrfToken(ctx, csrfToken, formId));
       if (!csrfOk) {
