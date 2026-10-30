@@ -7,6 +7,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.1.1] — 2026-10-30
+
+### Added
+
+- **Marketplace screenshots & media artifacts** — bundled high-resolution UI screenshots into release artifacts (`release.artifacts.screenshots`) and embedded live images into the registry marketplace description and repo documentation
+
 ## [1.1.0] — 2026-10-30
 
 ### Added
