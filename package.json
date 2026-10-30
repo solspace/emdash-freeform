@@ -10,6 +10,7 @@
     "build:watch": "pnpm run build && tsdown src/index.ts src/native-entry.ts --format esm --outDir dist --dts false --no-clean --external emdash --external ../dist/plugin.mjs --watch",
     "bundle": "mkdir -p .tmp && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin bundle",
     "bundle:validate": "mkdir -p .tmp && TMPDIR=\"$(pwd)/.tmp\" emdash-plugin bundle --validate-only",
+    "release": "node scripts/release.mjs",
     "typecheck": "tsc --noEmit"
   },
   "exports": {
