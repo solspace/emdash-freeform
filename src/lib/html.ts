@@ -7,8 +7,13 @@ export function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-// Tiny Mustache subset: only `{{ variable_name }}` substitution.
-// No loops, conditionals, or dotted paths. HTML-escape is opt-in per call.
+/**
+ * Tiny Mustache subset: `{{variable}}` / `{{ variable }}` substitution.
+ * No loops, conditionals, or dotted paths. HTML-escape is opt-in per call.
+ *
+ * Prefer compact tags (`{{form_name}}`) in stored templates — see
+ * {@link normalizeMustacheTags}.
+ */
 export function renderMustache(
   template: string,
   vars: Record<string, string>,
@@ -19,6 +24,11 @@ export function renderMustache(
     if (val === undefined) return "";
     return options.escape ? escapeHtml(val) : val;
   });
+}
+
+/** Collapse `{{ form_name }}` → `{{form_name}}` so tags match docs and Craft style. */
+export function normalizeMustacheTags(template: string): string {
+  return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, "{{$1}}");
 }
 
 // Crude HTML → text fallback for deriving a `text` part from an HTML body.

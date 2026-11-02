@@ -15,7 +15,7 @@ type Props = {
   loading: boolean;
   error: string | null;
   onRefresh: () => void;
-  onEdit: (id: string) => void;
+  onEdit: (id: string, handle?: string) => void;
   onError: (message: string | null) => void;
 };
 
@@ -124,7 +124,7 @@ export function FormsDashboard({
         rows: draft.rows,
         successMessage: draft.successMessage,
       });
-      onEdit(saved.id);
+      onEdit(saved.id, saved.handle);
     } catch (err) {
       onError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -176,7 +176,7 @@ export function FormsDashboard({
       }
       setAiOpen(false);
       setAiPrompt("");
-      onEdit(saved.id);
+      onEdit(saved.id, saved.handle);
     } catch (err) {
       onError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -365,7 +365,7 @@ export function FormsDashboard({
                     <tr
                       key={form.id}
                       className="hover:bg-kumo-tint/25 cursor-pointer transition-colors"
-                      onClick={() => onEdit(form.id)}
+                      onClick={() => onEdit(form.id, form.handle)}
                     >
                       <td className="px-4 py-3 text-sm">
                         <div className="flex items-center gap-2.5">
@@ -406,7 +406,7 @@ export function FormsDashboard({
                             className="ff-icon-btn"
                             title="Edit form"
                             aria-label={`Edit ${form.name}`}
-                            onClick={() => onEdit(form.id)}
+                            onClick={() => onEdit(form.id, form.handle)}
                           >
                             <EditIcon />
                           </button>
@@ -438,11 +438,11 @@ export function FormsDashboard({
                 className="relative rounded-lg border border-kumo-line bg-kumo-base p-5 shadow-xs hover:border-kumo-brand/50 transition-all cursor-pointer flex flex-col justify-between min-h-[140px]"
                 role="button"
                 tabIndex={0}
-                onClick={() => onEdit(form.id)}
+                onClick={() => onEdit(form.id, form.handle)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    onEdit(form.id);
+                    onEdit(form.id, form.handle);
                   }
                 }}
               >
@@ -462,7 +462,7 @@ export function FormsDashboard({
                         className="ff-icon-btn"
                         title="Edit form"
                         aria-label={`Edit ${form.name}`}
-                        onClick={() => onEdit(form.id)}
+                        onClick={() => onEdit(form.id, form.handle)}
                       >
                         <EditIcon />
                       </button>

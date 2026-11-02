@@ -19,7 +19,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FieldType, FormField, FormRow, StoredForm } from "../types";
 import { FormNotificationsPanel } from "./FormNotificationsPanel";
 import { FormProtectionPanel } from "./FormProtectionPanel";
@@ -620,6 +620,7 @@ export function FormBuilder({ formId, onBack }: Props) {
   const [dirty, setDirty] = useState(false);
   const [tab, setTab] = useState<BuilderTab>("layout");
   const [paletteSearch, setPaletteSearch] = useState("");
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -875,39 +876,66 @@ export function FormBuilder({ formId, onBack }: Props) {
     <div className="ff-shell">
       <div className="ff-header ff-header-builder">
         <div className="ff-header-title">
-          <h1>
-            <input
-              className="ff-title-input"
-              value={form.name}
-              onChange={(e) => {
-                setForm({ ...form, name: e.target.value });
-                setDirty(true);
-              }}
-            />
-          </h1>
-          <p>
-            Handle <code>{form.handle}</code>
-            {dirty ? " · unsaved changes" : ""}
-          </p>
-          <div className="ff-color-picker" role="group" aria-label="Form card color">
-            {FORM_COLOR_PRESETS.map((hex) => {
-              const active = resolveFormColor(form) === hex;
-              return (
-                <button
-                  key={hex}
-                  type="button"
-                  className={`ff-color-swatch${active ? " is-active" : ""}`}
-                  style={{ background: hex }}
-                  title={hex}
-                  aria-label={`Card color ${hex}`}
-                  aria-pressed={active}
-                  onClick={() => {
-                    setForm({ ...form, cardColor: hex });
+          <nav className="ff-builder-crumb" aria-label="Breadcrumb">
+            <button type="button" className="ff-builder-back" onClick={onBack}>
+              <span aria-hidden="true">&lt;</span> Forms
+            </button>
+            <span className="ff-builder-crumb-sep" aria-hidden="true">
+              /
+            </span>
+            <div className="ff-builder-crumb-name">
+              <h1 className="ff-builder-crumb-heading">
+                <input
+                  ref={titleInputRef}
+                  className="ff-title-input"
+                  value={form.name}
+                  aria-label="Form name"
+                  placeholder="Untitled form"
+                  onChange={(e) => {
+                    setForm({ ...form, name: e.target.value });
                     setDirty(true);
                   }}
                 />
-              );
-            })}
+              </h1>
+              <button
+                type="button"
+                className="ff-builder-edit-name"
+                title="Edit form name"
+                aria-label="Edit form name"
+                onClick={() => {
+                  titleInputRef.current?.focus();
+                  titleInputRef.current?.select();
+                }}
+              >
+                <ActionIcon name="edit" size={14} />
+              </button>
+            </div>
+          </nav>
+          <div className="ff-builder-meta">
+            <code className="ff-handle-badge" title="Form handle">
+              {form.handle}
+            </code>
+            <div className="ff-color-picker" role="group" aria-label="Form card color">
+              {FORM_COLOR_PRESETS.map((hex) => {
+                const active = resolveFormColor(form) === hex;
+                return (
+                  <button
+                    key={hex}
+                    type="button"
+                    className={`ff-color-swatch${active ? " is-active" : ""}`}
+                    style={{ background: hex }}
+                    title={hex}
+                    aria-label={`Card color ${hex}`}
+                    aria-pressed={active}
+                    onClick={() => {
+                      setForm({ ...form, cardColor: hex });
+                      setDirty(true);
+                    }}
+                  />
+                );
+              })}
+            </div>
+            {dirty ? <span className="ff-builder-unsaved">Unsaved</span> : null}
           </div>
         </div>
 
@@ -932,9 +960,6 @@ export function FormBuilder({ formId, onBack }: Props) {
         </nav>
 
         <div className="ff-actions">
-          <button type="button" className="ff-btn ff-btn-secondary" onClick={onBack}>
-            All forms
-          </button>
           <button
             type="button"
             className="ff-btn ff-btn-primary"

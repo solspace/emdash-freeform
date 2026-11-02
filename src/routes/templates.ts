@@ -2,7 +2,7 @@ import { PluginRouteError, type PluginContext } from "emdash";
 import { ensureDefaultTemplates } from "../lib/default-templates";
 import { sendEmail } from "../lib/email-sender";
 import { uid } from "../lib/handles";
-import { renderMustache, stripHtml } from "../lib/html";
+import { normalizeMustacheTags, renderMustache, stripHtml } from "../lib/html";
 import { deleteTemplateAndDetach } from "../lib/notifications";
 import type { NotificationFormat, StoredTemplate } from "../types";
 
@@ -77,10 +77,12 @@ export const templateRoutes = {
       const tid = input.id ?? uid();
       const tpl: StoredTemplate = {
         name: input.name.trim(),
-        subject: input.subject,
-        body: input.body,
+        subject: normalizeMustacheTags(input.subject),
+        body: normalizeMustacheTags(input.body),
         format,
-        replyTo: input.replyTo?.trim() || undefined,
+        replyTo: input.replyTo?.trim()
+          ? normalizeMustacheTags(input.replyTo.trim())
+          : undefined,
         fromName: input.fromName?.trim() || undefined,
         fromEmail: input.fromEmail?.trim() || undefined,
         cc: input.cc?.trim() || undefined,

@@ -125,7 +125,9 @@ Built-in templates ship locked:
 
 Duplicate a built-in to customize. Create your own for anything else.
 
-**Mustache variables** (simple `{{ name }}` substitution — no loops/conditionals):
+**Mustache variables** (simple `{{form_name}}` substitution — no loops/conditionals).
+Spaces inside tags (`{{ form_name }}`) still render, but stored templates are
+normalized to the compact form.
 
 | Variable | Meaning |
 | --- | --- |

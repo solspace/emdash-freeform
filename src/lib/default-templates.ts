@@ -1,4 +1,5 @@
 import type { PluginContext } from "emdash";
+import { normalizeMustacheTags } from "./html";
 import type { StoredTemplate } from "../types";
 
 /** Stable storage ids for built-in templates — never rename. */
@@ -51,18 +52,48 @@ We received your submission for {{form_name}} and will follow up soon.
 ];
 
 /**
- * Ensures built-in notification templates exist. Idempotent: only writes when
- * the template id is missing (never overwrites — content is locked in product,
- * and we don't clobber any accidental local edits from older builds).
+ * Ensures built-in notification templates exist.
+ * - Missing ids are created from defaults.
+ * - Existing system rows get Mustache tags normalized (`{{ form_name}}` →
+ *   `{{form_name}}`) so older seeds stop showing spaced variables. Other
+ *   content is left alone.
  */
 export async function ensureDefaultTemplates(ctx: PluginContext): Promise<void> {
   const now = new Date().toISOString();
   for (const def of DEFAULT_TEMPLATES) {
     const existing = (await ctx.storage.templates.get(def.id)) as StoredTemplate | null;
-    if (existing) continue;
+    if (!existing) {
+      await ctx.storage.templates.put(def.id, {
+        ...def.data,
+        createdAt: now,
+        updatedAt: now,
+      });
+      continue;
+    }
+
+    // Always keep built-in subject/body in sync with shipped defaults (fixes
+    // older seeds that stored `{{ form_name}}` with a space). replyTo and other
+    // optional fields stay as-is after Mustache normalization.
+    const subject = normalizeMustacheTags(def.data.subject);
+    const body = normalizeMustacheTags(def.data.body);
+    const replyTo = existing.replyTo
+      ? normalizeMustacheTags(existing.replyTo)
+      : existing.replyTo;
+    if (
+      subject === existing.subject &&
+      body === existing.body &&
+      replyTo === existing.replyTo
+    ) {
+      continue;
+    }
     await ctx.storage.templates.put(def.id, {
-      ...def.data,
-      createdAt: now,
+      ...existing,
+      name: def.data.name,
+      subject,
+      body,
+      format: def.data.format,
+      system: true,
+      ...(replyTo !== undefined ? { replyTo } : {}),
       updatedAt: now,
     });
   }
