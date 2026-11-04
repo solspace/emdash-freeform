@@ -2509,9 +2509,13 @@ html[data-mode="dark"] .ff-search {
 .ff-settings-frame {
   max-width: 56rem; /* max-w-4xl */
   padding-bottom: 1.5rem;
+}
+
+/* Shared title → content rhythm for Forms / Submissions / Settings hub */
+.ff-page {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem; /* match EmDash ContentList space-y-4 */
 }
 
 .ff-settings-section {
@@ -2875,6 +2879,60 @@ html[data-mode="dark"] .ff-search {
   background: color-mix(in srgb, var(--color-kumo-tint, #f4f4f5) 25%, transparent);
 }
 
+/* EmDash SettingsNavRow — hub links inside settings panel */
+.ff-settings-nav-row {
+  display: flex;
+  min-height: 4rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  text-decoration: none !important;
+  color: inherit;
+  transition: background-color 0.15s ease;
+}
+
+.ff-settings-nav-row:hover {
+  background: var(--color-kumo-tint, #f4f4f5);
+}
+
+.ff-settings-nav-row:focus-visible {
+  outline: none;
+  position: relative;
+  z-index: 10;
+  box-shadow: inset 0 0 0 2px var(--color-kumo-brand, #f6821f);
+}
+
+.ff-settings-nav-icon {
+  display: flex;
+  height: 1.25rem;
+  width: 1.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color-kumo-subtle, #71717a);
+}
+
+.ff-settings-nav-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.ff-settings-nav-title {
+  display: block;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  color: var(--text-color-kumo-strong, #18181b);
+}
+
+.ff-settings-nav-desc {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--text-color-kumo-subtle, #71717a);
+}
+
 .ff-btn-submit {
   height: 2.35rem;
   padding: 0 1.25rem;
@@ -3079,6 +3137,22 @@ html[data-mode="dark"] .text-red-600 {
 .items-center { align-items: center !important; }
 .justify-between { justify-content: space-between !important; }
 .justify-end { justify-content: flex-end !important; }
+.justify-center { justify-content: center !important; }
+.self-start { align-self: flex-start !important; }
+.shrink-0 { flex-shrink: 0 !important; }
+.size-9 { width: 2.25rem !important; height: 2.25rem !important; }
+.no-underline\!,
+.no-underline { text-decoration: none !important; }
+.rotate-180 { transform: rotate(180deg) !important; }
+.min-w-0 { min-width: 0 !important; }
+.mt-6 { margin-top: 1.5rem !important; }
+.mt-1\.5 { margin-top: 0.375rem !important; }
+.gap-x-4 { column-gap: 1rem !important; }
+.gap-y-2 { row-gap: 0.5rem !important; }
+.flex-wrap { flex-wrap: wrap !important; }
+.max-w-2xl { max-width: 42rem !important; }
+.text-balance { text-wrap: balance !important; }
+.text-pretty { text-wrap: pretty !important; }
 .gap-1 { gap: 0.25rem !important; }
 .gap-1\.5 { gap: 0.375rem !important; }
 .gap-2 { gap: 0.5rem !important; }

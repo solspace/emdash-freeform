@@ -145,17 +145,17 @@ export function EmailProviderPanel({ onToast }: Props) {
   }
 
   return (
-    <div className="ff-settings-frame" style={{ paddingBottom: 0, maxWidth: "none" }}>
+    <div className="grid gap-8">
       {error && <div className="ff-alert-box ff-alert-error">{error}</div>}
 
       <section className="ff-settings-section" aria-labelledby="ff-email-delivery-heading">
         <div className="ff-settings-section-head">
           <div className="ff-settings-section-copy">
             <h2 id="ff-email-delivery-heading" className="ff-settings-section-title">
-              Email delivery
+              Delivery configuration
             </h2>
             <p className="ff-settings-section-desc">
-              Choose how Freeform sends notification emails. Direct SMTP is the recommended default.
+              Pick a dispatch method and configure credentials when using SMTP.
             </p>
           </div>
           <div className="ff-status-badge">

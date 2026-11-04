@@ -1,5 +1,19 @@
 export type FreeformSection = "forms" | "submissions" | "settings";
 
+export type FreeformSettingsSection =
+  | "email"
+  | "templates"
+  | "webhooks"
+  | "ai";
+
+const PLUGIN_BASE = "/_emdash/admin/plugins/freeform";
+
+export const SETTINGS_HUB_PATH = `${PLUGIN_BASE}/settings`;
+
+export function settingsSectionPath(section: FreeformSettingsSection): string {
+  return `${SETTINGS_HUB_PATH}/${section}`;
+}
+
 /** Match Kumo `Tabs variant="underline"` list + trigger spacing (Content List All/Trash). */
 export const FF_UNDERLINE_TABLIST =
   "flex gap-4 border-b border-kumo-hairline -mb-px";
@@ -15,23 +29,39 @@ export function ffUnderlineTabClass(active: boolean): string {
   ].join(" ");
 }
 
-const PLUGIN_BASE = "/_emdash/admin/plugins/freeform";
-
 export function sectionPath(section: FreeformSection): string {
   return `${PLUGIN_BASE}/${section}`;
 }
 
 export function goToSection(section: FreeformSection, hash?: string) {
   if (typeof window === "undefined") return;
+  // Legacy hash deep-links → dedicated settings sub-pages.
+  if (section === "settings" && hash) {
+    const raw = hash.replace(/^#/, "").toLowerCase();
+    const mapped: Record<string, FreeformSettingsSection> = {
+      email: "email",
+      templates: "templates",
+      notifications: "templates",
+      webhooks: "webhooks",
+      ai: "ai",
+    };
+    const sub = mapped[raw];
+    window.location.assign(sub ? settingsSectionPath(sub) : SETTINGS_HUB_PATH);
+    return;
+  }
   const path = sectionPath(section);
   const next = hash ? `${path}#${hash.replace(/^#/, "")}` : path;
   if (window.location.pathname + window.location.hash === next) return;
-  // Same path, different hash — replace so Settings can switch tabs without a full reload.
   if (window.location.pathname === path && hash) {
     window.location.hash = hash.replace(/^#/, "");
     return;
   }
   window.location.assign(next);
+}
+
+export function goToSettingsSection(section: FreeformSettingsSection) {
+  if (typeof window === "undefined") return;
+  window.location.assign(settingsSectionPath(section));
 }
 
 /** Preset swatches for form card color. */

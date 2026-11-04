@@ -266,7 +266,7 @@ export function EmailTemplatesPanel({ onToast }: Props) {
   const previewBody = renderSamplePreview(draft.body, draft.format);
 
   return (
-    <div className="ff-settings-frame" style={{ paddingBottom: 0, maxWidth: "none" }}>
+    <div className="grid gap-8">
       {error && <div className="ff-alert-box ff-alert-error">{error}</div>}
 
       <section className="ff-settings-section" aria-labelledby="ff-templates-heading">
@@ -279,14 +279,14 @@ export function EmailTemplatesPanel({ onToast }: Props) {
                   : viewingSystem?.system
                     ? "Built-in template"
                     : "Edit template"
-                : "Notification templates"}
+                : "All templates"}
             </h2>
             <p className="ff-settings-section-desc">
               {editing
                 ? viewOnly
                   ? "Built-in template is read-only. Duplicate it to customize."
                   : "Customize content, formatting, and header fields."
-                : "Reusable email templates with headers, HTML, variables, and live preview. Sent via your configured delivery provider."}
+                : "Built-in and custom templates used by form notification assignments."}
             </p>
           </div>
           {!editing ? (

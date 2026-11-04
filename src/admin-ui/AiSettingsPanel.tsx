@@ -81,7 +81,7 @@ export function AiSettingsPanel({ onToast }: Props) {
   }
 
   return (
-    <div className="ff-settings-frame" style={{ paddingBottom: 0, maxWidth: "none" }}>
+    <div className="grid gap-8">
       {error && <div className="ff-alert-box ff-alert-error">{error}</div>}
 
       <section className="ff-settings-section" aria-labelledby="ff-openai-heading">

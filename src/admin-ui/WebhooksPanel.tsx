@@ -116,7 +116,7 @@ export function WebhooksPanel() {
   };
 
   return (
-    <div className="ff-settings-frame" style={{ paddingBottom: 0, maxWidth: "none" }}>
+    <div className="grid gap-8">
       {error && (
         <div className="ff-alert-box ff-alert-error">{error}</div>
       )}
@@ -152,16 +152,14 @@ export function WebhooksPanel() {
       )}
 
       <section className="ff-settings-section" aria-labelledby="ff-webhooks-heading">
-        <div className="ff-settings-section-head">
-          <div className="ff-settings-section-copy">
-            <h2 id="ff-webhooks-heading" className="ff-settings-section-title">
-              Webhooks
-            </h2>
-            <p className="ff-settings-section-desc">
-              Deliver submission payloads in real time. Each request includes an HMAC-SHA256 signature in the{" "}
-              <code className="ff-field-input-mono">x-freeform-signature</code> header.
-            </p>
-          </div>
+        <div className="ff-settings-section-copy">
+          <h2 id="ff-webhooks-heading" className="ff-settings-section-title">
+            Endpoints
+          </h2>
+          <p className="ff-settings-section-desc">
+            Each request includes an HMAC-SHA256 signature in the{" "}
+            <code className="ff-field-input-mono">x-freeform-signature</code> header.
+          </p>
         </div>
 
         <div className="ff-settings-panel">

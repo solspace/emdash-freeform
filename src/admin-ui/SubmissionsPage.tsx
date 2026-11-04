@@ -417,7 +417,7 @@ export function SubmissionsPage() {
 
   return (
     <FreeformShell>
-      <div className="space-y-4">
+      <div className="ff-page">
         {/* Title & Action Row (EmDash ContentList Header) */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
