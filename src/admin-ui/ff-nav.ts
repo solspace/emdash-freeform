@@ -6,11 +6,12 @@ export const FF_UNDERLINE_TABLIST =
 
 export function ffUnderlineTabClass(active: boolean): string {
   return [
-    "relative inline-flex items-center gap-2 rounded whitespace-nowrap border-b-2 px-2 py-3 text-base transition-colors cursor-pointer",
-    "focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand",
+    // No radius — underline tabs are flush; bottom border spans the full trigger.
+    "relative inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-2 py-3 text-base transition-colors cursor-pointer",
+    "focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand focus-visible:ring-offset-0",
     active
       ? "border-kumo-brand font-medium text-kumo-default"
-      : "border-transparent text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-default",
+      : "border-transparent text-kumo-subtle hover:text-kumo-default hover:border-kumo-line",
   ].join(" ");
 }
 

@@ -70,110 +70,127 @@ export function AiSettingsPanel({ onToast }: Props) {
     }
   };
 
-  if (loading) return <p className="text-sm text-kumo-subtle py-4 text-center">Loading AI settings…</p>;
+  if (loading) {
+    return (
+      <div className="ff-settings-panel">
+        <div className="ff-settings-row">
+          <p className="ff-card-subtitle">Loading AI settings…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      {error && (
-        <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">
-          {error}
-        </div>
-      )}
+    <div className="ff-settings-frame" style={{ paddingBottom: 0, maxWidth: "none" }}>
+      {error && <div className="ff-alert-box ff-alert-error">{error}</div>}
 
-      <div className="ff-settings-card">
-        <div className="ff-settings-card-intro">
-          <h2 className="ff-card-title">OpenAI Integration</h2>
-          <p className="ff-card-subtitle">
+      <section className="ff-settings-section" aria-labelledby="ff-openai-heading">
+        <div className="ff-settings-section-copy">
+          <h2 id="ff-openai-heading" className="ff-settings-section-title">
+            OpenAI integration
+          </h2>
+          <p className="ff-settings-section-desc">
             Used for natural-language form generation, automatic submission summaries, and AI spam scoring. The key is stored securely in your database.
           </p>
         </div>
 
-        <div className="ff-field-group">
-          <label htmlFor="ff-openai-key" className="ff-field-label">
-            API Key {settings?.configured && settings.hint ? `(currently saved ${settings.hint})` : ""}
-          </label>
-          <input
-            id="ff-openai-key"
-            type="password"
-            className="ff-field-input ff-field-input-mono"
-            placeholder={settings?.configured ? "••••••••••••••••" : "sk-..."}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-          />
-        </div>
+        <div className="ff-settings-panel">
+          <div className="ff-settings-row-stack">
+            <div className="ff-field-group">
+              <label htmlFor="ff-openai-key" className="ff-field-label">
+                API key
+                {settings?.configured && settings.hint ? ` (currently saved ${settings.hint})` : ""}
+              </label>
+              <input
+                id="ff-openai-key"
+                type="password"
+                className="ff-field-input ff-field-input-mono"
+                placeholder={settings?.configured ? "••••••••••••••••" : "sk-..."}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+            </div>
 
-        <div className="ff-card-actions">
-          <button
-            type="button"
-            className="ff-btn ff-btn-primary"
-            disabled={saving || (!apiKey.trim() && !settings?.configured)}
-            onClick={() => void onSave()}
-          >
-            {saving ? "Saving…" : "Save Settings"}
-          </button>
-          {settings?.configured && (
-            <button
-              type="button"
-              className="ff-btn ff-btn-danger"
-              disabled={saving}
-              onClick={() => setShowClearConfirm(true)}
-            >
-              Remove Key
-            </button>
-          )}
+            <div className="ff-card-actions">
+              <button
+                type="button"
+                className="ff-btn-submit"
+                disabled={saving || (!apiKey.trim() && !settings?.configured)}
+                onClick={() => void onSave()}
+              >
+                {saving ? "Saving…" : "Save settings"}
+              </button>
+              {settings?.configured && (
+                <button
+                  type="button"
+                  className="ff-btn ff-btn-danger"
+                  disabled={saving}
+                  onClick={() => setShowClearConfirm(true)}
+                >
+                  Remove key
+                </button>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="ff-settings-card">
-        <div className="ff-settings-card-intro">
-          <h2 className="ff-card-title">AI Spam Protection</h2>
-          <p className="ff-card-subtitle">
-            When enabled, submissions are scored by AI (0–10). Submissions that score above the threshold are flagged in the submissions list.
+      <section className="ff-settings-section" aria-labelledby="ff-spam-heading">
+        <div className="ff-settings-section-copy">
+          <h2 id="ff-spam-heading" className="ff-settings-section-title">
+            AI spam protection
+          </h2>
+          <p className="ff-settings-section-desc">
+            When enabled, submissions are scored by AI (0–10). Scores at or above the threshold are flagged in the submissions list.
           </p>
         </div>
 
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            className="h-4 w-4 rounded border-kumo-line text-kumo-brand focus:ring-kumo-focus"
-            checked={spamEnabled}
-            onChange={(e) => setSpamEnabled(e.target.checked)}
-          />
-          <span className="text-sm font-medium text-kumo-strong">Enable AI Spam Scoring</span>
-        </label>
-
-        {spamEnabled && (
-          <div className="ff-field-group">
-            <label htmlFor="ff-spam-threshold" className="ff-field-label">
-              Spam Threshold (Score 1-10)
+        <div className="ff-settings-panel">
+          <div className="ff-settings-row-stack">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-kumo-line text-kumo-brand focus:ring-kumo-focus"
+                checked={spamEnabled}
+                onChange={(e) => setSpamEnabled(e.target.checked)}
+              />
+              <span className="text-sm font-medium text-kumo-strong">Enable AI spam scoring</span>
             </label>
-            <input
-              id="ff-spam-threshold"
-              type="number"
-              min={1}
-              max={10}
-              className="ff-field-input"
-              style={{ width: "8rem" }}
-              value={spamThreshold}
-              onChange={(e) => setSpamThreshold(Number(e.target.value))}
-            />
-            <p className="ff-card-subtitle">
-              Submissions scoring at or above this value will be flagged as spam. (Default: 5)
-            </p>
-          </div>
-        )}
 
-        <div className="ff-card-actions">
-          <button
-            type="button"
-            className="ff-btn ff-btn-primary"
-            disabled={saving}
-            onClick={() => void onSave()}
-          >
-            {saving ? "Saving…" : "Save Spam Settings"}
-          </button>
+            {spamEnabled && (
+              <div className="ff-field-group">
+                <label htmlFor="ff-spam-threshold" className="ff-field-label">
+                  Spam threshold (1–10)
+                </label>
+                <input
+                  id="ff-spam-threshold"
+                  type="number"
+                  min={1}
+                  max={10}
+                  className="ff-field-input"
+                  style={{ maxWidth: "8rem" }}
+                  value={spamThreshold}
+                  onChange={(e) => setSpamThreshold(Number(e.target.value))}
+                />
+                <p className="ff-card-subtitle">
+                  Submissions scoring at or above this value are flagged as spam. Default: 5.
+                </p>
+              </div>
+            )}
+
+            <div className="ff-card-actions">
+              <button
+                type="button"
+                className="ff-btn-submit"
+                disabled={saving}
+                onClick={() => void onSave()}
+              >
+                {saving ? "Saving…" : "Save spam settings"}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
       {showClearConfirm && (
         <div
@@ -188,7 +205,7 @@ export function AiSettingsPanel({ onToast }: Props) {
             aria-labelledby="clear-key-title"
           >
             <h3 id="clear-key-title" className="text-lg font-semibold text-kumo-strong">
-              Remove OpenAI Key?
+              Remove OpenAI key?
             </h3>
             <p className="mt-2 text-sm text-kumo-subtle">
               Removing the saved key will disable AI form generation, automatic summaries, and AI spam scoring until a new key is added.
@@ -206,7 +223,7 @@ export function AiSettingsPanel({ onToast }: Props) {
                 className="ff-btn ff-btn-danger-solid"
                 onClick={() => void onClearKey()}
               >
-                Remove Key
+                Remove key
               </button>
             </div>
           </div>

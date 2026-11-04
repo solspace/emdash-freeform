@@ -7,9 +7,5 @@ type Props = {
 
 /** Shared Freeform admin wrapper (styles only — section nav lives in EmDash sidebar). */
 export function FreeformShell({ children }: Props) {
-  return (
-    <div className="ff-root space-y-6">
-      <div className="space-y-6">{children}</div>
-    </div>
-  );
+  return <div className="ff-root">{children}</div>;
 }

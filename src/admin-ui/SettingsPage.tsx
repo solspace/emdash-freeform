@@ -51,13 +51,13 @@ export function SettingsPage() {
 
   return (
     <FreeformShell>
-      <div className="space-y-6">
+      <div className="ff-settings-frame">
         <div>
           <h1 className="text-2xl font-semibold leading-tight text-kumo-strong">
             Settings
           </h1>
-          <p className="text-sm text-kumo-subtle mt-1">
-            Manage your email delivery credentials, notification templates, webhooks, and AI spam protection.
+          <p className="mt-1.5 max-w-2xl text-sm leading-5 text-kumo-subtle">
+            Manage email delivery, notification templates, webhooks, and AI spam protection.
           </p>
         </div>
 
@@ -85,11 +85,8 @@ export function SettingsPage() {
 
         <div>
           {tab === "email" && <EmailProviderPanel onToast={showToast} />}
-
           {tab === "templates" && <EmailTemplatesPanel onToast={showToast} />}
-
           {tab === "webhooks" && <WebhooksPanel />}
-
           {tab === "ai" && <AiSettingsPanel onToast={showToast} />}
         </div>
 

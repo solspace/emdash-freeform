@@ -266,62 +266,64 @@ export function EmailTemplatesPanel({ onToast }: Props) {
   const previewBody = renderSamplePreview(draft.body, draft.format);
 
   return (
-    <div className="space-y-4">
-      {error && (
-        <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">
-          {error}
+    <div className="ff-settings-frame" style={{ paddingBottom: 0, maxWidth: "none" }}>
+      {error && <div className="ff-alert-box ff-alert-error">{error}</div>}
+
+      <section className="ff-settings-section" aria-labelledby="ff-templates-heading">
+        <div className="ff-settings-section-head">
+          <div className="ff-settings-section-copy">
+            <h2 id="ff-templates-heading" className="ff-settings-section-title">
+              {editing
+                ? creating
+                  ? "New template"
+                  : viewingSystem?.system
+                    ? "Built-in template"
+                    : "Edit template"
+                : "Notification templates"}
+            </h2>
+            <p className="ff-settings-section-desc">
+              {editing
+                ? viewOnly
+                  ? "Built-in template is read-only. Duplicate it to customize."
+                  : "Customize content, formatting, and header fields."
+                : "Reusable email templates with headers, HTML, variables, and live preview. Sent via your configured delivery provider."}
+            </p>
+          </div>
+          {!editing ? (
+            <button
+              type="button"
+              className="ff-btn-submit cursor-pointer shrink-0"
+              onClick={startCreate}
+            >
+              New template
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="ff-btn-outline"
+              style={{ height: "2rem", padding: "0 0.75rem", fontSize: "0.75rem" }}
+              onClick={() => {
+                setTestModalOpen(true);
+                setTestResult(null);
+              }}
+            >
+              <PaperPlaneIcon /> Send test
+            </button>
+          )}
+        </div>
+
+      {loading && !editing && (
+        <div className="ff-settings-panel">
+          <div className="ff-settings-row">
+            <p className="ff-card-subtitle">Loading templates…</p>
+          </div>
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-base font-medium text-kumo-strong">Notification Templates</h2>
-          <p className="text-sm text-kumo-subtle max-w-2xl mt-0.5">
-            Configure reusable email templates with custom headers, HTML formatting, variable tokens, and live previews. Dispatched via your configured SMTP provider.
-          </p>
-        </div>
-        {!editing && (
-          <button
-            type="button"
-            className="ff-btn-submit cursor-pointer shrink-0"
-            onClick={startCreate}
-          >
-            New template
-          </button>
-        )}
-      </div>
-
-      {loading && <p className="text-sm text-kumo-subtle py-4 text-center">Loading templates…</p>}
-
       {editing ? (
-        <div className="ff-settings-card" style={{ maxWidth: "900px" }}>
-          <div className="ff-card-header">
-            <div>
-              <h3 className="ff-card-title">
-                {creating ? "New Template" : viewingSystem ? "Built-in Template" : "Edit Template"}
-              </h3>
-              <p className="ff-card-subtitle">
-                {viewOnly
-                  ? "Built-in template is read-only. Duplicate it to customize."
-                  : "Customize content, formatting, and header fields."}
-              </p>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <button
-                type="button"
-                className="ff-btn-outline"
-                style={{ height: "2rem", padding: "0 0.75rem", fontSize: "0.75rem" }}
-                onClick={() => {
-                  setTestModalOpen(true);
-                  setTestResult(null);
-                }}
-              >
-                <PaperPlaneIcon /> Send test
-              </button>
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem" }}>
+        <div className="ff-settings-panel">
+          <div className="ff-settings-row-stack">
+          <div className="ff-form-grid-2">
             <div className="ff-field-group" style={{ flex: 2 }}>
               <label htmlFor="ff-tpl-name" className="ff-field-label">
                 Template Name
@@ -616,30 +618,32 @@ export function EmailTemplatesPanel({ onToast }: Props) {
               <PaperPlaneIcon /> Test with sample data
             </button>
           </div>
+          </div>
         </div>
       ) : (
-        <>
-          {!loading && templates.length === 0 && (
-            <div className="rounded-md border border-kumo-line bg-kumo-base p-12 text-center text-sm text-kumo-subtle">
-              No templates yet. Create one to start sending email notifications.
+        <div className="ff-settings-panel">
+          {!loading && templates.length === 0 ? (
+            <div className="ff-settings-row">
+              <p className="ff-card-subtitle">
+                No templates yet. Create one to start sending email notifications.
+              </p>
             </div>
-          )}
-          {templates.length > 0 && (
-            <div className="rounded-md border border-kumo-line bg-kumo-base overflow-x-auto shadow-xs">
-              <table className="w-full text-start">
+          ) : templates.length > 0 ? (
+            <div style={{ overflowX: "auto" }}>
+              <table className="ff-settings-table">
                 <thead>
-                  <tr className="border-b border-kumo-line bg-kumo-tint/50">
-                    <th scope="col" className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-kumo-subtle">Name</th>
-                    <th scope="col" className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-kumo-subtle">Subject</th>
-                    <th scope="col" className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-kumo-subtle">Format</th>
-                    <th scope="col" className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-kumo-subtle">Reply-To</th>
-                    <th scope="col" className="px-4 py-3 text-end text-xs font-semibold uppercase tracking-wider text-kumo-subtle">Actions</th>
+                  <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Subject</th>
+                    <th scope="col">Format</th>
+                    <th scope="col">Reply-To</th>
+                    <th scope="col" style={{ textAlign: "end" }}>Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-kumo-line">
+                <tbody>
                   {templates.map((tpl) => (
-                    <tr key={tpl.id} className="hover:bg-kumo-tint/25 transition-colors">
-                      <td className="px-4 py-3 text-sm">
+                    <tr key={tpl.id}>
+                      <td>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
@@ -655,19 +659,19 @@ export function EmailTemplatesPanel({ onToast }: Props) {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-kumo-subtle max-w-xs truncate">{tpl.subject}</td>
-                      <td className="px-4 py-3 text-sm">
+                      <td className="text-kumo-subtle max-w-xs truncate">{tpl.subject}</td>
+                      <td>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-mono uppercase ${
                           tpl.format === "html" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" : "bg-kumo-tint text-kumo-subtle"
                         }`}>
                           {tpl.format}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-kumo-subtle font-mono truncate max-w-[120px]">
+                      <td className="ff-field-input-mono truncate" style={{ maxWidth: "7.5rem", color: "var(--text-color-kumo-subtle)" }}>
                         {tpl.replyTo || "—"}
                       </td>
-                      <td className="px-4 py-3 text-end">
-                        <div className="flex items-center justify-end space-x-1">
+                      <td>
+                        <div className="flex items-center justify-end gap-1">
                           <button
                             type="button"
                             className="ff-btn ff-btn-secondary ff-btn-sm"
@@ -701,9 +705,10 @@ export function EmailTemplatesPanel({ onToast }: Props) {
                 </tbody>
               </table>
             </div>
-          )}
-        </>
+          ) : null}
+        </div>
       )}
+      </section>
 
       {/* Send Test Email Modal */}
       {testModalOpen && (
