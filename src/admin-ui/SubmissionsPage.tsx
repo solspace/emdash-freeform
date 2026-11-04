@@ -11,7 +11,11 @@ import {
   type FormListItem,
   type SubmissionListItem,
 } from "./ff-api";
-import { resolveFormColor } from "./ff-nav";
+import {
+  FF_UNDERLINE_TABLIST,
+  ffUnderlineTabClass,
+  resolveFormColor,
+} from "./ff-nav";
 import { FreeformShell } from "./FreeformShell";
 import "./styles.css";
 
@@ -412,7 +416,7 @@ export function SubmissionsPage() {
   const endRecord = Math.min(currentPage * PAGE_SIZE, filtered.length);
 
   return (
-    <FreeformShell section="submissions">
+    <FreeformShell>
       <div className="space-y-4">
         {/* Title & Action Row (EmDash ContentList Header) */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -440,48 +444,38 @@ export function SubmissionsPage() {
           </div>
         </div>
 
-        {/* EmDash Underline Tabs (All vs Spam, like All vs Trash in content/posts) */}
-        <div className="border-b border-kumo-line">
-          <nav className="flex space-x-6 -mb-px" aria-label="Submissions views">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("all");
-                setPage(1);
-              }}
-              className={`inline-flex items-center gap-2 border-b-2 py-2 px-1 text-sm font-medium transition-colors ${
-                activeTab === "all"
-                  ? "border-kumo-brand text-kumo-strong"
-                  : "border-transparent text-kumo-subtle hover:text-kumo-default hover:border-kumo-line"
-              }`}
-            >
-              All
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-kumo-tint text-kumo-subtle font-semibold">
-                {subs.length}
+        {/* Kumo underline tabs — same spacing as Content List All / Trash */}
+        <nav className={FF_UNDERLINE_TABLIST} aria-label="Submissions views">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("all");
+              setPage(1);
+            }}
+            className={ffUnderlineTabClass(activeTab === "all")}
+          >
+            All
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-kumo-tint text-kumo-subtle font-semibold">
+              {subs.length}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("spam");
+              setPage(1);
+            }}
+            className={ffUnderlineTabClass(activeTab === "spam")}
+          >
+            <WarningIcon />
+            Spam
+            {spamCount > 0 && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-red-500/15 text-red-600 dark:text-red-400 font-semibold">
+                {spamCount}
               </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("spam");
-                setPage(1);
-              }}
-              className={`inline-flex items-center gap-2 border-b-2 py-2 px-1 text-sm font-medium transition-colors ${
-                activeTab === "spam"
-                  ? "border-kumo-brand text-kumo-strong"
-                  : "border-transparent text-kumo-subtle hover:text-kumo-default hover:border-kumo-line"
-              }`}
-            >
-              <WarningIcon />
-              Spam
-              {spamCount > 0 && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-red-500/15 text-red-600 dark:text-red-400 font-semibold">
-                  {spamCount}
-                </span>
-              )}
-            </button>
-          </nav>
-        </div>
+            )}
+          </button>
+        </nav>
 
         {/* Table Toolbar (Search + Form Filter, matching TableToolbar) */}
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">

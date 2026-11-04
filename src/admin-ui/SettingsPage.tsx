@@ -3,6 +3,7 @@ import { AiSettingsPanel } from "./AiSettingsPanel";
 import { EmailProviderPanel } from "./EmailProviderPanel";
 import { EmailTemplatesPanel } from "./EmailTemplatesPanel";
 import { FreeformShell } from "./FreeformShell";
+import { FF_UNDERLINE_TABLIST, ffUnderlineTabClass } from "./ff-nav";
 import { WebhooksPanel } from "./WebhooksPanel";
 import "./styles.css";
 
@@ -49,7 +50,7 @@ export function SettingsPage() {
   };
 
   return (
-    <FreeformShell section="settings">
+    <FreeformShell>
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-semibold leading-tight text-kumo-strong">
@@ -60,29 +61,27 @@ export function SettingsPage() {
           </p>
         </div>
 
-        <div className="border-b border-kumo-line" role="tablist">
-          <nav className="flex space-x-6 -mb-px" aria-label="Settings sections">
-            {TABS.map((t) => {
-              const active = tab === t.id;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  className={`inline-flex items-center gap-2 border-b-2 py-2 px-1 text-sm font-medium transition-colors cursor-pointer ${
-                    active
-                      ? "border-kumo-brand text-kumo-strong"
-                      : "border-transparent text-kumo-subtle hover:text-kumo-default hover:border-kumo-line"
-                  }`}
-                  onClick={() => selectTab(t.id)}
-                >
-                  {t.label}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
+        <nav
+          className={FF_UNDERLINE_TABLIST}
+          role="tablist"
+          aria-label="Settings sections"
+        >
+          {TABS.map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                className={ffUnderlineTabClass(active)}
+                onClick={() => selectTab(t.id)}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </nav>
 
         <div>
           {tab === "email" && <EmailProviderPanel onToast={showToast} />}

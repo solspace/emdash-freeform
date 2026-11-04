@@ -80,27 +80,29 @@ export function AiSettingsPanel({ onToast }: Props) {
         </div>
       )}
 
-      <div className="ff-settings-card space-y-4">
-        <h2 className="text-base font-semibold text-kumo-strong">OpenAI Integration</h2>
-        <p className="text-sm text-kumo-subtle">
-          Used for natural-language form generation, automatic submission summaries, and AI spam scoring. The key is stored securely in your database.
-        </p>
+      <div className="ff-settings-card">
+        <div className="ff-settings-card-intro">
+          <h2 className="ff-card-title">OpenAI Integration</h2>
+          <p className="ff-card-subtitle">
+            Used for natural-language form generation, automatic submission summaries, and AI spam scoring. The key is stored securely in your database.
+          </p>
+        </div>
 
-        <div>
-          <label htmlFor="ff-openai-key" className="text-xs font-medium uppercase tracking-wider text-kumo-subtle block mb-1">
+        <div className="ff-field-group">
+          <label htmlFor="ff-openai-key" className="ff-field-label">
             API Key {settings?.configured && settings.hint ? `(currently saved ${settings.hint})` : ""}
           </label>
           <input
             id="ff-openai-key"
             type="password"
-            className="h-9 w-full rounded-md border border-kumo-line bg-kumo-control px-3 text-sm text-kumo-default font-mono placeholder:font-sans focus:outline-none focus:ring-2 focus:ring-kumo-focus"
+            className="ff-field-input ff-field-input-mono"
             placeholder={settings?.configured ? "••••••••••••••••" : "sk-..."}
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
           />
         </div>
 
-        <div className="flex items-center gap-3 pt-2">
+        <div className="ff-card-actions">
           <button
             type="button"
             className="ff-btn ff-btn-primary"
@@ -122,11 +124,13 @@ export function AiSettingsPanel({ onToast }: Props) {
         </div>
       </div>
 
-      <div className="ff-settings-card space-y-4">
-        <h2 className="text-base font-semibold text-kumo-strong">AI Spam Protection</h2>
-        <p className="text-sm text-kumo-subtle">
-          When enabled, submissions are scored by AI (0–10). Submissions that score above the threshold are flagged in the submissions list.
-        </p>
+      <div className="ff-settings-card">
+        <div className="ff-settings-card-intro">
+          <h2 className="ff-card-title">AI Spam Protection</h2>
+          <p className="ff-card-subtitle">
+            When enabled, submissions are scored by AI (0–10). Submissions that score above the threshold are flagged in the submissions list.
+          </p>
+        </div>
 
         <label className="flex items-center gap-3 cursor-pointer">
           <input
@@ -139,8 +143,8 @@ export function AiSettingsPanel({ onToast }: Props) {
         </label>
 
         {spamEnabled && (
-          <div>
-            <label htmlFor="ff-spam-threshold" className="text-xs font-medium uppercase tracking-wider text-kumo-subtle block mb-1">
+          <div className="ff-field-group">
+            <label htmlFor="ff-spam-threshold" className="ff-field-label">
               Spam Threshold (Score 1-10)
             </label>
             <input
@@ -148,17 +152,18 @@ export function AiSettingsPanel({ onToast }: Props) {
               type="number"
               min={1}
               max={10}
-              className="h-9 w-32 rounded-md border border-kumo-line bg-kumo-control px-3 text-sm text-kumo-default focus:outline-none focus:ring-2 focus:ring-kumo-focus"
+              className="ff-field-input"
+              style={{ width: "8rem" }}
               value={spamThreshold}
               onChange={(e) => setSpamThreshold(Number(e.target.value))}
             />
-            <p className="text-xs text-kumo-subtle mt-1">
+            <p className="ff-card-subtitle">
               Submissions scoring at or above this value will be flagged as spam. (Default: 5)
             </p>
           </div>
         )}
 
-        <div className="pt-2">
+        <div className="ff-card-actions">
           <button
             type="button"
             className="ff-btn ff-btn-primary"

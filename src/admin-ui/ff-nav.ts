@@ -1,10 +1,18 @@
 export type FreeformSection = "forms" | "submissions" | "settings";
 
-export const FREEFORM_NAV: Array<{ id: FreeformSection; label: string }> = [
-  { id: "forms", label: "Forms" },
-  { id: "submissions", label: "Submissions" },
-  { id: "settings", label: "Settings" },
-];
+/** Match Kumo `Tabs variant="underline"` list + trigger spacing (Content List All/Trash). */
+export const FF_UNDERLINE_TABLIST =
+  "flex gap-4 border-b border-kumo-hairline -mb-px";
+
+export function ffUnderlineTabClass(active: boolean): string {
+  return [
+    "relative inline-flex items-center gap-2 rounded whitespace-nowrap border-b-2 px-2 py-3 text-base transition-colors cursor-pointer",
+    "focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand",
+    active
+      ? "border-kumo-brand font-medium text-kumo-default"
+      : "border-transparent text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-default",
+  ].join(" ");
+}
 
 const PLUGIN_BASE = "/_emdash/admin/plugins/freeform";
 

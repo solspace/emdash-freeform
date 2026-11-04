@@ -2511,10 +2511,17 @@ html[data-mode="dark"] .ff-search {
   border: 1px solid var(--color-kumo-line, #e4e1da);
   border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  padding: 1.75rem !important;
+  padding: 1.5rem !important;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
+}
+
+/* Title + blurb share one slot so card gap doesn’t blow open the header. */
+.ff-settings-card-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .ff-card-header {

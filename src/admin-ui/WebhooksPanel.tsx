@@ -232,7 +232,7 @@ export function WebhooksPanel() {
       )}
 
       {logFor && (
-        <div className="ff-settings-card space-y-4">
+        <div className="ff-settings-card">
           <div className="flex items-center justify-between border-b border-kumo-line pb-3">
             <h3 className="text-base font-semibold text-kumo-strong">
               Delivery Log: {logFor.name}
@@ -263,46 +263,48 @@ export function WebhooksPanel() {
         </div>
       )}
 
-      <div className="ff-settings-card space-y-4 max-w-2xl">
-        <h2 className="text-base font-semibold text-kumo-strong">Add Webhook</h2>
-        <p className="text-sm text-kumo-subtle">
-          Configure an endpoint to receive JSON payloads whenever a form is submitted.
-        </p>
+      <div className="ff-settings-card max-w-2xl">
+        <div className="ff-settings-card-intro">
+          <h2 className="ff-card-title">Add Webhook</h2>
+          <p className="ff-card-subtitle">
+            Configure an endpoint to receive JSON payloads whenever a form is submitted.
+          </p>
+        </div>
 
-        <div>
-          <label htmlFor="ff-wh-name" className="text-xs font-medium uppercase tracking-wider text-kumo-subtle block mb-1">
+        <div className="ff-field-group">
+          <label htmlFor="ff-wh-name" className="ff-field-label">
             Name
           </label>
           <input
             id="ff-wh-name"
-            className="h-9 w-full rounded-md border border-kumo-line bg-kumo-control px-3 text-sm text-kumo-default focus:outline-none focus:ring-2 focus:ring-kumo-focus"
+            className="ff-field-input"
             value={name}
             placeholder="e.g. Slack alerts"
             onChange={(e) => setName(e.target.value)}
           />
         </div>
 
-        <div>
-          <label htmlFor="ff-wh-url" className="text-xs font-medium uppercase tracking-wider text-kumo-subtle block mb-1">
+        <div className="ff-field-group">
+          <label htmlFor="ff-wh-url" className="ff-field-label">
             Endpoint URL (HTTPS)
           </label>
           <input
             id="ff-wh-url"
             type="url"
-            className="h-9 w-full rounded-md border border-kumo-line bg-kumo-control px-3 text-sm text-kumo-default focus:outline-none focus:ring-2 focus:ring-kumo-focus"
+            className="ff-field-input ff-field-input-mono"
             value={url}
             placeholder="https://hooks.example.com/freeform"
             onChange={(e) => setUrl(e.target.value)}
           />
         </div>
 
-        <div>
-          <label htmlFor="ff-wh-scope" className="text-xs font-medium uppercase tracking-wider text-kumo-subtle block mb-1">
+        <div className="ff-field-group">
+          <label htmlFor="ff-wh-scope" className="ff-field-label">
             Scope
           </label>
           <select
             id="ff-wh-scope"
-            className="h-9 rounded-md border border-kumo-line bg-kumo-control px-3 text-sm text-kumo-default focus:outline-none focus:ring-2 focus:ring-kumo-focus"
+            className="ff-field-input"
             value={formScope}
             onChange={(e) => setFormScope(e.target.value)}
           >
@@ -315,7 +317,7 @@ export function WebhooksPanel() {
           </select>
         </div>
 
-        <div className="pt-2">
+        <div className="ff-card-actions">
           <button
             type="button"
             className="ff-btn ff-btn-primary"
