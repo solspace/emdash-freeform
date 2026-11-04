@@ -49,8 +49,8 @@ const SECTIONS: HubSection[] = [
     items: [
       {
         id: "webhooks",
-        title: "Webhooks",
-        description: "Endpoints, signing secrets, and delivery logs",
+        title: "HTTP endpoints",
+        description: "Manage endpoints, signing secrets, and delivery logs",
         icon: "webhooks",
       },
     ],
@@ -101,20 +101,21 @@ function HubIcon({ name }: { name: HubItem["icon"] }) {
     );
   }
   if (name === "webhooks") {
+    // Lucide-style webhook — three linked hooks
     return (
       <svg {...common}>
-        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+        <path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2" />
+        <path d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06" />
+        <path d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8" />
       </svg>
     );
   }
+  // Sparkles — AI affordance, same stroke weight as sibling hub icons
   return (
     <svg {...common}>
-      <path d="M12 3v3" />
-      <path d="M12 18v3" />
-      <path d="M3 12h3" />
-      <path d="M18 12h3" />
-      <circle cx="12" cy="12" r="4" />
+      <path d="M12 3l1.4 4.2L18 8.5l-4.6 1.3L12 14l-1.4-4.2L6 8.5l4.6-1.3L12 3z" />
+      <path d="M19 14l.7 2.1L22 16.7l-2.3.6L19 19.5l-.7-2.2L16 16.7l2.3-.6L19 14z" />
+      <path d="M5 15l.55 1.65L7.2 17.2l-1.65.55L5 19.4l-.55-1.65L2.8 17.2l1.65-.55L5 15z" />
     </svg>
   );
 }

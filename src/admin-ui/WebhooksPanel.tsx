@@ -31,6 +31,16 @@ function TrashIcon() {
   );
 }
 
+function WebhookEmptyIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2" />
+      <path d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06" />
+      <path d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8" />
+    </svg>
+  );
+}
+
 export function WebhooksPanel() {
   const [webhooks, setWebhooks] = useState<WebhookListItem[]>([]);
   const [forms, setForms] = useState<FormListItem[]>([]);
@@ -117,13 +127,11 @@ export function WebhooksPanel() {
 
   return (
     <div className="grid gap-8">
-      {error && (
-        <div className="ff-alert-box ff-alert-error">{error}</div>
-      )}
+      {error && <div className="ff-alert-box ff-alert-error">{error}</div>}
 
       {reveal && (
         <div className="ff-settings-panel">
-          <div className="ff-settings-row">
+          <div className="ff-settings-row-stack">
             <div className="ff-settings-card-intro">
               <h3 className="ff-card-title" style={{ fontSize: "1rem" }}>
                 {reveal.action === "created" ? "Webhook created" : "Signing secret rotated"}
@@ -133,12 +141,16 @@ export function WebhooksPanel() {
               </p>
             </div>
             <div className="ff-settings-row-inline" style={{ padding: 0 }}>
-              <code className="ff-field-input ff-field-input-mono" style={{ height: "auto", padding: "0.5rem 0.75rem", flex: 1 }}>
+              <code
+                className="ff-field-input ff-field-input-mono"
+                style={{ height: "auto", padding: "0.5rem 0.75rem", flex: 1, userSelect: "all" }}
+              >
                 {reveal.secret}
               </code>
               <button
                 type="button"
-                className="ff-btn ff-btn-primary ff-btn-sm shrink-0"
+                className="ff-btn-submit"
+                style={{ height: "2.25rem", padding: "0 0.9rem" }}
                 onClick={() => {
                   void navigator.clipboard.writeText(reveal.secret);
                   setReveal(null);
@@ -154,10 +166,10 @@ export function WebhooksPanel() {
       <section className="ff-settings-section" aria-labelledby="ff-webhooks-heading">
         <div className="ff-settings-section-copy">
           <h2 id="ff-webhooks-heading" className="ff-settings-section-title">
-            Endpoints
+            Configured endpoints
           </h2>
           <p className="ff-settings-section-desc">
-            Each request includes an HMAC-SHA256 signature in the{" "}
+            Requests include an HMAC-SHA256 signature in the{" "}
             <code className="ff-field-input-mono">x-freeform-signature</code> header.
           </p>
         </div>
@@ -168,8 +180,18 @@ export function WebhooksPanel() {
               <p className="ff-card-subtitle">Loading webhooks…</p>
             </div>
           ) : webhooks.length === 0 ? (
-            <div className="ff-settings-row">
-              <p className="ff-card-subtitle">No webhooks yet. Add an endpoint below.</p>
+            <div className="ff-settings-row" style={{ alignItems: "center", textAlign: "center", gap: "0.75rem", padding: "1.75rem 1rem" }}>
+              <span className="text-kumo-subtle" style={{ display: "flex", justifyContent: "center" }}>
+                <WebhookEmptyIcon />
+              </span>
+              <div className="ff-settings-card-intro" style={{ alignItems: "center" }}>
+                <p className="ff-card-title" style={{ fontSize: "0.95rem" }}>
+                  No webhooks yet
+                </p>
+                <p className="ff-card-subtitle">
+                  Add an HTTPS endpoint below to receive JSON payloads on each submission.
+                </p>
+              </div>
             </div>
           ) : (
             <div style={{ overflowX: "auto" }}>
@@ -177,7 +199,7 @@ export function WebhooksPanel() {
                 <thead>
                   <tr>
                     <th scope="col">Name</th>
-                    <th scope="col">Endpoint URL</th>
+                    <th scope="col">Endpoint</th>
                     <th scope="col">Scope</th>
                     <th scope="col">Status</th>
                     <th scope="col" style={{ textAlign: "end" }}>Actions</th>
@@ -186,13 +208,42 @@ export function WebhooksPanel() {
                 <tbody>
                   {webhooks.map((wh) => (
                     <tr key={wh.id}>
-                      <td style={{ fontWeight: 500, color: "var(--text-color-kumo-strong)" }}>{wh.name}</td>
-                      <td className="ff-field-input-mono" style={{ maxWidth: "16rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <td style={{ fontWeight: 500, color: "var(--text-color-kumo-strong)" }}>
+                        {wh.name}
+                      </td>
+                      <td
+                        className="ff-field-input-mono"
+                        title={wh.url}
+                        style={{
+                          maxWidth: "18rem",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          color: "var(--text-color-kumo-subtle)",
+                        }}
+                      >
                         {wh.url}
                       </td>
-                      <td style={{ color: "var(--text-color-kumo-subtle)" }}>{formLabel(wh.formId)}</td>
+                      <td style={{ color: "var(--text-color-kumo-subtle)" }}>
+                        {formLabel(wh.formId)}
+                      </td>
                       <td>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${wh.enabled ? "bg-green-500/15 text-green-600 dark:text-green-400" : "bg-kumo-tint text-kumo-subtle"}`}>
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium ${
+                            wh.enabled
+                              ? "bg-green-500/15 text-green-600 dark:text-green-400"
+                              : "bg-kumo-tint text-kumo-subtle"
+                          }`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: "50%",
+                              background: wh.enabled ? "currentColor" : "var(--text-color-kumo-subtle)",
+                            }}
+                          />
                           {wh.enabled ? "Active" : "Paused"}
                         </span>
                       </td>
@@ -274,8 +325,16 @@ export function WebhooksPanel() {
             ) : (
               logFor.entries.map((entry, idx) => (
                 <div key={idx} className="ff-settings-row-inline">
-                  <span className="ff-field-input-mono text-xs">{new Date(entry.deliveredAt).toLocaleString()}</span>
-                  <span className={entry.status === "success" ? "text-green-600 font-semibold text-xs" : "text-red-500 font-semibold text-xs"}>
+                  <span className="ff-field-input-mono text-xs">
+                    {new Date(entry.deliveredAt).toLocaleString()}
+                  </span>
+                  <span
+                    className={
+                      entry.status === "success"
+                        ? "text-green-600 font-semibold text-xs"
+                        : "text-red-500 font-semibold text-xs"
+                    }
+                  >
                     {entry.statusCode ? `HTTP ${entry.statusCode}` : entry.status}
                   </span>
                   <span className="ff-card-subtitle" style={{ flex: 1 }}>
@@ -291,24 +350,42 @@ export function WebhooksPanel() {
       <section className="ff-settings-section" aria-labelledby="ff-add-webhook-heading">
         <div className="ff-settings-section-copy">
           <h2 id="ff-add-webhook-heading" className="ff-settings-section-title">
-            Add webhook
+            Add endpoint
           </h2>
           <p className="ff-settings-section-desc">
-            Configure an HTTPS endpoint to receive JSON payloads whenever a form is submitted.
+            HTTPS only. You’ll get a signing secret once after creating the webhook.
           </p>
         </div>
 
         <div className="ff-settings-panel">
           <div className="ff-settings-row-stack">
-            <div className="ff-field-group">
-              <label htmlFor="ff-wh-name" className="ff-field-label">Name</label>
-              <input
-                id="ff-wh-name"
-                className="ff-field-input"
-                value={name}
-                placeholder="e.g. Slack alerts"
-                onChange={(e) => setName(e.target.value)}
-              />
+            <div className="ff-form-grid-2">
+              <div className="ff-field-group">
+                <label htmlFor="ff-wh-name" className="ff-field-label">Name</label>
+                <input
+                  id="ff-wh-name"
+                  className="ff-field-input"
+                  value={name}
+                  placeholder="e.g. Slack alerts"
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+              <div className="ff-field-group">
+                <label htmlFor="ff-wh-scope" className="ff-field-label">Scope</label>
+                <select
+                  id="ff-wh-scope"
+                  className="ff-field-input"
+                  value={formScope}
+                  onChange={(e) => setFormScope(e.target.value)}
+                >
+                  <option value="__all__">All forms (recommended)</option>
+                  {forms.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      Only: {f.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="ff-field-group">
@@ -323,23 +400,6 @@ export function WebhooksPanel() {
               />
             </div>
 
-            <div className="ff-field-group">
-              <label htmlFor="ff-wh-scope" className="ff-field-label">Scope</label>
-              <select
-                id="ff-wh-scope"
-                className="ff-field-input"
-                value={formScope}
-                onChange={(e) => setFormScope(e.target.value)}
-              >
-                <option value="__all__">All forms (recommended)</option>
-                {forms.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    Only: {f.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             <div className="ff-card-actions">
               <button
                 type="button"
@@ -349,6 +409,9 @@ export function WebhooksPanel() {
               >
                 {busy ? "Adding…" : "Add webhook"}
               </button>
+              <span className="ff-card-subtitle">
+                Secrets are shown once — store them in your receiver securely.
+              </span>
             </div>
           </div>
         </div>
