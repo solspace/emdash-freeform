@@ -935,6 +935,48 @@ html[data-mode="dark"] .ff-search {
   border-radius: 7px;
 }
 
+/* AI affordance — violet → fuchsia gradient */
+.ff-btn-ai {
+  --ff-ai-from: #6366f1;
+  --ff-ai-to: #a855f7;
+  --ff-ai-from-hover: #4f46e5;
+  --ff-ai-to-hover: #9333ea;
+  border: 0 !important;
+  background-image: linear-gradient(
+    135deg,
+    var(--ff-ai-from) 0%,
+    var(--ff-ai-to) 100%
+  ) !important;
+  background-color: var(--ff-ai-from) !important;
+  color: #ffffff !important;
+  font-weight: 550;
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--ff-ai-to) 40%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 18%);
+}
+
+.ff-btn-ai:hover:not(:disabled) {
+  background-image: linear-gradient(
+    135deg,
+    var(--ff-ai-from-hover) 0%,
+    var(--ff-ai-to-hover) 100%
+  ) !important;
+  background-color: var(--ff-ai-from-hover) !important;
+  color: #ffffff !important;
+  border: 0 !important;
+}
+
+.ff-btn-ai:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+html[data-mode="dark"] .ff-btn-ai {
+  --ff-ai-from: #818cf8;
+  --ff-ai-to: #c084fc;
+  --ff-ai-from-hover: #a5b4fc;
+  --ff-ai-to-hover: #d8b4fe;
+}
+
 .ff-btn-primary {
   background: var(--color-kumo-contrast, #18181b) !important;
   border-color: var(--color-kumo-contrast, #18181b) !important;
@@ -2075,17 +2117,46 @@ html[data-mode="dark"] .ff-search {
   max-width: 380px;
 }
 
+/*
+ * EmDash / Kumo Toasty success recipe.
+ * Old style used kumo-contrast + white text — in dark mode contrast is light,
+ * so the toast looked blank (white on white).
+ */
 .ff-toast {
   position: fixed;
   right: 1.25rem;
   bottom: 1.25rem;
-  background: var(--color-kumo-contrast, var(--ff-ink));
-  color: var(--ff-on-accent);
-  padding: 0.65rem 0.9rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
   z-index: 50;
-  box-shadow: var(--ff-shadow);
+  max-width: min(24rem, calc(100vw - 2.5rem));
+  padding: 1rem;
+  border-radius: 0.75rem; /* rounded-xl */
+  font-size: 0.975rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  color: var(--text-color-kumo-success, oklch(43.2% 0.095 166.913));
+  background: color-mix(
+    in oklab,
+    var(--color-kumo-success-tint, oklch(95% 0.052 163.051)) 20%,
+    var(--color-kumo-base, #fff)
+  );
+  box-shadow:
+    0 0 0 0.3px var(--color-kumo-success, oklch(59.6% 0.145 163.225)),
+    0 10px 15px -3px rgb(0 0 0 / 0.08),
+    0 4px 6px -4px rgb(0 0 0 / 0.06);
+  animation: ff-fade-in 0.15s ease-out;
+}
+
+html[data-mode="dark"] .ff-toast {
+  color: var(--text-color-kumo-success, oklch(90.5% 0.093 164.15));
+  background: color-mix(
+    in oklab,
+    var(--color-kumo-success-tint, oklch(37.8% 0.077 168.94)) 20%,
+    var(--color-kumo-base, oklch(17% 0 0))
+  );
+  box-shadow:
+    0 0 0 0.3px var(--color-kumo-success, oklch(76.5% 0.177 163.223)),
+    0 10px 15px -3px rgb(0 0 0 / 0.35),
+    0 4px 6px -4px rgb(0 0 0 / 0.25);
 }
 
 .ff-error {
