@@ -19,10 +19,12 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@cloudflare/kumo";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import type { FieldType, FormField, FormRow, StoredForm } from "../types";
 import { FormNotificationsPanel } from "./FormNotificationsPanel";
 import { FormProtectionPanel } from "./FormProtectionPanel";
+import { FormSettingsPanel } from "./FormSettingsPanel";
 import { FieldPreview } from "./FieldPreview";
 import { FieldOptionsEditor } from "./FieldOptionsEditor";
 import { ActionIcon, FieldIcon } from "./field-icons";
@@ -48,7 +50,7 @@ type Props = {
   onBack: () => void;
 };
 
-type BuilderTab = "layout" | "notifications" | "protection";
+type BuilderTab = "layout" | "notifications" | "protection" | "settings";
 
 type DragData =
   | { kind: "palette"; type: FieldType }
@@ -301,6 +303,16 @@ function PropertyEditor({
     "datetime",
   ].includes(field.type);
 
+  const placeholderHint: Record<string, string> = {
+    text: "e.g. Enter your name...",
+    email: "e.g. name@example.com",
+    textarea: "e.g. Type your message...",
+    number: "e.g. 0",
+    phone: "e.g. +1 (555) 000-0000",
+    date: "e.g. YYYY-MM-DD",
+    datetime: "e.g. YYYY-MM-DD HH:MM",
+  };
+
   const supportsValidation = [
     "text",
     "email",
@@ -369,7 +381,7 @@ function PropertyEditor({
           <label htmlFor="ff-placeholder">Placeholder</label>
           <input
             id="ff-placeholder"
-            placeholder="e.g. Enter your name..."
+            placeholder={placeholderHint[field.type] ?? "e.g. Hint text…"}
             value={field.placeholder ?? ""}
             onChange={(e) => onChange({ placeholder: e.target.value || undefined })}
           />
@@ -621,7 +633,6 @@ export function FormBuilder({ formId, onBack }: Props) {
   const [dirty, setDirty] = useState(false);
   const [tab, setTab] = useState<BuilderTab>("layout");
   const [paletteSearch, setPaletteSearch] = useState("");
-  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -660,7 +671,12 @@ export function FormBuilder({ formId, onBack }: Props) {
 
   const emailFields = useMemo(() => {
     if (!form) return [];
-    return form.rows.flatMap((r) => r.fields).filter((f) => f.type === "email");
+    return form.rows.flatMap((r) => r.fields).filter((f) => {
+      if (f.type === "email") return true;
+      // Contact-style text fields labeled/handled as email still count as submitter targets
+      const key = `${f.handle} ${f.label}`.toLowerCase();
+      return f.type === "text" && key.includes("email");
+    });
   }, [form]);
 
   const setRows = (rows: FormRow[], selectId?: string | null) => {
@@ -677,6 +693,7 @@ export function FormBuilder({ formId, onBack }: Props) {
       const saved = await saveForm({
         id: form.id,
         name: form.name,
+        handle: form.handle,
         rows: form.rows,
         successMessage: form.successMessage,
         cardColor: form.cardColor,
@@ -876,105 +893,91 @@ export function FormBuilder({ formId, onBack }: Props) {
   return (
     <div className="ff-shell">
       <div className="ff-header ff-header-builder">
-        <div className="ff-header-title">
-          {/* EmDash ContentEditor bar: [←] Forms / Title */}
-          <div className="ff-builder-crumb" data-ff-editor-bar="">
-            <GhostSquareBackButton
-              aria-label="Back to Forms list"
-              size="sm"
-              onClick={onBack}
-            />
-            <div className="ff-builder-crumb-trail">
-              <EditorBarListLabel onClick={onBack}>Forms</EditorBarListLabel>
-              <span className="ff-builder-crumb-sep" aria-hidden="true">
-                /
-              </span>
-              <div className="ff-builder-crumb-name">
-                <h1 className="ff-builder-crumb-heading">
-                  <input
-                    ref={titleInputRef}
-                    className="ff-title-input"
-                    value={form.name}
-                    aria-label="Form name"
-                    placeholder="Untitled form"
-                    onChange={(e) => {
-                      setForm({ ...form, name: e.target.value });
-                      setDirty(true);
-                    }}
-                  />
-                </h1>
-                <button
-                  type="button"
-                  className="ff-builder-edit-name"
-                  title="Edit form name"
-                  aria-label="Edit form name"
-                  onClick={() => {
-                    titleInputRef.current?.focus();
-                    titleInputRef.current?.select();
-                  }}
-                >
-                  <ActionIcon name="edit" size={14} />
-                </button>
+        {/* Left: title + tabs stacked (flex-col). Middle: theme. Right: Save */}
+        <div className="ff-builder-nav-col">
+          <div className="ff-header-title">
+            <div className="ff-builder-crumb" data-ff-editor-bar="">
+              <GhostSquareBackButton
+                aria-label="Back to Forms list"
+                size="sm"
+                onClick={onBack}
+              />
+              <div className="ff-builder-crumb-trail">
+                <EditorBarListLabel onClick={onBack}>Forms</EditorBarListLabel>
+                <span className="ff-builder-crumb-sep" aria-hidden="true">
+                  /
+                </span>
+                <div className="ff-builder-crumb-name">
+                  <h1 className="ff-builder-crumb-heading">
+                    <button
+                      type="button"
+                      className="ff-title-display"
+                      title="Edit in Settings"
+                      onClick={() => setTab("settings")}
+                    >
+                      {form.name.trim() || "Untitled form"}
+                    </button>
+                  </h1>
+                </div>
               </div>
             </div>
           </div>
-          <div className="ff-builder-meta">
-            <code className="ff-handle-badge" title="Form handle">
-              {form.handle}
-            </code>
-            <div className="ff-color-picker" role="group" aria-label="Form card color">
-              {FORM_COLOR_PRESETS.map((hex) => {
-                const active = resolveFormColor(form) === hex;
-                return (
-                  <button
-                    key={hex}
-                    type="button"
-                    className={`ff-color-swatch${active ? " is-active" : ""}`}
-                    style={{ background: hex }}
-                    title={hex}
-                    aria-label={`Card color ${hex}`}
-                    aria-pressed={active}
-                    onClick={() => {
-                      setForm({ ...form, cardColor: hex });
-                      setDirty(true);
-                    }}
-                  />
-                );
-              })}
-            </div>
-            {dirty ? <span className="ff-builder-unsaved">Unsaved</span> : null}
+
+          <nav className="ff-builder-tabs" aria-label="Form sections" role="tablist">
+            {(
+              [
+                ["layout", "Layout"],
+                ["notifications", "Notifications"],
+                ["protection", "Protection"],
+                ["settings", "Settings"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                className={`ff-builder-tab${tab === id ? " is-active" : ""}`}
+                aria-selected={tab === id}
+                onClick={() => setTab(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        <div className="ff-builder-theme-row">
+          <div className="ff-color-picker" role="group" aria-label="Form card color">
+            {FORM_COLOR_PRESETS.map((hex) => {
+              const active = resolveFormColor(form) === hex;
+              return (
+                <button
+                  key={hex}
+                  type="button"
+                  className={`ff-color-swatch${active ? " is-active" : ""}`}
+                  style={{ background: hex }}
+                  title={hex}
+                  aria-label={`Card color ${hex}`}
+                  aria-pressed={active}
+                  onClick={() => {
+                    setForm({ ...form, cardColor: hex });
+                    setDirty(true);
+                  }}
+                />
+              );
+            })}
           </div>
         </div>
 
-        <nav className="ff-builder-tabs" aria-label="Form sections">
-          {(
-            [
-              ["layout", "Layout"],
-              ["notifications", "Notifications"],
-              ["protection", "Protection"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              className={`ff-builder-tab${tab === id ? " is-active" : ""}`}
-              aria-current={tab === id ? "page" : undefined}
-              onClick={() => setTab(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
-
         <div className="ff-actions">
-          <button
-            type="button"
-            className="ff-btn ff-btn-primary"
+          {dirty ? <span className="ff-builder-unsaved">Unsaved</span> : null}
+          <Button
+            variant="primary"
             onClick={() => void persist()}
             disabled={saving || !dirty}
           >
             {saving ? "Saving…" : "Save"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -1148,6 +1151,16 @@ export function FormBuilder({ formId, onBack }: Props) {
           }}
           onPrivacyChange={(next) => {
             setForm({ ...form, privacy: next });
+            setDirty(true);
+          }}
+        />
+      )}
+
+      {tab === "settings" && (
+        <FormSettingsPanel
+          form={form}
+          onChange={(patch) => {
+            setForm({ ...form, ...patch });
             setDirty(true);
           }}
         />

@@ -1,6 +1,32 @@
-import type React from "react";
 import type { FormField } from "../types";
 import { FieldIcon } from "./field-icons";
+
+function scalarDefault(field: FormField): string {
+  return typeof field.defaultValue === "string" ? field.defaultValue : "";
+}
+
+/** Prefer configured default value, else placeholder, else type fallback. */
+function previewCopy(field: FormField, fallback: string): { text: string; isValue: boolean } {
+  const value = scalarDefault(field);
+  if (value) return { text: value, isValue: true };
+  if (field.placeholder) return { text: field.placeholder, isValue: false };
+  return { text: fallback, isValue: false };
+}
+
+function PreviewText({
+  field,
+  fallback,
+}: {
+  field: FormField;
+  fallback: string;
+}) {
+  const { text, isValue } = previewCopy(field, fallback);
+  return (
+    <span className={isValue ? "ff-preview-value" : "ff-preview-placeholder"}>
+      {text}
+    </span>
+  );
+}
 
 export function FieldPreview({ field }: { field: FormField }) {
   const options =
@@ -33,9 +59,7 @@ export function FieldPreview({ field }: { field: FormField }) {
       return (
         <div className="ff-preview-box">
           <div className="ff-preview-input">
-            <span className="ff-preview-placeholder">
-              {field.placeholder || "Enter text..."}
-            </span>
+            <PreviewText field={field} fallback="Enter text..." />
           </div>
         </div>
       );
@@ -45,9 +69,7 @@ export function FieldPreview({ field }: { field: FormField }) {
         <div className="ff-preview-box">
           <div className="ff-preview-input ff-preview-with-icon">
             <FieldIcon type="email" size={13} className="ff-preview-icon" />
-            <span className="ff-preview-placeholder">
-              {field.placeholder || "name@example.com"}
-            </span>
+            <PreviewText field={field} fallback="name@example.com" />
           </div>
         </div>
       );
@@ -56,9 +78,7 @@ export function FieldPreview({ field }: { field: FormField }) {
       return (
         <div className="ff-preview-box">
           <div className="ff-preview-textarea">
-            <span className="ff-preview-placeholder">
-              {field.placeholder || "Type your message..."}
-            </span>
+            <PreviewText field={field} fallback="Type your message..." />
           </div>
         </div>
       );
@@ -67,9 +87,10 @@ export function FieldPreview({ field }: { field: FormField }) {
       return (
         <div className="ff-preview-box">
           <div className="ff-preview-input ff-preview-number">
-            <span className="ff-preview-placeholder">
-              {field.placeholder || (field.min !== undefined ? `Min: ${field.min}` : "0")}
-            </span>
+            <PreviewText
+              field={field}
+              fallback={field.min !== undefined ? `Min: ${field.min}` : "0"}
+            />
             <span className="ff-preview-steppers" aria-hidden="true">
               <span className="ff-stepper-up">▴</span>
               <span className="ff-stepper-down">▾</span>
@@ -83,9 +104,7 @@ export function FieldPreview({ field }: { field: FormField }) {
         <div className="ff-preview-box">
           <div className="ff-preview-input ff-preview-with-icon">
             <FieldIcon type="phone" size={13} className="ff-preview-icon" />
-            <span className="ff-preview-placeholder">
-              {field.placeholder || "+1 (555) 000-0000"}
-            </span>
+            <PreviewText field={field} fallback="+1 (555) 000-0000" />
           </div>
         </div>
       );
@@ -95,9 +114,7 @@ export function FieldPreview({ field }: { field: FormField }) {
         <div className="ff-preview-box">
           <div className="ff-preview-input ff-preview-with-icon">
             <FieldIcon type="date" size={13} className="ff-preview-icon" />
-            <span className="ff-preview-placeholder">
-              {field.placeholder || "YYYY-MM-DD"}
-            </span>
+            <PreviewText field={field} fallback="YYYY-MM-DD" />
           </div>
         </div>
       );
@@ -107,9 +124,7 @@ export function FieldPreview({ field }: { field: FormField }) {
         <div className="ff-preview-box">
           <div className="ff-preview-input ff-preview-with-icon">
             <FieldIcon type="datetime" size={13} className="ff-preview-icon" />
-            <span className="ff-preview-placeholder">
-              {field.placeholder || "YYYY-MM-DD HH:MM"}
-            </span>
+            <PreviewText field={field} fallback="YYYY-MM-DD HH:MM" />
           </div>
         </div>
       );
@@ -129,10 +144,14 @@ export function FieldPreview({ field }: { field: FormField }) {
 
     case "rating": {
       const stars = field.maxStars ?? 5;
+      const filledRaw = Number(scalarDefault(field));
+      const filled = Number.isFinite(filledRaw) && filledRaw > 0
+        ? Math.min(Math.round(filledRaw), stars)
+        : 0;
       return (
         <div className="ff-preview-rating">
           {Array.from({ length: Math.min(stars, 10) }).map((_, i) => (
-            <span key={i} className={`ff-preview-star${i < 3 ? " is-filled" : ""}`}>
+            <span key={i} className={`ff-preview-star${i < filled ? " is-filled" : ""}`}>
               ★
             </span>
           ))}
@@ -141,13 +160,16 @@ export function FieldPreview({ field }: { field: FormField }) {
       );
     }
 
-    case "checkbox":
+    case "checkbox": {
+      const raw = scalarDefault(field).trim().toLowerCase();
+      const checked = raw !== "" && raw !== "0" && raw !== "false" && raw !== "no" && raw !== "off";
       return (
         <div className="ff-preview-check-item">
-          <span className="ff-preview-checkbox" />
+          <span className={`ff-preview-checkbox${checked ? " is-checked" : ""}`} />
           <span className="ff-preview-check-label">{field.label}</span>
         </div>
       );
+    }
 
     case "checkbox_group":
       return (
@@ -157,7 +179,7 @@ export function FieldPreview({ field }: { field: FormField }) {
             return (
               <div key={opt.value} className="ff-preview-check-item">
                 <span className={`ff-preview-checkbox${isChecked ? " is-checked" : ""}`} />
-                <span className={`ff-preview-check-label${isChecked ? " font-medium text-kumo-strong" : ""}`}>
+                <span className={`ff-preview-check-label${isChecked ? " is-selected-label" : ""}`}>
                   {opt.label}
                 </span>
               </div>
@@ -177,7 +199,7 @@ export function FieldPreview({ field }: { field: FormField }) {
             return (
               <div key={opt.value} className="ff-preview-radio-item">
                 <span className={`ff-preview-radio${isChecked ? " is-checked" : ""}`} />
-                <span className={`ff-preview-check-label${isChecked ? " font-medium text-kumo-strong" : ""}`}>
+                <span className={`ff-preview-check-label${isChecked ? " is-selected-label" : ""}`}>
                   {opt.label}
                 </span>
               </div>
@@ -191,11 +213,12 @@ export function FieldPreview({ field }: { field: FormField }) {
 
     case "select": {
       const defaultOpt = options.find((o) => defaultSet.has(o.value));
+      const placeholder = field.placeholder || "Select an option...";
       return (
         <div className="ff-preview-box">
           <div className="ff-preview-select">
             <span className={defaultOpt ? "ff-preview-value" : "ff-preview-placeholder"}>
-              {defaultOpt?.label || field.placeholder || (options[0] ? options[0].label : "Select an option...")}
+              {defaultOpt?.label || placeholder}
             </span>
             <span className="ff-preview-chevron">▾</span>
           </div>
@@ -205,19 +228,28 @@ export function FieldPreview({ field }: { field: FormField }) {
 
     case "multi_select": {
       const selectedOpts = options.filter((o) => defaultSet.has(o.value));
-      const displayTags = selectedOpts.length > 0 ? selectedOpts : options.slice(0, 2);
+      if (selectedOpts.length === 0) {
+        return (
+          <div className="ff-preview-box">
+            <div className="ff-preview-multiselect">
+              <span className="ff-preview-placeholder">
+                {field.placeholder || "Select options..."}
+              </span>
+              <span className="ff-preview-chevron">▾</span>
+            </div>
+          </div>
+        );
+      }
       return (
         <div className="ff-preview-box">
           <div className="ff-preview-multiselect">
-            {displayTags.map((opt) => (
+            {selectedOpts.slice(0, 3).map((opt) => (
               <span key={opt.value} className="ff-preview-tag">
                 {opt.label}
               </span>
             ))}
-            {options.length > displayTags.length && (
-              <span className="text-xs text-kumo-subtle ps-1">
-                +{options.length - displayTags.length}
-              </span>
+            {selectedOpts.length > 3 && (
+              <span className="ff-preview-more-inline">+{selectedOpts.length - 3}</span>
             )}
             <span className="ff-preview-chevron">▾</span>
           </div>
@@ -269,10 +301,9 @@ export function FieldPreview({ field }: { field: FormField }) {
       return (
         <div className="ff-preview-box">
           <div className="ff-preview-input">
-            <span className="ff-preview-placeholder">{field.label}</span>
+            <PreviewText field={field} fallback={field.label} />
           </div>
         </div>
       );
   }
 }
-

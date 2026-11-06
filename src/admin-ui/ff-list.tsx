@@ -12,12 +12,17 @@ export const FF_LIST_PAGE =
 export const FF_TOOLBAR_BTN =
   "ff-toolbar-btn inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border-0 bg-kumo-base px-3 text-sm font-medium text-kumo-default shadow-xs ring ring-kumo-line transition-colors hover:bg-kumo-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand disabled:cursor-not-allowed disabled:opacity-50";
 
-/** Compact filter trigger — matches EmDash FilterBar Select size="sm". */
+/** Filter trigger — matches Forms toolbar selects (h-9). */
 export const FF_FILTER_TRIGGER =
-  "inline-flex h-6.5 min-w-0 max-w-full shrink-0 cursor-pointer items-center gap-1 rounded-md border-0 bg-kumo-base ps-3.5 text-xs font-normal text-kumo-default shadow-xs ring ring-kumo-line transition-colors hover:bg-kumo-tint focus:outline-none focus:ring-[1.5px] focus:ring-kumo-focus/50 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex h-9 min-w-0 max-w-full shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-kumo-line bg-kumo-control ps-3 pe-8 text-sm font-normal text-kumo-default transition-colors hover:bg-kumo-tint focus:outline-none focus:ring-2 focus:ring-kumo-focus disabled:cursor-not-allowed disabled:opacity-50";
 
+/** Soft chip — Forms handle / tab count badge. */
+export const FF_CHIP =
+  "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-kumo-tint text-kumo-subtle";
+
+/** Large search — same recipe as Forms list (`h-9` / `w-64`). */
 export const FF_LIST_SEARCH_WRAP =
-  "relative flex h-6.5 w-full min-w-0 items-center overflow-hidden rounded-md border-0 bg-kumo-control text-xs text-kumo-default shadow-xs ring ring-kumo-line focus-within:ring-[1.5px] focus-within:ring-kumo-focus/50 sm:w-64 sm:flex-none";
+  "relative w-full min-w-0 max-w-64 shrink-0";
 
 export const FF_DATA_TABLE_WRAP =
   "overflow-x-auto rounded-xl bg-kumo-elevated ring ring-kumo-line";
@@ -40,24 +45,27 @@ export function FfListSearch({
   value,
   onChange,
   placeholder,
+  className,
   "aria-label": ariaLabel,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
+  /** Extra classes on the outer wrap (width defaults to `w-full sm:w-64`). */
+  className?: string;
   "aria-label"?: string;
 }) {
   return (
-    <div className={FF_LIST_SEARCH_WRAP}>
-      <span className="pointer-events-none flex shrink-0 items-center ps-2 text-kumo-subtle" aria-hidden="true">
-        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className={`${FF_LIST_SEARCH_WRAP}${className ? ` ${className}` : ""}`}>
+      <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-kumo-subtle">
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="11" cy="11" r="8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           <path d="m21 21-4.3-4.3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-      </span>
+      </div>
       <input
         type="search"
-        className="h-full min-w-0 grow border-0 bg-transparent px-2 text-xs text-kumo-default outline-none placeholder:text-kumo-subtle"
+        className="h-9 w-full rounded-md border border-kumo-line bg-kumo-control ps-9 pe-3 text-sm text-kumo-default placeholder:text-kumo-subtle focus:outline-none focus:ring-2 focus:ring-kumo-focus"
         placeholder={placeholder}
         aria-label={ariaLabel ?? placeholder}
         value={value}

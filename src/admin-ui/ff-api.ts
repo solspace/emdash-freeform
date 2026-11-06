@@ -349,6 +349,10 @@ export async function detachNotification(id: string): Promise<void> {
 export async function updateFormNotification(input: {
   id: string;
   enabled?: boolean;
+  templateId?: string;
+  recipientType?: RecipientType;
+  recipientField?: string;
+  customRecipient?: string;
 }): Promise<AssignmentDocument> {
   const res = await apiFetch(`${BASE}/update-form-notification`, {
     method: "POST",

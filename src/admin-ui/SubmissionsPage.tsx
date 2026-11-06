@@ -17,6 +17,7 @@ import {
   resolveFormColor,
 } from "./ff-nav";
 import {
+  FF_CHIP,
   FF_FILTER_TRIGGER,
   FF_LIST_PAGE,
   FF_TOOLBAR_BTN,
@@ -579,9 +580,7 @@ export function SubmissionsPage() {
             className={ffUnderlineTabClass(activeTab === "all")}
           >
             All
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-kumo-tint text-kumo-subtle font-semibold">
-              {subs.length}
-            </span>
+            <span className={FF_CHIP}>{subs.length}</span>
           </button>
           <button
             type="button"
@@ -594,7 +593,7 @@ export function SubmissionsPage() {
             <WarningIcon />
             Spam
             {spamCount > 0 && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-red-500/15 text-red-600 dark:text-red-400 font-semibold">
+              <span className={`${FF_CHIP} !bg-red-500/15 !text-red-600 dark:!text-red-400`}>
                 {spamCount}
               </span>
             )}
@@ -619,8 +618,8 @@ export function SubmissionsPage() {
               <button
                 type="button"
                 onClick={() => setFormFilterOpen((o) => !o)}
-                className={`${FF_FILTER_TRIGGER} pe-2 ${
-                  formId ? "ring-kumo-brand bg-kumo-tint/50 text-kumo-strong" : ""
+                className={`${FF_FILTER_TRIGGER} !pe-2 ${
+                  formId ? "border-kumo-brand bg-kumo-tint/50 text-kumo-strong" : ""
                 }`}
                 aria-haspopup="listbox"
                 aria-expanded={formFilterOpen}
@@ -741,7 +740,7 @@ export function SubmissionsPage() {
               <button
                 type="button"
                 onClick={clearExtraFilters}
-                className="inline-flex h-6.5 items-center gap-1 rounded-md border-0 px-2 text-xs font-medium text-kumo-subtle transition-colors hover:bg-kumo-tint hover:text-kumo-default"
+                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-kumo-line bg-kumo-control px-3 text-sm font-medium text-kumo-subtle transition-colors hover:bg-kumo-tint hover:text-kumo-default"
                 title="Clear filters"
               >
                 <XIcon />

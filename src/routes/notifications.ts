@@ -98,6 +98,7 @@ export const notificationRoutes = {
       const input = routeCtx.input as {
         id: string;
         enabled?: boolean;
+        templateId?: string;
         recipientType?: RecipientType;
         recipientField?: string;
         customRecipient?: string;
@@ -114,6 +115,13 @@ export const notificationRoutes = {
         updatedAt: new Date().toISOString(),
       };
       if (typeof input.enabled === "boolean") next.enabled = input.enabled;
+      if (typeof input.templateId === "string" && input.templateId.trim()) {
+        const tpl = (await ctx.storage.templates.get(
+          input.templateId.trim(),
+        )) as StoredTemplate | null;
+        if (!tpl) throw PluginRouteError.badRequest("Template not found");
+        next.templateId = input.templateId.trim();
+      }
 
       if (input.recipientType) {
         if (input.recipientType === "submitter") {

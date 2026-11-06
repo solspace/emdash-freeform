@@ -1,4 +1,5 @@
 import { Button, Dialog } from "@cloudflare/kumo";
+import { Plus } from "@phosphor-icons/react";
 import {
   useEffect,
   useMemo,
@@ -16,6 +17,7 @@ import {
   type FormListItem,
 } from "./ff-api";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { FfListSearch } from "./ff-list";
 import { goToFormSubmissions, goToSection, resolveFormColor } from "./ff-nav";
 import "./styles.css";
 
@@ -48,15 +50,6 @@ function DotsThreeIcon() {
       aria-hidden="true"
     >
       <path d="M140,128a12,12,0,1,1-12-12A12,12,0,0,1,140,128Zm56-12a12,12,0,1,0,12,12A12,12,0,0,0,196,116ZM60,116a12,12,0,1,0,12,12A12,12,0,0,0,60,116Z" />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
     </svg>
   );
 }
@@ -257,14 +250,14 @@ export function FormsDashboard({
               </option>
             ))}
           </select>
-          <button
-            type="button"
-            className="ff-btn ff-btn-primary"
+          <Button
+            variant="primary"
+            icon={Plus}
             disabled={creating || aiBusy}
             onClick={() => void onCreate()}
           >
-            <PlusIcon /> {creating ? "Creating…" : "New form"}
-          </button>
+            {creating ? "Creating…" : "New form"}
+          </Button>
         </div>
       </div>
 
@@ -330,22 +323,12 @@ export function FormsDashboard({
       </Dialog.Root>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:w-64">
-          <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-kumo-subtle">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="11" cy="11" r="8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="m21 21-4.3-4.3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <input
-            type="search"
-            placeholder="Search forms…"
-            className="h-9 w-full rounded-md border border-kumo-line bg-kumo-control ps-9 pe-3 text-sm text-kumo-default placeholder:text-kumo-subtle focus:outline-none focus:ring-2 focus:ring-kumo-focus"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="Search forms"
-          />
-        </div>
+        <FfListSearch
+          placeholder="Search forms…"
+          aria-label="Search forms"
+          value={query}
+          onChange={setQuery}
+        />
         <div className="flex items-center gap-1 rounded-md border border-kumo-line bg-kumo-control p-0.5">
           <button
             type="button"
