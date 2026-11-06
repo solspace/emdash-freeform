@@ -7,6 +7,7 @@ import {
   saveForm,
   type FormListItem,
 } from "./ff-api";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { goToFormSubmissions, goToSection, resolveFormColor } from "./ff-nav";
 import "./styles.css";
 
@@ -80,6 +81,8 @@ export function FormsDashboard({
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"cards" | "list">("list");
   const [pendingDelete, setPendingDelete] = useState<FormListItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<unknown>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
@@ -503,51 +506,44 @@ export function FormsDashboard({
         </div>
       )}
 
-      {pendingDelete && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
-          onClick={() => setPendingDelete(null)}
-        >
-          <div
-            className="ff-modal-card w-full max-w-md"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-form-title"
-          >
-            <h3 id="delete-form-title" className="text-lg font-semibold text-kumo-strong">
-              Delete form?
-            </h3>
-            <p className="mt-2 text-sm text-kumo-subtle">
-              Are you sure you want to delete <strong className="text-kumo-strong">{pendingDelete.name}</strong>? This will permanently delete the form, its configuration, and all its collected submissions. This cannot be undone.
-            </p>
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                className="ff-btn ff-btn-secondary"
-                onClick={() => setPendingDelete(null)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="ff-btn ff-btn-danger-solid"
-                onClick={() => {
-                  const form = pendingDelete;
-                  setPendingDelete(null);
-                  void deleteForm(form.id)
-                    .then(onRefresh)
-                    .catch((err) => {
-                      onError(err instanceof Error ? err.message : String(err));
-                    });
-                }}
-              >
-                <TrashIcon /> Delete Form
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        onClose={() => {
+          if (deleting) return;
+          setPendingDelete(null);
+          setDeleteError(null);
+        }}
+        role="alertdialog"
+        title="Delete form?"
+        description={
+          <>
+            Permanently delete <strong>{pendingDelete?.name}</strong>, its
+            configuration, and all collected submissions? This cannot be undone.
+          </>
+        }
+        confirmLabel="Delete"
+        pendingLabel="Deleting..."
+        isPending={deleting}
+        error={deleteError}
+        preventCloseWhilePending
+        onConfirm={() => {
+          if (!pendingDelete) return;
+          const form = pendingDelete;
+          setDeleting(true);
+          setDeleteError(null);
+          void deleteForm(form.id)
+            .then(() => {
+              setPendingDelete(null);
+              onRefresh();
+            })
+            .catch((err) => {
+              const message = err instanceof Error ? err.message : String(err);
+              setDeleteError(message);
+              onError(message);
+            })
+            .finally(() => setDeleting(false));
+        }}
+      />
     </div>
   );
 }

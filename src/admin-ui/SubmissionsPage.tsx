@@ -16,10 +16,23 @@ import {
   ffUnderlineTabClass,
   resolveFormColor,
 } from "./ff-nav";
+import {
+  FF_FILTER_TRIGGER,
+  FF_LIST_PAGE,
+  FF_TOOLBAR_BTN,
+  FfCheckbox,
+  FfDataTable,
+  FfFilterSelect,
+  FfListPagination,
+  FfListSearch,
+} from "./ff-list";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { FreeformShell } from "./FreeformShell";
 import "./styles.css";
 
-const PAGE_SIZE = 15;
+const PAGE_SIZES = [10, 20, 50, 100] as const;
+type StatusFilter = "all" | "clean" | "spam";
+type DateFilter = "all" | "7d" | "30d" | "90d";
 
 function preview(data: Record<string, unknown>): string {
   const values = Object.values(data)
@@ -70,6 +83,10 @@ function formatWhen(iso: string): string {
   }
 }
 
+function submissionIsSpam(s: SubmissionListItem): boolean {
+  return typeof s.spamScore === "number" && s.spamScore >= 5;
+}
+
 function TrashIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -82,11 +99,18 @@ function TrashIcon() {
   );
 }
 
-function EyeIcon() {
+/** Phosphor DotsThree — EmDash RowActionsMenu trigger. */
+function DotsThreeIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="18"
+      height="18"
+      fill="currentColor"
+      viewBox="0 0 256 256"
+      aria-hidden="true"
+    >
+      <path d="M140,128a12,12,0,1,1-12-12A12,12,0,0,1,140,128Zm56-12a12,12,0,1,0,12,12A12,12,0,0,0,196,116ZM60,116a12,12,0,1,0,12,12A12,12,0,0,0,60,116Z" />
     </svg>
   );
 }
@@ -173,14 +197,19 @@ export function SubmissionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "spam">("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [selected, setSelected] = useState<SubmissionListItem | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [pendingDelete, setPendingDelete] = useState<SubmissionListItem | null>(null);
   const [pendingBulkDelete, setPendingBulkDelete] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState<(typeof PAGE_SIZES)[number]>(20);
   const [formFilterOpen, setFormFilterOpen] = useState(false);
   const formFilterRef = useRef<HTMLDivElement>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const rowMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -193,6 +222,24 @@ export function SubmissionsPage() {
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [formFilterOpen]);
+
+  useEffect(() => {
+    if (!openMenuId) return;
+    function onDoc(e: MouseEvent) {
+      if (rowMenuRef.current && !rowMenuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpenMenuId(null);
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [openMenuId]);
 
   const formColorMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -299,18 +346,30 @@ export function SubmissionsPage() {
   };
 
   const spamCount = useMemo(() => {
-    return subs.filter((s) => typeof s.spamScore === "number" && s.spamScore >= 5).length;
+    return subs.filter(submissionIsSpam).length;
   }, [subs]);
 
   const filtered = useMemo(() => {
     let result = subs;
 
-    // Filter by tab (all vs spam)
+    // Tab (All vs Spam) — mirrors EmDash All / Trash
     if (activeTab === "spam") {
-      result = result.filter((s) => typeof s.spamScore === "number" && s.spamScore >= 5);
+      result = result.filter(submissionIsSpam);
+    } else if (statusFilter === "spam") {
+      result = result.filter(submissionIsSpam);
+    } else if (statusFilter === "clean") {
+      result = result.filter((s) => !submissionIsSpam(s));
     }
 
-    // Filter by search query
+    if (dateFilter !== "all") {
+      const days = dateFilter === "7d" ? 7 : dateFilter === "30d" ? 30 : 90;
+      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+      result = result.filter((s) => {
+        const t = Date.parse(s.createdAt);
+        return Number.isFinite(t) && t >= cutoff;
+      });
+    }
+
     const q = query.trim().toLowerCase();
     if (q) {
       result = result.filter((s) => {
@@ -326,14 +385,24 @@ export function SubmissionsPage() {
     }
 
     return result;
-  }, [subs, activeTab, query]);
+  }, [subs, activeTab, statusFilter, dateFilter, query]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / perPage) || 1));
   const pagedItems = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return filtered.slice(start, start + PAGE_SIZE);
-  }, [filtered, currentPage]);
+    const start = (currentPage - 1) * perPage;
+    return filtered.slice(start, start + perPage);
+  }, [filtered, currentPage, perPage]);
+
+  const hasExtraFilters =
+    Boolean(formId) || statusFilter !== "all" || dateFilter !== "all" || Boolean(query.trim());
+
+  const clearExtraFilters = () => {
+    handleFormChange("");
+    setStatusFilter("all");
+    setDateFilter("all");
+    setQuery("");
+    setPage(1);
+  };
 
   const allPageSelected =
     pagedItems.length > 0 && pagedItems.every((item) => selectedIds.has(item.id));
@@ -385,6 +454,7 @@ export function SubmissionsPage() {
         next.delete(s.id);
         return next;
       });
+      setPendingDelete(null);
       await refresh();
       showToast("Submission deleted");
     } catch (err) {
@@ -395,7 +465,6 @@ export function SubmissionsPage() {
   };
 
   const confirmBulkDelete = async () => {
-    setPendingBulkDelete(false);
     setBusy(true);
     setError(null);
     try {
@@ -403,6 +472,7 @@ export function SubmissionsPage() {
       await Promise.all(idsToDelete.map((id) => deleteSubmission(id)));
       if (selected && idsToDelete.includes(selected.id)) setSelected(null);
       setSelectedIds(new Set());
+      setPendingBulkDelete(false);
       await refresh();
       showToast(`Deleted ${idsToDelete.length} submission(s)`);
     } catch (err) {
@@ -412,12 +482,9 @@ export function SubmissionsPage() {
     }
   };
 
-  const startRecord = filtered.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const endRecord = Math.min(currentPage * PAGE_SIZE, filtered.length);
-
   return (
     <FreeformShell>
-      <div className="ff-page">
+      <div className={FF_LIST_PAGE}>
         {/* Title & Action Row (EmDash ContentList Header) */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
@@ -428,7 +495,7 @@ export function SubmissionsPage() {
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               type="button"
-              className="ff-btn ff-btn-secondary"
+              className={FF_TOOLBAR_BTN}
               disabled={busy || filtered.length === 0}
               onClick={() => void onExport(filtered.map((s) => s.id))}
             >
@@ -436,7 +503,7 @@ export function SubmissionsPage() {
             </button>
             <button
               type="button"
-              className="ff-btn ff-btn-secondary"
+              className={FF_TOOLBAR_BTN}
               onClick={() => void refresh()}
             >
               <RefreshIcon /> Refresh
@@ -477,38 +544,26 @@ export function SubmissionsPage() {
           </button>
         </nav>
 
-        {/* Table Toolbar (Search + Form Filter, matching TableToolbar) */}
+        {/* Table Toolbar — EmDash TableToolbar + FilterBar recipes */}
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <div className="relative w-full sm:w-64">
-              <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-kumo-subtle">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <circle cx="11" cy="11" r="8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="m21 21-4.3-4.3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-              <input
-                type="search"
-                placeholder="Search submissions…"
-                className="h-9 w-full rounded-md border border-kumo-line bg-kumo-control ps-9 pe-3 text-sm text-kumo-default placeholder:text-kumo-subtle focus:outline-none focus:ring-2 focus:ring-kumo-focus"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setPage(1);
-                }}
-                aria-label="Search submissions"
-              />
-            </div>
+            <FfListSearch
+              placeholder="Search submissions…"
+              aria-label="Search submissions"
+              value={query}
+              onChange={(v) => {
+                setQuery(v);
+                setPage(1);
+              }}
+            />
 
-            {/* Form Filter Dropdown Button (EmDash / Kumo style) */}
+            {/* Form filter (custom popover — forms list with counts/colors) */}
             <div className="relative inline-block" ref={formFilterRef}>
               <button
                 type="button"
                 onClick={() => setFormFilterOpen((o) => !o)}
-                className={`h-9 px-3 rounded-md border text-sm font-medium transition-colors inline-flex items-center gap-2 shadow-xs cursor-pointer ${
-                  formId
-                    ? "border-kumo-brand bg-kumo-tint/60 text-kumo-strong"
-                    : "border-kumo-line bg-kumo-base hover:bg-kumo-tint text-kumo-default"
+                className={`${FF_FILTER_TRIGGER} pe-2 ${
+                  formId ? "ring-kumo-brand bg-kumo-tint/50 text-kumo-strong" : ""
                 }`}
                 aria-haspopup="listbox"
                 aria-expanded={formFilterOpen}
@@ -516,24 +571,22 @@ export function SubmissionsPage() {
               >
                 {selectedForm ? (
                   <span
-                    className="h-2.5 w-2.5 rounded-full shrink-0"
+                    className="h-2 w-2 rounded-full shrink-0"
                     style={{ background: formColorMap.get(selectedForm.id) || "#3b82f6" }}
                     aria-hidden="true"
                   />
                 ) : (
                   <FilterIcon />
                 )}
-                <span>{selectedForm ? selectedForm.name : "All forms"}</span>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-kumo-tint text-kumo-subtle font-semibold">
-                  {selectedForm ? selectedForm.subCount : totalSubmissionsAcrossAllForms}
+                <span className="truncate max-w-36">
+                  {selectedForm ? selectedForm.name : "All forms"}
                 </span>
                 <ChevronDownIcon />
               </button>
 
-              {/* Form Filter Popover Dropdown */}
               {formFilterOpen && (
                 <div
-                  className="absolute start-0 mt-1 z-30 min-w-[220px] rounded-lg border border-kumo-line bg-kumo-base py-1 shadow-lg ring-1 ring-black/5"
+                  className="absolute start-0 mt-1 z-30 min-w-[220px] rounded-lg bg-kumo-base py-1 shadow-lg ring ring-kumo-line"
                   role="listbox"
                 >
                   <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-kumo-subtle">
@@ -561,7 +614,7 @@ export function SubmissionsPage() {
                     </span>
                   </button>
 
-                  <div className="border-t border-kumo-line my-1" />
+                  <div className="border-t border-kumo-hairline my-1" />
 
                   {forms.map((f) => {
                     const isSelected = formId === f.id;
@@ -582,7 +635,7 @@ export function SubmissionsPage() {
                       >
                         <span className="flex items-center gap-2 min-w-0">
                           <span
-                            className="h-2.5 w-2.5 rounded-full shrink-0"
+                            className="h-2 w-2 rounded-full shrink-0"
                             style={{ background: color }}
                             aria-hidden="true"
                           />
@@ -599,36 +652,59 @@ export function SubmissionsPage() {
               )}
             </div>
 
-            {/* Clear Form Filter Button */}
-            {formId && (
+            <FfFilterSelect
+              aria-label="Filter by status"
+              value={statusFilter}
+              disabled={activeTab === "spam"}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as StatusFilter);
+                setPage(1);
+              }}
+            >
+              <option value="all">All statuses</option>
+              <option value="clean">Clean</option>
+              <option value="spam">Spam</option>
+            </FfFilterSelect>
+
+            <FfFilterSelect
+              aria-label="Filter by date"
+              value={dateFilter}
+              onChange={(e) => {
+                setDateFilter(e.target.value as DateFilter);
+                setPage(1);
+              }}
+            >
+              <option value="all">All time</option>
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+              <option value="90d">Last 90 days</option>
+            </FfFilterSelect>
+
+            {hasExtraFilters && (
               <button
                 type="button"
-                onClick={() => handleFormChange("")}
-                className="h-9 px-2.5 rounded-md text-xs font-medium text-kumo-subtle hover:text-kumo-strong hover:bg-kumo-tint/60 transition-colors inline-flex items-center gap-1 cursor-pointer"
-                title="Clear form filter"
+                onClick={clearExtraFilters}
+                className="inline-flex h-6.5 items-center gap-1 rounded-md border-0 px-2 text-xs font-medium text-kumo-subtle transition-colors hover:bg-kumo-tint hover:text-kumo-default"
+                title="Clear filters"
               >
                 <XIcon />
-                <span>Reset filter</span>
+                Clear
               </button>
             )}
-          </div>
-
-          <div className="text-sm text-kumo-subtle shrink-0">
-            {filtered.length} {filtered.length === 1 ? "entry" : "entries"}
-            {!loading && subs.length !== filtered.length ? ` of ${subs.length}` : ""}
           </div>
         </div>
 
         {/* Bulk Action Bar (Matches ContentList Bulk Bar) */}
         {selectedIds.size > 0 && (
-          <div className="flex flex-wrap items-center gap-3 rounded-md border border-kumo-line bg-kumo-tint/40 px-4 py-2">
+          <div className="flex flex-wrap items-center gap-3 rounded-xl bg-kumo-elevated px-4 py-2 ring ring-kumo-line">
             <span className="text-sm font-medium text-kumo-strong">
-              {selectedIds.size} {selectedIds.size === 1 ? "selected" : "selected"}
+              {selectedIds.size} selected
             </span>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                className="ff-btn ff-btn-secondary ff-btn-sm"
+                className={FF_TOOLBAR_BTN}
+                style={{ height: "1.75rem", fontSize: "0.75rem" }}
                 onClick={() => void onExport(Array.from(selectedIds))}
               >
                 <DownloadIcon /> Export
@@ -650,181 +726,179 @@ export function SubmissionsPage() {
           </div>
         )}
 
-        {/* Table Structure: Exactly matching ContentList in content/posts */}
-        <div className="rounded-md border border-kumo-line bg-kumo-base overflow-x-auto shadow-xs">
-          <table className="w-full text-start">
-            <thead>
-              <tr className="border-b border-kumo-line bg-kumo-tint/50">
-                <th scope="col" className="w-10 px-4 py-3">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-kumo-line text-kumo-brand focus:ring-kumo-focus cursor-pointer"
-                    checked={allPageSelected}
-                    onChange={toggleSelectAll}
-                    aria-label="Select all on this page"
-                  />
-                </th>
-                <th scope="col" className="px-4 py-3 text-start text-sm font-medium text-kumo-subtle">
-                  Submission
-                </th>
-                <th scope="col" className="px-4 py-3 text-start text-sm font-medium text-kumo-subtle">
-                  Form
-                </th>
-                <th scope="col" className="px-4 py-3 text-start text-sm font-medium text-kumo-subtle">
-                  Status
-                </th>
-                <th scope="col" className="px-4 py-3 text-start text-sm font-medium text-kumo-subtle">
-                  Date
-                </th>
-                <th scope="col" className="px-4 py-3 text-end text-sm font-medium text-kumo-subtle">
-                  Actions
-                </th>
+        {/* EmDash DataTable recipe */}
+        <FfDataTable>
+          <thead>
+            <tr>
+              <th scope="col" className="w-10">
+                <FfCheckbox
+                  checked={allPageSelected}
+                  onChange={toggleSelectAll}
+                  aria-label="Select all on this page"
+                />
+              </th>
+              <th scope="col">Submission</th>
+              <th scope="col">Form</th>
+              <th scope="col">Status</th>
+              <th scope="col">Date</th>
+              <th scope="col" className="w-0 text-end">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="!border-t text-center text-kumo-subtle">
+                  <div className="py-4.5">Loading submissions…</div>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-kumo-line">
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-sm text-kumo-subtle">
-                    Loading submissions…
-                  </td>
-                </tr>
-              ) : pagedItems.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-sm text-kumo-subtle">
+            ) : pagedItems.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="!border-t text-center text-kumo-subtle">
+                  <div className="py-4.5">
                     {activeTab === "spam"
                       ? "No spam submissions found."
                       : "No submissions found."}
-                  </td>
-                </tr>
-              ) : (
-                pagedItems.map((s) => {
-                  const isChecked = selectedIds.has(s.id);
-                  const isSpam = typeof s.spamScore === "number" && s.spamScore >= 5;
-                  const formAccent = formColorMap.get(s.formId) || "#006ff7";
-                  return (
-                    <tr
-                      key={s.id}
-                      className={`transition-colors hover:bg-kumo-tint/25 cursor-pointer ${
-                        isChecked ? "bg-kumo-tint/40" : ""
-                      }`}
-                      onClick={() => setSelected(s)}
-                    >
-                      {/* Checkbox Column */}
-                      <td className="w-10 px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 rounded border-kumo-line text-kumo-brand focus:ring-kumo-focus cursor-pointer"
-                          checked={isChecked}
-                          onChange={() => toggleOne(s.id)}
-                          aria-label={`Select submission from ${s.formName}`}
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              pagedItems.map((s) => {
+                const isChecked = selectedIds.has(s.id);
+                const flagged = submissionIsSpam(s);
+                const formAccent = formColorMap.get(s.formId) || "#006ff7";
+                return (
+                  <tr
+                    key={s.id}
+                    data-selected={isChecked ? "" : undefined}
+                    className="cursor-pointer [&_td]:hover:bg-kumo-tint/40"
+                    onClick={() => setSelected(s)}
+                  >
+                    <td className="w-10" onClick={(e) => e.stopPropagation()}>
+                      <FfCheckbox
+                        checked={isChecked}
+                        onChange={() => toggleOne(s.id)}
+                        aria-label={`Select submission from ${s.formName}`}
+                      />
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="max-w-lg line-clamp-1 text-start font-medium text-kumo-default hover:text-kumo-brand"
+                        onClick={() => setSelected(s)}
+                      >
+                        {briefText(s.brief, s.data)}
+                      </button>
+                    </td>
+                    <td className="whitespace-nowrap">
+                      <span className="inline-flex items-center gap-2">
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ background: formAccent }}
+                          aria-hidden="true"
                         />
-                      </td>
-
-                      {/* Main Title / Preview Link */}
-                      <td className="px-4 py-3 text-sm">
+                        <span>{s.formName || "—"}</span>
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap">
+                      {flagged ? (
+                        <span
+                          className="ff-badge is-danger"
+                          title={s.spamReason ?? undefined}
+                        >
+                          Spam ({s.spamScore?.toFixed(1)})
+                        </span>
+                      ) : (
+                        <span className="ff-badge is-success">Clean</span>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap text-kumo-subtle">
+                      <bdi>{formatWhen(s.createdAt)}</bdi>
+                    </td>
+                    <td className="w-0 text-end" onClick={(e) => e.stopPropagation()}>
+                      <div
+                        className="relative inline-flex justify-end"
+                        ref={openMenuId === s.id ? rowMenuRef : undefined}
+                      >
                         <button
                           type="button"
-                          className="font-medium text-kumo-strong hover:text-kumo-brand text-start line-clamp-1 max-w-lg"
-                          onClick={() => setSelected(s)}
+                          className="ff-row-actions-trigger"
+                          aria-label={`Actions for submission from ${s.formName || "form"}`}
+                          aria-haspopup="menu"
+                          aria-expanded={openMenuId === s.id}
+                          onClick={() =>
+                            setOpenMenuId((id) => (id === s.id ? null : s.id))
+                          }
                         >
-                          {briefText(s.brief, s.data)}
+                          <DotsThreeIcon />
                         </button>
-                      </td>
-
-                      {/* Form Column */}
-                      <td className="px-4 py-3 text-sm text-kumo-default whitespace-nowrap">
-                        <span className="inline-flex items-center gap-2">
-                          <span
-                            className="h-2 w-2 rounded-full shrink-0"
-                            style={{ background: formAccent }}
-                            aria-hidden="true"
-                          />
-                          <span className="font-medium text-kumo-strong">{s.formName || "—"}</span>
-                        </span>
-                      </td>
-
-                      {/* Status Column (StatusBadge Style) */}
-                      <td className="px-4 py-3 text-sm whitespace-nowrap">
-                        {isSpam ? (
-                          <span
-                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-500/15 text-red-600 dark:text-red-400"
-                            title={s.spamReason ?? undefined}
+                        {openMenuId === s.id && (
+                          <div
+                            className="ff-row-actions-menu"
+                            role="menu"
+                            aria-label="Submission actions"
                           >
-                            Spam ({s.spamScore?.toFixed(1)})
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-500/15 text-green-600 dark:text-green-400">
-                            Clean
-                          </span>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="ff-row-actions-item"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                setSelected(s);
+                              }}
+                            >
+                              View
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="ff-row-actions-item"
+                              disabled={busy}
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                void onExport([s.id]);
+                              }}
+                            >
+                              Export CSV
+                            </button>
+                            <div className="ff-row-actions-sep" role="separator" />
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="ff-row-actions-item is-danger"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                setPendingDelete(s);
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
                         )}
-                      </td>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </FfDataTable>
 
-                      {/* Date Column */}
-                      <td className="px-4 py-3 text-sm text-kumo-subtle whitespace-nowrap">
-                        <bdi>{formatWhen(s.createdAt)}</bdi>
-                      </td>
-
-                      {/* Actions Column (Ghost square buttons matching ContentListItem) */}
-                      <td className="px-4 py-3 text-end" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end space-x-1">
-                          <button
-                            type="button"
-                            className="ff-icon-btn"
-                            title="View details"
-                            aria-label="View details"
-                            onClick={() => setSelected(s)}
-                          >
-                            <EyeIcon />
-                          </button>
-                          <button
-                            type="button"
-                            className="ff-icon-btn-danger"
-                            title="Delete submission"
-                            aria-label="Delete submission"
-                            onClick={() => setPendingDelete(s)}
-                          >
-                            <TrashIcon />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-
-          {/* EmDash Pagination Footer */}
-          {!loading && filtered.length > 0 && (
-            <footer className="flex flex-col sm:flex-row items-center justify-between border-t border-kumo-line bg-kumo-base px-4 py-3 gap-3 text-sm text-kumo-subtle">
-              <div>
-                Showing <strong>{startRecord}</strong>–<strong>{endRecord}</strong> of{" "}
-                <strong>{filtered.length}</strong>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="ff-btn ff-btn-secondary ff-btn-sm"
-                  disabled={currentPage <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  Previous
-                </button>
-                <span className="text-xs font-medium text-kumo-strong px-1">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button
-                  type="button"
-                  className="ff-btn ff-btn-secondary ff-btn-sm"
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  Next
-                </button>
-              </div>
-            </footer>
-          )}
-        </div>
+        {!loading && (
+          <FfListPagination
+            page={currentPage}
+            perPage={perPage}
+            totalCount={filtered.length}
+            pageSizes={[...PAGE_SIZES]}
+            label="Submissions pagination"
+            onPageChange={setPage}
+            onPageSizeChange={(n) => {
+              setPerPage(n as (typeof PAGE_SIZES)[number]);
+              setPage(1);
+            }}
+          />
+        )}
 
         {/* EmDash Native Slide-Over Drawer for Submission Details (Like CommentDetail) */}
         {selected && (
@@ -1103,89 +1177,48 @@ export function SubmissionsPage() {
           </div>
         )}
 
-        {/* Delete Single Submission Modal */}
-        {pendingDelete && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
-            onClick={() => setPendingDelete(null)}
-          >
-            <div
-              className="ff-modal-card w-full max-w-md"
-              onClick={(e) => e.stopPropagation()}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="delete-sub-title"
-            >
-              <h3 id="delete-sub-title" className="text-lg font-semibold text-kumo-strong">
-                Delete submission?
-              </h3>
-              <p className="mt-2 text-sm text-kumo-subtle">
-                Are you sure you want to permanently delete this submission from <strong className="text-kumo-strong">{pendingDelete.formName}</strong>? This action cannot be undone.
-              </p>
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  type="button"
-                  className="ff-btn ff-btn-secondary"
-                  onClick={() => setPendingDelete(null)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="ff-btn ff-btn-danger-solid"
-                  disabled={busy}
-                  onClick={() => {
-                    const s = pendingDelete;
-                    setPendingDelete(null);
-                    void confirmDeleteSubmission(s);
-                  }}
-                >
-                  <TrashIcon /> Delete Submission
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmDialog
+          open={Boolean(pendingDelete)}
+          onClose={() => {
+            if (busy) return;
+            setPendingDelete(null);
+            setError(null);
+          }}
+          role="alertdialog"
+          title="Delete submission?"
+          description={
+            <>
+              Permanently delete this submission from{" "}
+              <strong>{pendingDelete?.formName}</strong>? This cannot be undone.
+            </>
+          }
+          confirmLabel="Delete"
+          pendingLabel="Deleting..."
+          isPending={busy}
+          error={pendingDelete ? error : null}
+          preventCloseWhilePending
+          onConfirm={() => {
+            if (pendingDelete) void confirmDeleteSubmission(pendingDelete);
+          }}
+        />
 
-        {/* Delete Bulk Submissions Modal */}
-        {pendingBulkDelete && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
-            onClick={() => setPendingBulkDelete(false)}
-          >
-            <div
-              className="ff-modal-card w-full max-w-md"
-              onClick={(e) => e.stopPropagation()}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="bulk-delete-title"
-            >
-              <h3 id="bulk-delete-title" className="text-lg font-semibold text-kumo-strong">
-                Delete {selectedIds.size} submission{selectedIds.size === 1 ? "" : "s"}?
-              </h3>
-              <p className="mt-2 text-sm text-kumo-subtle">
-                Are you sure you want to permanently delete {selectedIds.size} selected submission{selectedIds.size === 1 ? "" : "s"}? This action cannot be undone.
-              </p>
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  type="button"
-                  className="ff-btn ff-btn-secondary"
-                  onClick={() => setPendingBulkDelete(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="ff-btn ff-btn-danger-solid"
-                  disabled={busy}
-                  onClick={() => void confirmBulkDelete()}
-                >
-                  <TrashIcon /> Delete {selectedIds.size} Submissions
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmDialog
+          open={pendingBulkDelete}
+          onClose={() => {
+            if (busy) return;
+            setPendingBulkDelete(false);
+            setError(null);
+          }}
+          role="alertdialog"
+          title={`Delete ${selectedIds.size} submission${selectedIds.size === 1 ? "" : "s"}?`}
+          description={`Permanently delete ${selectedIds.size} selected submission${selectedIds.size === 1 ? "" : "s"}? This cannot be undone.`}
+          confirmLabel="Delete"
+          pendingLabel="Deleting..."
+          isPending={busy}
+          error={pendingBulkDelete ? error : null}
+          preventCloseWhilePending
+          onConfirm={() => void confirmBulkDelete()}
+        />
 
         {toast && <div className="ff-toast">{toast}</div>}
       </div>

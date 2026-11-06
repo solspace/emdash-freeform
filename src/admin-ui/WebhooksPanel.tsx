@@ -11,6 +11,7 @@ import {
   type WebhookDeliveryEntry,
   type WebhookListItem,
 } from "./ff-api";
+import { ConfirmDialog } from "./ConfirmDialog";
 import "./styles.css";
 
 type SecretReveal = {
@@ -55,6 +56,8 @@ export function WebhooksPanel() {
   } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<WebhookListItem | null>(null);
   const [pendingRotate, setPendingRotate] = useState<WebhookListItem | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const [confirmError, setConfirmError] = useState<unknown>(null);
 
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
@@ -417,91 +420,84 @@ export function WebhooksPanel() {
         </div>
       </section>
 
-      {pendingRotate && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
-          onClick={() => setPendingRotate(null)}
-        >
-          <div
-            className="ff-modal-card w-full max-w-md"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="rotate-wh-title"
-          >
-            <h3 id="rotate-wh-title" className="text-lg font-semibold text-kumo-strong">
-              Rotate signing secret?
-            </h3>
-            <p className="mt-2 text-sm text-kumo-subtle">
-              Rotate signing secret for <strong className="text-kumo-strong">{pendingRotate.name}</strong>? The previous secret will stop working immediately.
-            </p>
-            <div className="mt-6 flex justify-end gap-3">
-              <button type="button" className="ff-btn ff-btn-secondary" onClick={() => setPendingRotate(null)}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="ff-btn ff-btn-primary"
-                onClick={() => {
-                  const wh = pendingRotate;
-                  setPendingRotate(null);
-                  void rotateWebhookSecret(wh.id)
-                    .then((r) => {
-                      setReveal({ name: wh.name, secret: r.secret, action: "rotated" });
-                    })
-                    .catch((err) => {
-                      setError(err instanceof Error ? err.message : String(err));
-                    });
-                }}
-              >
-                Rotate secret
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={Boolean(pendingRotate)}
+        onClose={() => {
+          if (confirmBusy) return;
+          setPendingRotate(null);
+          setConfirmError(null);
+        }}
+        role="alertdialog"
+        title="Rotate signing secret?"
+        description={
+          <>
+            Rotate signing secret for <strong>{pendingRotate?.name}</strong>? The
+            previous secret will stop working immediately.
+          </>
+        }
+        confirmLabel="Rotate secret"
+        pendingLabel="Rotating..."
+        variant="primary"
+        isPending={confirmBusy}
+        error={confirmError}
+        preventCloseWhilePending
+        onConfirm={() => {
+          if (!pendingRotate) return;
+          const wh = pendingRotate;
+          setConfirmBusy(true);
+          setConfirmError(null);
+          void rotateWebhookSecret(wh.id)
+            .then((r) => {
+              setPendingRotate(null);
+              setReveal({ name: wh.name, secret: r.secret, action: "rotated" });
+            })
+            .catch((err) => {
+              const message = err instanceof Error ? err.message : String(err);
+              setConfirmError(message);
+              setError(message);
+            })
+            .finally(() => setConfirmBusy(false));
+        }}
+      />
 
-      {pendingDelete && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
-          onClick={() => setPendingDelete(null)}
-        >
-          <div
-            className="ff-modal-card w-full max-w-md"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-wh-title"
-          >
-            <h3 id="delete-wh-title" className="text-lg font-semibold text-kumo-strong">
-              Delete webhook?
-            </h3>
-            <p className="mt-2 text-sm text-kumo-subtle">
-              Delete <strong className="text-kumo-strong">{pendingDelete.name}</strong>? Deliveries to this endpoint will stop immediately.
-            </p>
-            <div className="mt-6 flex justify-end gap-3">
-              <button type="button" className="ff-btn ff-btn-secondary" onClick={() => setPendingDelete(null)}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="ff-btn ff-btn-danger-solid"
-                onClick={() => {
-                  const wh = pendingDelete;
-                  setPendingDelete(null);
-                  void deleteWebhook(wh.id)
-                    .then(refresh)
-                    .catch((err) => {
-                      setError(err instanceof Error ? err.message : String(err));
-                    });
-                }}
-              >
-                <TrashIcon /> Delete webhook
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        onClose={() => {
+          if (confirmBusy) return;
+          setPendingDelete(null);
+          setConfirmError(null);
+        }}
+        role="alertdialog"
+        title="Delete webhook?"
+        description={
+          <>
+            Delete <strong>{pendingDelete?.name}</strong>? Deliveries to this
+            endpoint will stop immediately.
+          </>
+        }
+        confirmLabel="Delete"
+        pendingLabel="Deleting..."
+        isPending={confirmBusy}
+        error={confirmError}
+        preventCloseWhilePending
+        onConfirm={() => {
+          if (!pendingDelete) return;
+          const wh = pendingDelete;
+          setConfirmBusy(true);
+          setConfirmError(null);
+          void deleteWebhook(wh.id)
+            .then(() => {
+              setPendingDelete(null);
+              return refresh();
+            })
+            .catch((err) => {
+              const message = err instanceof Error ? err.message : String(err);
+              setConfirmError(message);
+              setError(message);
+            })
+            .finally(() => setConfirmBusy(false));
+        }}
+      />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   sendTestEmail,
   type TemplateDocument,
 } from "./ff-api";
+import { ConfirmDialog } from "./ConfirmDialog";
 import "./styles.css";
 
 const EMPTY_DRAFT = {
@@ -100,6 +101,8 @@ export function EmailTemplatesPanel({ onToast }: Props) {
   const [creating, setCreating] = useState(false);
   const [viewOnly, setViewOnly] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<TemplateDocument | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<unknown>(null);
 
   // Editor sub-state
   const [editorTab, setEditorTab] = useState<"code" | "preview">("code");
@@ -775,53 +778,45 @@ export function EmailTemplatesPanel({ onToast }: Props) {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {pendingDelete && (
-        <div
-          className="ff-modal-overlay"
-          onClick={() => setPendingDelete(null)}
-        >
-          <div
-            className="ff-modal"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-tpl-title"
-          >
-            <h3 id="delete-tpl-title">
-              Delete template?
-            </h3>
-            <p className="ff-modal-desc">
-              Are you sure you want to delete <strong style={{ color: "var(--text-color-kumo-strong)" }}>{pendingDelete.name}</strong>? Forms using this template will fall back to default notifications.
-            </p>
-            <div className="ff-modal-actions">
-              <button
-                type="button"
-                className="ff-btn-outline cursor-pointer"
-                onClick={() => setPendingDelete(null)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="ff-btn-danger-solid cursor-pointer"
-                onClick={() => {
-                  const tpl = pendingDelete;
-                  setPendingDelete(null);
-                  void deleteTemplate(tpl.id)
-                    .then(refresh)
-                    .then(() => onToast?.("Template deleted"))
-                    .catch((err) => {
-                      setError(err instanceof Error ? err.message : String(err));
-                    });
-                }}
-              >
-                <TrashIcon /> Delete Template
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        onClose={() => {
+          if (deleting) return;
+          setPendingDelete(null);
+          setDeleteError(null);
+        }}
+        role="alertdialog"
+        title="Delete template?"
+        description={
+          <>
+            Delete <strong>{pendingDelete?.name}</strong>? Forms using this
+            template will fall back to default notifications.
+          </>
+        }
+        confirmLabel="Delete"
+        pendingLabel="Deleting..."
+        isPending={deleting}
+        error={deleteError}
+        preventCloseWhilePending
+        onConfirm={() => {
+          if (!pendingDelete) return;
+          const tpl = pendingDelete;
+          setDeleting(true);
+          setDeleteError(null);
+          void deleteTemplate(tpl.id)
+            .then(refresh)
+            .then(() => {
+              setPendingDelete(null);
+              onToast?.("Template deleted");
+            })
+            .catch((err) => {
+              const message = err instanceof Error ? err.message : String(err);
+              setDeleteError(message);
+              setError(message);
+            })
+            .finally(() => setDeleting(false));
+        }}
+      />
     </div>
   );
 }

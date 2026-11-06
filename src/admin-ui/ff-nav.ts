@@ -16,7 +16,7 @@ export function settingsSectionPath(section: FreeformSettingsSection): string {
 
 /** Match Kumo `Tabs variant="underline"` list + trigger spacing (Content List All/Trash). */
 export const FF_UNDERLINE_TABLIST =
-  "flex gap-4 border-b border-kumo-hairline -mb-px";
+  "relative flex min-w-0 shrink items-stretch gap-4 border-b border-kumo-hairline";
 
 export function ffUnderlineTabClass(active: boolean): string {
   return [

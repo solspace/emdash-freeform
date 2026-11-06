@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { getAiSettings, saveAiSettings, type AiSettings } from "./ff-api";
 import "./styles.css";
 
@@ -55,13 +56,13 @@ export function AiSettingsPanel({ onToast }: Props) {
   };
 
   const onClearKey = async () => {
-    setShowClearConfirm(false);
     setSaving(true);
     setError(null);
     try {
       const next = await saveAiSettings({ clearKey: true });
       setSettings(next);
       setApiKey("");
+      setShowClearConfirm(false);
       onToast?.("API key removed");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -192,43 +193,23 @@ export function AiSettingsPanel({ onToast }: Props) {
         </div>
       </section>
 
-      {showClearConfirm && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
-          onClick={() => setShowClearConfirm(false)}
-        >
-          <div
-            className="ff-modal-card w-full max-w-md"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="clear-key-title"
-          >
-            <h3 id="clear-key-title" className="text-lg font-semibold text-kumo-strong">
-              Remove OpenAI key?
-            </h3>
-            <p className="mt-2 text-sm text-kumo-subtle">
-              Removing the saved key will disable AI form generation, automatic summaries, and AI spam scoring until a new key is added.
-            </p>
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                className="ff-btn ff-btn-secondary"
-                onClick={() => setShowClearConfirm(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="ff-btn ff-btn-danger-solid"
-                onClick={() => void onClearKey()}
-              >
-                Remove key
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={showClearConfirm}
+        onClose={() => {
+          if (saving) return;
+          setShowClearConfirm(false);
+          setError(null);
+        }}
+        role="alertdialog"
+        title="Remove OpenAI key?"
+        description="Removing the saved key will disable AI form generation, automatic summaries, and AI spam scoring until a new key is added."
+        confirmLabel="Remove key"
+        pendingLabel="Removing..."
+        isPending={saving}
+        error={showClearConfirm ? error : null}
+        preventCloseWhilePending
+        onConfirm={() => void onClearKey()}
+      />
     </div>
   );
 }

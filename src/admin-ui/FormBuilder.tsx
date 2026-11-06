@@ -27,6 +27,7 @@ import { FieldPreview } from "./FieldPreview";
 import { FieldOptionsEditor } from "./FieldOptionsEditor";
 import { ActionIcon, FieldIcon } from "./field-icons";
 import { getForm, saveForm } from "./ff-api";
+import { EditorBarListLabel, GhostSquareBackButton } from "./ff-back";
 import { FORM_COLOR_PRESETS, resolveFormColor } from "./ff-nav";
 import { PALETTE_GROUPS, defaultFieldLabel, needsOptions } from "./field-types";
 import {
@@ -876,41 +877,47 @@ export function FormBuilder({ formId, onBack }: Props) {
     <div className="ff-shell">
       <div className="ff-header ff-header-builder">
         <div className="ff-header-title">
-          <nav className="ff-builder-crumb" aria-label="Breadcrumb">
-            <button type="button" className="ff-builder-back" onClick={onBack}>
-              <span aria-hidden="true">&lt;</span> Forms
-            </button>
-            <span className="ff-builder-crumb-sep" aria-hidden="true">
-              /
-            </span>
-            <div className="ff-builder-crumb-name">
-              <h1 className="ff-builder-crumb-heading">
-                <input
-                  ref={titleInputRef}
-                  className="ff-title-input"
-                  value={form.name}
-                  aria-label="Form name"
-                  placeholder="Untitled form"
-                  onChange={(e) => {
-                    setForm({ ...form, name: e.target.value });
-                    setDirty(true);
+          {/* EmDash ContentEditor bar: [←] Forms / Title */}
+          <div className="ff-builder-crumb" data-ff-editor-bar="">
+            <GhostSquareBackButton
+              aria-label="Back to Forms list"
+              size="sm"
+              onClick={onBack}
+            />
+            <div className="ff-builder-crumb-trail">
+              <EditorBarListLabel onClick={onBack}>Forms</EditorBarListLabel>
+              <span className="ff-builder-crumb-sep" aria-hidden="true">
+                /
+              </span>
+              <div className="ff-builder-crumb-name">
+                <h1 className="ff-builder-crumb-heading">
+                  <input
+                    ref={titleInputRef}
+                    className="ff-title-input"
+                    value={form.name}
+                    aria-label="Form name"
+                    placeholder="Untitled form"
+                    onChange={(e) => {
+                      setForm({ ...form, name: e.target.value });
+                      setDirty(true);
+                    }}
+                  />
+                </h1>
+                <button
+                  type="button"
+                  className="ff-builder-edit-name"
+                  title="Edit form name"
+                  aria-label="Edit form name"
+                  onClick={() => {
+                    titleInputRef.current?.focus();
+                    titleInputRef.current?.select();
                   }}
-                />
-              </h1>
-              <button
-                type="button"
-                className="ff-builder-edit-name"
-                title="Edit form name"
-                aria-label="Edit form name"
-                onClick={() => {
-                  titleInputRef.current?.focus();
-                  titleInputRef.current?.select();
-                }}
-              >
-                <ActionIcon name="edit" size={14} />
-              </button>
+                >
+                  <ActionIcon name="edit" size={14} />
+                </button>
+              </div>
             </div>
-          </nav>
+          </div>
           <div className="ff-builder-meta">
             <code className="ff-handle-badge" title="Form handle">
               {form.handle}
