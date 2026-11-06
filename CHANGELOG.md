@@ -7,6 +7,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.3.0] — 2026-11-07
+
+### Changed
+
+- **Admin UX overhaul** — Forms / Submissions / Settings chrome aligned with EmDash posts & SEO patterns (fewer borders, denser panels, Phosphor field icons)
+- **Forms dashboard** — List/Cards toggle persisted; cards keep accent tint at rest with a soft mouse-follow spotlight and larger titles
+- **Dialogs** — Notification + Generate with AI use EmDash edit-dialog shell (`max-h` + `sm:w-[32rem]`); confirms use centered Kumo Dialog
+- **Row actions** — `…` menus use Kumo `DropdownMenu` (portaled) so they no longer clip inside cards/tables
+- **Starter template select** — Phosphor `CaretDown` overlay matching EmDash locale switcher
+- Form builder: Theme lives under Settings (header color swatches kept); canvas handle/type pills removed; Settings/Protection denser like SEO
+
 ## [1.2.0] — 2026-10-30
 
 ### Added
