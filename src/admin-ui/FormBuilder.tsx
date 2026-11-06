@@ -30,6 +30,7 @@ import { FieldOptionsEditor } from "./FieldOptionsEditor";
 import { ActionIcon, FieldIcon } from "./field-icons";
 import { getForm, saveForm } from "./ff-api";
 import { EditorBarListLabel, GhostSquareBackButton } from "./ff-back";
+import { FfSwitchRow } from "./ff-list";
 import { FORM_COLOR_PRESETS, resolveFormColor } from "./ff-nav";
 import { PALETTE_GROUPS, defaultFieldLabel, needsOptions } from "./field-types";
 import {
@@ -363,16 +364,13 @@ function PropertyEditor({
       </div>
 
       {field.type !== "consent" && field.type !== "html" && field.type !== "hidden" && (
-        <div className="ff-prop-group ff-prop-checkbox-row">
-          <label htmlFor="ff-required">
-            <input
-              id="ff-required"
-              type="checkbox"
-              checked={field.required}
-              onChange={(e) => onChange({ required: e.target.checked })}
-            />{" "}
-            Required field
-          </label>
+        <div className="ff-prop-group">
+          <FfSwitchRow
+            id="ff-required"
+            label="Required field"
+            checked={field.required}
+            onCheckedChange={(checked) => onChange({ required: checked })}
+          />
         </div>
       )}
 

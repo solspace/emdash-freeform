@@ -1,6 +1,6 @@
-import { Switch } from "@cloudflare/kumo";
 import type { ReactNode } from "react";
 import type { FormCaptchaSettings, FormPrivacySettings } from "../types";
+import { FfSwitchRow } from "./ff-list";
 import { goToSettingsSection } from "./ff-nav";
 
 type Props = {
@@ -84,41 +84,6 @@ function FieldBlock({
   );
 }
 
-function SwitchRow({
-  id,
-  label,
-  description,
-  checked,
-  onCheckedChange,
-}: {
-  id: string;
-  label: string;
-  description: string;
-  checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-}) {
-  const descId = `${id}-description`;
-  return (
-    <div className="flex items-start justify-between gap-6 px-4 py-4">
-      <div className="grid gap-1 min-w-0">
-        <label htmlFor={id} className="m-0 inline-flex items-center gap-1 text-base font-medium text-kumo-default">
-          {label}
-        </label>
-        <p id={descId} className="text-sm text-kumo-subtle">
-          {description}
-        </p>
-      </div>
-      <Switch
-        id={id}
-        checked={checked}
-        aria-label={label}
-        aria-describedby={descId}
-        onCheckedChange={onCheckedChange}
-      />
-    </div>
-  );
-}
-
 export function FormProtectionPanel({
   honeypotEnabled,
   captcha,
@@ -145,13 +110,15 @@ export function FormProtectionPanel({
       </div>
 
       <SettingsSection id="ff-protection-builtin" title="Built-in">
-        <SwitchRow
-          id="ff-honeypot-enabled"
-          label="Enable honeypot"
-          description="Adds a hidden field bots often fill. When tripped, the submission is silently dropped. CSRF always runs on public submit."
-          checked={honeypotEnabled}
-          onCheckedChange={onHoneypotChange}
-        />
+        <FieldRow>
+          <FfSwitchRow
+            id="ff-honeypot-enabled"
+            label="Enable honeypot"
+            description="Adds a hidden field bots often fill. When tripped, the submission is silently dropped. CSRF always runs on public submit."
+            checked={honeypotEnabled}
+            onCheckedChange={onHoneypotChange}
+          />
+        </FieldRow>
       </SettingsSection>
 
       <SettingsSection id="ff-protection-privacy" title="Privacy">
@@ -220,15 +187,17 @@ export function FormProtectionPanel({
           </FieldBlock>
         </FieldRow>
 
-        <SwitchRow
-          id="ff-store-ip"
-          label="Store submitter IP address"
-          description="Off by default. Only enable if you have a clear reason to keep IPs."
-          checked={privacy?.storeIp === true}
-          onCheckedChange={(checked) =>
-            onPrivacyChange({ ...privacy, storeIp: checked })
-          }
-        />
+        <FieldRow>
+          <FfSwitchRow
+            id="ff-store-ip"
+            label="Store submitter IP address"
+            description="Off by default. Only enable if you have a clear reason to keep IPs."
+            checked={privacy?.storeIp === true}
+            onCheckedChange={(checked) =>
+              onPrivacyChange({ ...privacy, storeIp: checked })
+            }
+          />
+        </FieldRow>
       </SettingsSection>
 
       <SettingsSection id="ff-protection-captcha" title="Captcha">

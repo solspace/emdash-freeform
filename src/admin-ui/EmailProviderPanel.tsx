@@ -6,6 +6,7 @@ import {
   testEmailSettings,
   type EmailSettingsResponse,
 } from "./ff-api";
+import { FfSwitchRow } from "./ff-list";
 import "./styles.css";
 
 type Props = {
@@ -290,15 +291,13 @@ export function EmailProviderPanel({ onToast }: Props) {
                 />
               </div>
 
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-kumo-default">
-                <input
-                  type="checkbox"
-                  checked={smtpSecure}
-                  onChange={(e) => setSmtpSecure(e.target.checked)}
-                  className="h-4 w-4 rounded border-kumo-line"
-                />
-                <span>Use direct SSL/TLS (port 465). Leave unchecked for STARTTLS (port 587).</span>
-              </label>
+              <FfSwitchRow
+                id="ff-smtp-secure"
+                label="Use direct SSL/TLS (port 465)"
+                description="Leave off for STARTTLS (port 587)."
+                checked={smtpSecure}
+                onCheckedChange={setSmtpSecure}
+              />
             </div>
           )}
 

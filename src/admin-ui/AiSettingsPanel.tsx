@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { getAiSettings, saveAiSettings, type AiSettings } from "./ff-api";
+import { FfSwitchRow } from "./ff-list";
 import "./styles.css";
 
 type Props = {
@@ -148,15 +149,12 @@ export function AiSettingsPanel({ onToast }: Props) {
 
         <div className="ff-settings-panel">
           <div className="ff-settings-row-stack">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-kumo-line text-kumo-brand focus:ring-kumo-focus"
-                checked={spamEnabled}
-                onChange={(e) => setSpamEnabled(e.target.checked)}
-              />
-              <span className="text-sm font-medium text-kumo-strong">Enable AI spam scoring</span>
-            </label>
+            <FfSwitchRow
+              id="ff-spam-enabled"
+              label="Enable AI spam scoring"
+              checked={spamEnabled}
+              onCheckedChange={setSpamEnabled}
+            />
 
             {spamEnabled && (
               <div className="ff-field-group">

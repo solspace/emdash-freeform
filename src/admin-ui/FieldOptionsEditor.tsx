@@ -1,5 +1,6 @@
 import { useId, useMemo, useRef, useState } from "react";
 import type { FieldOption, FormField } from "../types";
+import { FfSwitchRow } from "./ff-list";
 
 export interface FieldOptionsEditorProps {
   field: FormField;
@@ -401,15 +402,13 @@ export function FieldOptionsEditor({ field, onChange }: FieldOptionsEditorProps)
       {/* Options Header & Toolbar */}
       <div className="ff-options-toolbar">
         <div className="ff-options-toolbar-left">
-          <label className="ff-options-switch" title="Toggle independent value editing">
-            <input
-              type="checkbox"
-              checked={useCustomValues}
-              onChange={(e) => setUseCustomValues(e.target.checked)}
-            />
-            <span className="ff-options-switch-slider" />
-            <span className="ff-options-switch-label">Custom values</span>
-          </label>
+          <FfSwitchRow
+            id="ff-options-custom-values"
+            label="Custom values"
+            checked={useCustomValues}
+            onCheckedChange={setUseCustomValues}
+            className="items-center"
+          />
         </div>
 
         <div className="ff-options-toolbar-right">

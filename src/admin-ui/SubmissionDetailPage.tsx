@@ -14,6 +14,7 @@ import {
 } from "./ff-api";
 import { EditorBarListLabel, GhostSquareBackButton } from "./ff-back";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { FfSwitchRow } from "./ff-list";
 import "./styles.css";
 
 type Props = {
@@ -588,15 +589,12 @@ function FieldEditor({
   if (type === "checkbox" || type === "consent") {
     const checked = String(value) === "true";
     return (
-      <label className="ff-check-row">
-        <input
-          id={id}
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked ? "true" : "")}
-        />
-        <span>{checked ? "Yes" : "No"}</span>
-      </label>
+      <FfSwitchRow
+        id={id}
+        label={checked ? "Yes" : "No"}
+        checked={checked}
+        onCheckedChange={(next) => onChange(next ? "true" : "")}
+      />
     );
   }
 

@@ -3,6 +3,7 @@
  * DataTable / ListPaginationFooter aren't exported from @emdash-cms/admin,
  * so we mirror their public class patterns — colors track EmDash as tokens evolve.
  */
+import { Switch } from "@cloudflare/kumo";
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
 
 export const FF_LIST_PAGE =
@@ -112,6 +113,60 @@ export function FfCheckbox({
       className={`ff-list-checkbox ${className}`}
       {...props}
     />
+  );
+}
+
+/**
+ * EmDash Switch with toggle on the LEFT (Freeform preference on wide pages).
+ * Use for single boolean settings — not multi-select lists or table selection.
+ */
+export function FfSwitchRow({
+  id,
+  label,
+  description,
+  checked,
+  onCheckedChange,
+  disabled,
+  className = "",
+}: {
+  id?: string;
+  label: ReactNode;
+  description?: ReactNode;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  const descId = id && description ? `${id}-description` : undefined;
+  return (
+    <div className={`flex items-start gap-3 ${className}`.trim()}>
+      <Switch
+        id={id}
+        checked={checked}
+        disabled={disabled}
+        aria-label={typeof label === "string" ? label : undefined}
+        aria-describedby={descId}
+        className="mt-0.5 shrink-0"
+        onCheckedChange={onCheckedChange}
+      />
+      <div className="grid min-w-0 gap-1">
+        {typeof label === "string" ? (
+          <label
+            htmlFor={id}
+            className="m-0 cursor-pointer text-base font-medium text-kumo-default"
+          >
+            {label}
+          </label>
+        ) : (
+          label
+        )}
+        {description ? (
+          <p id={descId} className="text-sm text-kumo-subtle">
+            {description}
+          </p>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
