@@ -270,7 +270,11 @@ export function FormsDashboard({
         }}
         disablePointerDismissal={aiBusy}
       >
-        <Dialog className="p-6" size="base">
+        <Dialog
+          container={typeof document !== "undefined" ? document.body : undefined}
+          className="ff-kumo-dialog w-full max-w-md p-6"
+          size="base"
+        >
           <Dialog.Title className="text-lg font-semibold">
             Generate with AI
           </Dialog.Title>

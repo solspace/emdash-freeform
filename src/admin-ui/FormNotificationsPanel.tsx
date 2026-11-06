@@ -207,6 +207,7 @@ export function FormNotificationsPanel({ formId, emailFields }: Props) {
   };
 
   return (
+    <>
     <div className={`${FF_LIST_PAGE} ff-form-notif-page`}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
@@ -365,6 +366,8 @@ export function FormNotificationsPanel({ formId, emailFields }: Props) {
         </FfDataTable>
       )}
 
+    </div>
+
       <Dialog.Root
         open={modalOpen}
         onOpenChange={(next) => {
@@ -372,7 +375,11 @@ export function FormNotificationsPanel({ formId, emailFields }: Props) {
         }}
         disablePointerDismissal={busy}
       >
-        <Dialog className="w-full max-w-md p-6" size="base">
+        <Dialog
+          container={typeof document !== "undefined" ? document.body : undefined}
+          className="ff-kumo-dialog w-full max-w-md p-6"
+          size="base"
+        >
           <Dialog.Title className="text-lg font-semibold">
             {editing ? "Edit notification" : "New notification"}
           </Dialog.Title>
@@ -477,8 +484,8 @@ export function FormNotificationsPanel({ formId, emailFields }: Props) {
 
       <ConfirmDialog
         open={pendingDelete !== null}
-        onOpenChange={(open) => {
-          if (!open && !confirmBusy) {
+        onClose={() => {
+          if (!confirmBusy) {
             setPendingDelete(null);
             setConfirmError(null);
           }
@@ -490,8 +497,9 @@ export function FormNotificationsPanel({ formId, emailFields }: Props) {
             : ""
         }
         confirmLabel="Remove"
-        confirmVariant="danger"
+        variant="destructive"
         isPending={confirmBusy}
+        pendingLabel="Removing…"
         error={confirmError}
         onConfirm={() => {
           if (!pendingDelete) return;
@@ -506,6 +514,6 @@ export function FormNotificationsPanel({ formId, emailFields }: Props) {
             .finally(() => setConfirmBusy(false));
         }}
       />
-    </div>
+    </>
   );
 }
