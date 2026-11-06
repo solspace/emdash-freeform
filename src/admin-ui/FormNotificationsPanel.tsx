@@ -1,5 +1,5 @@
 import { Button, Dialog, Switch } from "@cloudflare/kumo";
-import { Plus } from "@phosphor-icons/react";
+import { Plus, X } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormField, RecipientType } from "../types";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -371,113 +371,149 @@ export function FormNotificationsPanel({ formId, emailFields }: Props) {
       <Dialog.Root
         open={modalOpen}
         onOpenChange={(next) => {
-          if (!next) closeModal();
+          if (!next && !busy) closeModal();
         }}
-        disablePointerDismissal={busy}
+        disablePointerDismissal
       >
+        {/* EmDash edit-dialog shell (Menus / Sections / Taxonomy): fluid on
+            small screens, fixed 32rem from sm so it doesn’t stretch on huge displays */}
         <Dialog
-          container={typeof document !== "undefined" ? document.body : undefined}
-          className="ff-kumo-dialog w-full max-w-md p-6"
+          className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] flex-col overflow-hidden p-0 sm:w-[32rem]"
           size="base"
         >
-          <Dialog.Title className="text-lg font-semibold">
-            {editing ? "Edit notification" : "New notification"}
-          </Dialog.Title>
-          <Dialog.Description className="text-kumo-subtle">
-            {editing
-              ? "Update the template or recipient for this notification."
-              : "Choose an email template and who should receive it when this form is submitted."}
-          </Dialog.Description>
-
-          <div className="mt-4 space-y-4">
-            <div>
-              <label htmlFor="ff-notif-tpl" className="mb-1.5 block text-sm font-medium text-kumo-default">
-                Email template
-              </label>
-              <select
-                id="ff-notif-tpl"
-                className="h-9 w-full rounded-lg border-0 bg-kumo-control px-3 text-sm text-kumo-default shadow-xs ring ring-kumo-line focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand"
-                value={templateId}
-                disabled={busy || templates.length === 0}
-                onChange={(e) => setTemplateId(e.target.value)}
-              >
-                {templates.length === 0 ? (
-                  <option value="">No templates available</option>
-                ) : (
-                  templates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.system ? `${t.name} (Built-in)` : t.name}
-                    </option>
-                  ))
-                )}
-              </select>
-              <p className="mt-1.5 text-xs text-kumo-subtle">
-                Need a different email?{" "}
-                <button
-                  type="button"
-                  className="font-medium text-kumo-brand hover:underline"
-                  onClick={() => goToSettingsSection("templates")}
-                >
-                  Create a new template
-                </button>
-              </p>
-            </div>
-
-            <div>
-              <label htmlFor="ff-notif-to" className="mb-1.5 block text-sm font-medium text-kumo-default">
-                Send to
-              </label>
-              <select
-                id="ff-notif-to"
-                className="h-9 w-full rounded-lg border-0 bg-kumo-control px-3 text-sm text-kumo-default shadow-xs ring ring-kumo-line focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand"
-                value={recipient}
-                disabled={busy}
-                onChange={(e) => setRecipient(e.target.value)}
-              >
-                {emailFields.map((f) => (
-                  <option key={f.id} value={f.handle}>
-                    Submitter — {f.label}
-                  </option>
-                ))}
-                <option value="__custom__">Custom email address</option>
-              </select>
-            </div>
-
-            {recipient === "__custom__" && (
-              <div>
-                <label htmlFor="ff-notif-email" className="mb-1.5 block text-sm font-medium text-kumo-default">
-                  Custom email
-                </label>
-                <input
-                  id="ff-notif-email"
-                  type="email"
-                  value={customEmail}
-                  placeholder="team@example.com"
-                  disabled={busy}
-                  className="h-9 w-full rounded-lg border-0 bg-kumo-control px-3 text-sm text-kumo-default shadow-xs ring ring-kumo-line placeholder:text-kumo-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand"
-                  onChange={(e) => setCustomEmail(e.target.value)}
-                />
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-kumo-line px-6 py-5">
+              <div className="min-w-0">
+                <Dialog.Title className="text-lg font-semibold">
+                  {editing ? "Edit notification" : "New notification"}
+                </Dialog.Title>
+                <Dialog.Description className="mt-1 text-sm text-kumo-subtle">
+                  {editing
+                    ? "Update the template or recipient for this notification."
+                    : "Choose an email template and who should receive it when this form is submitted."}
+                </Dialog.Description>
               </div>
-            )}
+              <Dialog.Close
+                aria-label="Close"
+                render={(props) => (
+                  <Button
+                    {...props}
+                    type="button"
+                    variant="ghost"
+                    shape="square"
+                    icon={<X className="size-4" aria-hidden="true" />}
+                    aria-label="Close"
+                    disabled={busy}
+                  />
+                )}
+              />
+            </div>
 
-            {modalError && <p className="text-sm text-kumo-danger">{modalError}</p>}
-          </div>
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-6 py-6">
+              <div className="space-y-5">
+                <div>
+                  <label
+                    htmlFor="ff-notif-tpl"
+                    className="mb-1.5 block text-sm font-medium text-kumo-default"
+                  >
+                    Email template
+                  </label>
+                  <select
+                    id="ff-notif-tpl"
+                    className="h-9 w-full rounded-lg border-0 bg-kumo-control px-3 text-sm text-kumo-default shadow-xs ring ring-kumo-line focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand"
+                    value={templateId}
+                    disabled={busy || templates.length === 0}
+                    onChange={(e) => setTemplateId(e.target.value)}
+                  >
+                    {templates.length === 0 ? (
+                      <option value="">No templates available</option>
+                    ) : (
+                      templates.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.system ? `${t.name} (Built-in)` : t.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <p className="mt-1.5 text-xs text-kumo-subtle">
+                    Need a different email?{" "}
+                    <button
+                      type="button"
+                      className="font-medium text-kumo-brand hover:underline"
+                      onClick={() => goToSettingsSection("templates")}
+                    >
+                      Create a new template
+                    </button>
+                  </p>
+                </div>
 
-          <div className="mt-6 flex justify-end gap-2">
-            <Button
-              variant="secondary"
-              disabled={busy}
-              onClick={() => closeModal()}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              disabled={busy || templates.length === 0}
-              onClick={() => void onSaveModal()}
-            >
-              {busy ? "Saving…" : editing ? "Save changes" : "Attach notification"}
-            </Button>
+                <div>
+                  <label
+                    htmlFor="ff-notif-to"
+                    className="mb-1.5 block text-sm font-medium text-kumo-default"
+                  >
+                    Send to
+                  </label>
+                  <select
+                    id="ff-notif-to"
+                    className="h-9 w-full rounded-lg border-0 bg-kumo-control px-3 text-sm text-kumo-default shadow-xs ring ring-kumo-line focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand"
+                    value={recipient}
+                    disabled={busy}
+                    onChange={(e) => setRecipient(e.target.value)}
+                  >
+                    {emailFields.map((f) => (
+                      <option key={f.id} value={f.handle}>
+                        Submitter — {f.label}
+                      </option>
+                    ))}
+                    <option value="__custom__">Custom email address</option>
+                  </select>
+                </div>
+
+                {recipient === "__custom__" && (
+                  <div>
+                    <label
+                      htmlFor="ff-notif-email"
+                      className="mb-1.5 block text-sm font-medium text-kumo-default"
+                    >
+                      Custom email
+                    </label>
+                    <input
+                      id="ff-notif-email"
+                      type="email"
+                      value={customEmail}
+                      placeholder="team@example.com"
+                      disabled={busy}
+                      className="h-9 w-full rounded-lg border-0 bg-kumo-control px-3 text-sm text-kumo-default shadow-xs ring ring-kumo-line placeholder:text-kumo-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand"
+                      onChange={(e) => setCustomEmail(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {modalError && (
+                  <p className="rounded-md bg-kumo-danger/10 p-3 text-sm text-kumo-danger">
+                    {modalError}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-kumo-line px-6 py-4">
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={() => closeModal()}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                disabled={busy || templates.length === 0}
+                onClick={() => void onSaveModal()}
+              >
+                {busy ? "Saving…" : editing ? "Save changes" : "Attach notification"}
+              </Button>
+            </div>
           </div>
         </Dialog>
       </Dialog.Root>

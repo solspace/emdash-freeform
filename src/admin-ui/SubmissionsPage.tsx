@@ -29,6 +29,7 @@ import {
 } from "./ff-list";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { FreeformShell } from "./FreeformShell";
+import { DropdownMenu, RowActionsMenu } from "./RowActionsMenu";
 import { SubmissionDetailPage } from "./SubmissionDetailPage";
 import "./styles.css";
 
@@ -111,22 +112,6 @@ function TrashIcon() {
       <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
       <line x1="10" y1="11" x2="10" y2="17" />
       <line x1="14" y1="11" x2="14" y2="17" />
-    </svg>
-  );
-}
-
-/** Phosphor DotsThree — EmDash RowActionsMenu trigger. */
-function DotsThreeIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="18"
-      height="18"
-      fill="currentColor"
-      viewBox="0 0 256 256"
-      aria-hidden="true"
-    >
-      <path d="M140,128a12,12,0,1,1-12-12A12,12,0,0,1,140,128Zm56-12a12,12,0,1,0,12,12A12,12,0,0,0,196,116ZM60,116a12,12,0,1,0,12,12A12,12,0,0,0,60,116Z" />
     </svg>
   );
 }
@@ -236,8 +221,6 @@ export function SubmissionsPage() {
   const [perPage, setPerPage] = useState<(typeof PAGE_SIZES)[number]>(20);
   const [formFilterOpen, setFormFilterOpen] = useState(false);
   const formFilterRef = useRef<HTMLDivElement>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const rowMenuRef = useRef<HTMLDivElement>(null);
 
   const openSubmissionEditor = useCallback((id: string) => {
     setSelected(null);
@@ -261,24 +244,6 @@ export function SubmissionsPage() {
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [formFilterOpen]);
-
-  useEffect(() => {
-    if (!openMenuId) return;
-    function onDoc(e: MouseEvent) {
-      if (rowMenuRef.current && !rowMenuRef.current.contains(e.target as Node)) {
-        setOpenMenuId(null);
-      }
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpenMenuId(null);
-    }
-    document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDoc);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [openMenuId]);
 
   const formColorMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -876,77 +841,31 @@ export function SubmissionsPage() {
                       <bdi>{formatWhen(s.createdAt)}</bdi>
                     </td>
                     <td className="w-0 text-end" onClick={(e) => e.stopPropagation()}>
-                      <div
-                        className="relative inline-flex justify-end"
-                        ref={openMenuId === s.id ? rowMenuRef : undefined}
+                      <RowActionsMenu
+                        label={`Actions for submission from ${s.formName || "form"}`}
                       >
-                        <button
-                          type="button"
-                          className="ff-row-actions-trigger"
-                          aria-label={`Actions for submission from ${s.formName || "form"}`}
-                          aria-haspopup="menu"
-                          aria-expanded={openMenuId === s.id}
-                          onClick={() =>
-                            setOpenMenuId((id) => (id === s.id ? null : s.id))
-                          }
+                        <DropdownMenu.Item onClick={() => setSelected(s)}>
+                          View
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          onClick={() => openSubmissionEditor(s.id)}
                         >
-                          <DotsThreeIcon />
-                        </button>
-                        {openMenuId === s.id && (
-                          <div
-                            className="ff-row-actions-menu"
-                            role="menu"
-                            aria-label="Submission actions"
-                          >
-                            <button
-                              type="button"
-                              role="menuitem"
-                              className="ff-row-actions-item"
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                setSelected(s);
-                              }}
-                            >
-                              View
-                            </button>
-                            <button
-                              type="button"
-                              role="menuitem"
-                              className="ff-row-actions-item"
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                openSubmissionEditor(s.id);
-                              }}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              role="menuitem"
-                              className="ff-row-actions-item"
-                              disabled={busy}
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                void onExport([s.id]);
-                              }}
-                            >
-                              Export CSV
-                            </button>
-                            <div className="ff-row-actions-sep" role="separator" />
-                            <button
-                              type="button"
-                              role="menuitem"
-                              className="ff-row-actions-item is-danger"
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                setPendingDelete(s);
-                              }}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                          Edit
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          disabled={busy}
+                          onClick={() => void onExport([s.id])}
+                        >
+                          Export CSV
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Separator />
+                        <DropdownMenu.Item
+                          variant="danger"
+                          onClick={() => setPendingDelete(s)}
+                        >
+                          Delete
+                        </DropdownMenu.Item>
+                      </RowActionsMenu>
                     </td>
                   </tr>
                 );

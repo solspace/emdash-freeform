@@ -801,28 +801,6 @@ html[data-mode="dark"] .ff-search {
   padding: 0;
 }
 
-/*
- * Kumo Dialog (v2.6) defaults to centered + overflow:hidden.
- * Force EmDash-style top placement and allow tall content to scroll
- * inside the dialog — not inside the form editor pane.
- */
-.ff-kumo-dialog {
-  top: 2rem !important; /* top-8 */
-  z-index: 200 !important;
-  max-height: calc(100dvh - 4rem) !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  /* Kumo uses CSS `translate: -50% -50%` (not transform) for centering */
-  translate: -50% 0 !important;
-}
-
-@media (min-width: 640px) {
-  .ff-kumo-dialog {
-    top: 4rem !important; /* sm:top-16 */
-    max-height: calc(100dvh - 6rem) !important;
-  }
-}
-
 .ff-builder-nav-col {
   display: flex;
   flex-direction: column;
@@ -2933,92 +2911,6 @@ html[data-mode="dark"] .ff-list-checkbox:indeterminate {
 .ff-page-nav-btn:disabled svg {
   fill: currentColor !important;
   color: inherit !important;
-}
-
-/* EmDash RowActionsMenu — ghost square ⋯ trigger + dropdown */
-.ff-row-actions-trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  border: 0;
-  border-radius: 0.5rem;
-  background: transparent;
-  color: var(--text-color-kumo-default, #18181b);
-  cursor: pointer;
-  transition: background 0.12s ease;
-}
-
-.ff-row-actions-trigger:hover,
-.ff-row-actions-trigger[aria-expanded="true"] {
-  background: var(--color-kumo-tint, #f4f4f5);
-}
-
-.ff-row-actions-trigger:focus {
-  outline: none;
-}
-
-.ff-row-actions-trigger:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-kumo-brand, #f6821f);
-}
-
-.ff-row-actions-menu {
-  position: absolute;
-  inset-inline-end: 0;
-  top: calc(100% + 0.25rem);
-  z-index: 40;
-  min-width: 10.5rem;
-  padding: 0.25rem;
-  border-radius: 0.5rem;
-  background: var(--color-kumo-base, #ffffff);
-  box-shadow:
-    0 0 0 1px var(--color-kumo-line, #e4e1da),
-    0 8px 24px rgb(0 0 0 / 12%);
-}
-
-.ff-row-actions-item {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  border: 0;
-  border-radius: 0.375rem;
-  background: transparent;
-  color: var(--text-color-kumo-default, #18181b);
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-align: start;
-  cursor: pointer;
-}
-
-.ff-row-actions-item:hover,
-.ff-row-actions-item:focus-visible {
-  background: var(--color-kumo-tint, #f4f4f5);
-  outline: none;
-}
-
-.ff-row-actions-item:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.ff-row-actions-item.is-danger {
-  color: var(--text-color-kumo-danger, #dc2626);
-}
-
-.ff-row-actions-item.is-danger:hover,
-.ff-row-actions-item.is-danger:focus-visible {
-  background: var(--color-kumo-danger-tint, #fef2f2);
-}
-
-.ff-row-actions-sep {
-  height: 1px;
-  margin: 0.25rem 0.5rem;
-  background: var(--color-kumo-hairline, #ebe7df);
 }
 
 .ff-settings-section {

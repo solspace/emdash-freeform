@@ -1,9 +1,8 @@
 import { Button, Dialog } from "@cloudflare/kumo";
-import { Plus } from "@phosphor-icons/react";
+import { CaretDown, Plus, X } from "@phosphor-icons/react";
 import {
   useEffect,
   useMemo,
-  useRef,
   useState,
   type CSSProperties,
   type MouseEvent,
@@ -19,6 +18,7 @@ import {
 import { ConfirmDialog } from "./ConfirmDialog";
 import { FfListSearch } from "./ff-list";
 import { goToFormSubmissions, goToSection, resolveFormColor } from "./ff-nav";
+import { DropdownMenu, RowActionsMenu } from "./RowActionsMenu";
 import "./styles.css";
 
 type Props = {
@@ -29,22 +29,6 @@ type Props = {
   onEdit: (id: string, handle?: string) => void;
   onError: (message: string | null) => void;
 };
-
-/** Phosphor DotsThree — EmDash RowActionsMenu trigger. */
-function DotsThreeIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="18"
-      height="18"
-      fill="currentColor"
-      viewBox="0 0 256 256"
-      aria-hidden="true"
-    >
-      <path d="M140,128a12,12,0,1,1-12-12A12,12,0,0,1,140,128Zm56-12a12,12,0,1,0,12,12A12,12,0,0,0,196,116ZM60,116a12,12,0,1,0,12,12A12,12,0,0,0,60,116Z" />
-    </svg>
-  );
-}
 
 /** Sparkles — same AI affordance as Settings hub. */
 function SparklesIcon() {
@@ -89,8 +73,6 @@ export function FormsDashboard({
   const [pendingDelete, setPendingDelete] = useState<FormListItem | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<unknown>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const rowMenuRef = useRef<HTMLDivElement | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
@@ -118,24 +100,6 @@ export function FormsDashboard({
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    if (!openMenuId) return;
-    function onDoc(e: Event) {
-      if (rowMenuRef.current && !rowMenuRef.current.contains(e.target as Node)) {
-        setOpenMenuId(null);
-      }
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpenMenuId(null);
-    }
-    document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDoc);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [openMenuId]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -245,18 +209,24 @@ export function FormsDashboard({
               <SparklesIcon /> Generate with AI
             </button>
           )}
-          <select
-            className="h-9 rounded-md border border-kumo-line bg-kumo-control px-3 text-sm text-kumo-default focus:outline-none focus:ring-2 focus:ring-kumo-focus"
-            value={templateId}
-            onChange={(e) => setTemplateId(e.target.value)}
-            aria-label="Starter template"
-          >
-            {FORM_TEMPLATES.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+          <div className="relative inline-flex min-w-0 items-center">
+            <select
+              className="h-9 cursor-pointer appearance-none rounded-lg border border-kumo-line bg-kumo-control ps-3 pe-9 text-sm font-medium text-kumo-default transition-colors hover:bg-kumo-tint focus:outline-none focus:ring-2 focus:ring-kumo-focus"
+              value={templateId}
+              onChange={(e) => setTemplateId(e.target.value)}
+              aria-label="Starter template"
+            >
+              {FORM_TEMPLATES.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+            <CaretDown
+              className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-kumo-subtle"
+              aria-hidden="true"
+            />
+          </div>
           <Button
             variant="primary"
             icon={Plus}
@@ -275,60 +245,81 @@ export function FormsDashboard({
             setAiOpen(false);
           }
         }}
-        disablePointerDismissal={aiBusy}
+        disablePointerDismissal
       >
         <Dialog
-          container={typeof document !== "undefined" ? document.body : undefined}
-          className="ff-kumo-dialog w-full max-w-md p-6"
+          className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] flex-col overflow-hidden p-0 sm:w-[32rem]"
           size="base"
         >
-          <Dialog.Title className="text-lg font-semibold">
-            Generate with AI
-          </Dialog.Title>
-          <Dialog.Description className="text-kumo-subtle">
-            Describe the form in plain language. Uses your OpenAI key from
-            Settings → AI &amp; spam.
-          </Dialog.Description>
-          <div className="mt-4">
-            <label
-              htmlFor="ff-ai-prompt"
-              className="mb-1.5 block text-sm font-medium text-kumo-default"
-            >
-              Description
-            </label>
-            <textarea
-              id="ff-ai-prompt"
-              rows={4}
-              className="w-full rounded-lg border-0 bg-kumo-control p-3 text-sm text-kumo-default shadow-xs ring ring-kumo-line placeholder:text-kumo-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand"
-              value={aiPrompt}
-              placeholder="Job application with resume upload note, portfolio URL, and start-date preference"
-              disabled={aiBusy}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && !aiBusy) {
-                  e.preventDefault();
-                  void onAiCreate();
-                }
-              }}
-            />
-          </div>
-          <div className="mt-6 flex justify-end gap-2">
-            <Button
-              variant="secondary"
-              disabled={aiBusy}
-              onClick={() => setAiOpen(false)}
-            >
-              Cancel
-            </Button>
-            <button
-              type="button"
-              className="ff-btn ff-btn-ai"
-              disabled={aiBusy || !aiPrompt.trim()}
-              onClick={() => void onAiCreate()}
-            >
-              <SparklesIcon />
-              {aiBusy ? "Generating…" : "Generate form"}
-            </button>
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-kumo-line px-6 py-5">
+              <div className="min-w-0">
+                <Dialog.Title className="text-lg font-semibold">
+                  Generate with AI
+                </Dialog.Title>
+                <Dialog.Description className="mt-1 text-sm text-kumo-subtle">
+                  Describe the form in plain language. Uses your OpenAI key from
+                  Settings → AI &amp; spam.
+                </Dialog.Description>
+              </div>
+              <Dialog.Close
+                aria-label="Close"
+                render={(props) => (
+                  <Button
+                    {...props}
+                    type="button"
+                    variant="ghost"
+                    shape="square"
+                    icon={<X className="size-4" aria-hidden="true" />}
+                    aria-label="Close"
+                    disabled={aiBusy}
+                  />
+                )}
+              />
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-6 py-6">
+              <label
+                htmlFor="ff-ai-prompt"
+                className="mb-1.5 block text-sm font-medium text-kumo-default"
+              >
+                Description
+              </label>
+              <textarea
+                id="ff-ai-prompt"
+                rows={5}
+                className="w-full rounded-lg border-0 bg-kumo-control p-3 text-sm text-kumo-default shadow-xs ring ring-kumo-line placeholder:text-kumo-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand"
+                value={aiPrompt}
+                placeholder="Job application with resume upload note, portfolio URL, and start-date preference"
+                disabled={aiBusy}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && !aiBusy) {
+                    e.preventDefault();
+                    void onAiCreate();
+                  }
+                }}
+              />
+            </div>
+
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-kumo-line px-6 py-4">
+              <Button
+                variant="secondary"
+                disabled={aiBusy}
+                onClick={() => setAiOpen(false)}
+              >
+                Cancel
+              </Button>
+              <button
+                type="button"
+                className="ff-btn ff-btn-ai"
+                disabled={aiBusy || !aiPrompt.trim()}
+                onClick={() => void onAiCreate()}
+              >
+                <SparklesIcon />
+                {aiBusy ? "Generating…" : "Generate form"}
+              </button>
+            </div>
           </div>
         </Dialog>
       </Dialog.Root>
@@ -451,65 +442,25 @@ export function FormsDashboard({
                         </button>
                       </td>
                       <td className="px-4 py-3 text-end" onClick={(e) => e.stopPropagation()}>
-                        <div
-                          className="relative inline-flex justify-end"
-                          ref={openMenuId === form.id ? rowMenuRef : undefined}
-                        >
-                          <button
-                            type="button"
-                            className="ff-row-actions-trigger"
-                            aria-label={`Actions for ${form.name}`}
-                            aria-haspopup="menu"
-                            aria-expanded={openMenuId === form.id}
-                            onClick={() =>
-                              setOpenMenuId((id) => (id === form.id ? null : form.id))
-                            }
+                        <RowActionsMenu label={`Actions for ${form.name}`}>
+                          <DropdownMenu.Item
+                            onClick={() => onEdit(form.id, form.handle)}
                           >
-                            <DotsThreeIcon />
-                          </button>
-                          {openMenuId === form.id && (
-                            <div
-                              className="ff-row-actions-menu"
-                              role="menu"
-                              aria-label="Form actions"
-                            >
-                              <button
-                                type="button"
-                                role="menuitem"
-                                className="ff-row-actions-item"
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  onEdit(form.id, form.handle);
-                                }}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                role="menuitem"
-                                className="ff-row-actions-item"
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  goToFormSubmissions(form.id);
-                                }}
-                              >
-                                Submissions
-                              </button>
-                              <div className="ff-row-actions-sep" role="separator" />
-                              <button
-                                type="button"
-                                role="menuitem"
-                                className="ff-row-actions-item is-danger"
-                                onClick={(e) => {
-                                  setOpenMenuId(null);
-                                  onDelete(form, e);
-                                }}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                            Edit
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Item
+                            onClick={() => goToFormSubmissions(form.id)}
+                          >
+                            Submissions
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Separator />
+                          <DropdownMenu.Item
+                            variant="danger"
+                            onClick={() => onDelete(form)}
+                          >
+                            Delete
+                          </DropdownMenu.Item>
+                        </RowActionsMenu>
                       </td>
                     </tr>
                   );
@@ -550,65 +501,29 @@ export function FormsDashboard({
                       <h3 className="ff-dash-card-title truncate">{form.name}</h3>
                     </div>
                     <div
-                      className="relative inline-flex"
-                      ref={openMenuId === form.id ? rowMenuRef : undefined}
+                      className="inline-flex"
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
                     >
-                      <button
-                        type="button"
-                        className="ff-row-actions-trigger"
-                        aria-label={`Actions for ${form.name}`}
-                        aria-haspopup="menu"
-                        aria-expanded={openMenuId === form.id}
-                        onClick={() =>
-                          setOpenMenuId((id) => (id === form.id ? null : form.id))
-                        }
-                      >
-                        <DotsThreeIcon />
-                      </button>
-                      {openMenuId === form.id && (
-                        <div
-                          className="ff-row-actions-menu"
-                          role="menu"
-                          aria-label="Form actions"
+                      <RowActionsMenu label={`Actions for ${form.name}`}>
+                        <DropdownMenu.Item
+                          onClick={() => onEdit(form.id, form.handle)}
                         >
-                          <button
-                            type="button"
-                            role="menuitem"
-                            className="ff-row-actions-item"
-                            onClick={() => {
-                              setOpenMenuId(null);
-                              onEdit(form.id, form.handle);
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            role="menuitem"
-                            className="ff-row-actions-item"
-                            onClick={() => {
-                              setOpenMenuId(null);
-                              goToFormSubmissions(form.id);
-                            }}
-                          >
-                            Submissions
-                          </button>
-                          <div className="ff-row-actions-sep" role="separator" />
-                          <button
-                            type="button"
-                            role="menuitem"
-                            className="ff-row-actions-item is-danger"
-                            onClick={(e) => {
-                              setOpenMenuId(null);
-                              onDelete(form, e);
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
+                          Edit
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          onClick={() => goToFormSubmissions(form.id)}
+                        >
+                          Submissions
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Separator />
+                        <DropdownMenu.Item
+                          variant="danger"
+                          onClick={() => onDelete(form)}
+                        >
+                          Delete
+                        </DropdownMenu.Item>
+                      </RowActionsMenu>
                     </div>
                   </div>
                   <div className="mt-2">

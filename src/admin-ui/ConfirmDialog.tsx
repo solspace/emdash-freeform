@@ -88,15 +88,7 @@ export function ConfirmDialog({
       onOpenChange={(nextOpen) => !nextOpen && !closeLocked && onClose()}
       disablePointerDismissal
     >
-      <Dialog
-        container={typeof document !== "undefined" ? document.body : undefined}
-        className={
-          compact
-            ? "ff-kumo-dialog max-w-md px-5 pt-6 pb-4"
-            : "ff-kumo-dialog p-6"
-        }
-        size="sm"
-      >
+      <Dialog className={compact ? "max-w-md px-5 pt-6 pb-4" : "p-6"} size="sm">
         <div className={compact ? "grid gap-1" : undefined}>
           <Dialog.Title
             dir="auto"
