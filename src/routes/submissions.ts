@@ -64,6 +64,39 @@ export const submissionsRoutes = {
     },
   },
 
+  "update-submission": {
+    handler: async (routeCtx: any, ctx: PluginContext) => {
+      const { id, data } = (routeCtx.input || {}) as {
+        id?: string;
+        data?: Record<string, unknown>;
+      };
+      if (!id) throw PluginRouteError.badRequest("Missing id");
+      if (!data || typeof data !== "object" || Array.isArray(data)) {
+        throw PluginRouteError.badRequest("Missing data");
+      }
+      const existing = (await ctx.storage.submissions.get(id)) as StoredSubmission | null;
+      if (!existing) throw PluginRouteError.notFound("Submission not found");
+
+      // Same coercion as public submit — scalar strings or string arrays only.
+      const cleanData: Record<string, string | string[]> = Object.fromEntries(
+        Object.entries(data)
+          .filter(([k]) => !k.startsWith("__ff_"))
+          .map(([k, v]) => {
+            if (Array.isArray(v)) return [k, v.map(String)];
+            if (v === undefined || v === null) return [k, ""];
+            return [k, String(v)];
+          }),
+      );
+
+      const updated: StoredSubmission = {
+        ...existing,
+        data: cleanData,
+      };
+      await ctx.storage.submissions.put(id, updated);
+      return serializeSubmission(id, updated);
+    },
+  },
+
   "archive-submissions": {
     handler: async (routeCtx: any, ctx: PluginContext) => {
       const { formId, minScore, dryRun } = routeCtx.input as {

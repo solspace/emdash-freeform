@@ -102,3 +102,13 @@ export function goToFormSubmissions(formId: string) {
     `${sectionPath("submissions")}?formId=${encodeURIComponent(formId)}`,
   );
 }
+
+/** Deep-link to a single submission (view / edit page). */
+export function submissionDetailPath(id: string): string {
+  return `${sectionPath("submissions")}?id=${encodeURIComponent(id)}`;
+}
+
+export function goToSubmission(id: string) {
+  if (typeof window === "undefined") return;
+  window.location.assign(submissionDetailPath(id));
+}

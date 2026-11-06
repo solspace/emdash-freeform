@@ -108,6 +108,27 @@ export async function listSubmissions(formId?: string): Promise<SubmissionListIt
   return data.submissions;
 }
 
+export async function getSubmission(id: string): Promise<SubmissionListItem> {
+  const res = await apiFetch(`${BASE}/get-submission`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  });
+  return parseApiResponse<SubmissionListItem>(res);
+}
+
+export async function updateSubmission(input: {
+  id: string;
+  data: Record<string, unknown>;
+}): Promise<SubmissionListItem> {
+  const res = await apiFetch(`${BASE}/update-submission`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return parseApiResponse<SubmissionListItem>(res);
+}
+
 export async function deleteSubmission(id: string): Promise<void> {
   const res = await apiFetch(`${BASE}/delete-submission`, {
     method: "POST",

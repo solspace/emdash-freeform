@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { FormField, SubmissionBrief } from "../types";
 import {
   deleteSubmission,
@@ -28,10 +28,25 @@ import {
 } from "./ff-list";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { FreeformShell } from "./FreeformShell";
+import { SubmissionDetailPage } from "./SubmissionDetailPage";
 import "./styles.css";
 
+/** Deep-link: `/submissions?id=` opens the single-submission page. */
+function readSubmissionDeepLink(): string | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("id")?.trim() || null;
+}
+
+function writeSubmissionDeepLink(id: string | null) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (id) url.searchParams.set("id", id);
+  else url.searchParams.delete("id");
+  window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+}
+
 const PAGE_SIZES = [10, 20, 50, 100] as const;
-type StatusFilter = "all" | "clean" | "spam";
+type StatusFilter = "all" | "open" | "spam";
 type DateFilter = "all" | "7d" | "30d" | "90d";
 
 function preview(data: Record<string, unknown>): string {
@@ -144,6 +159,15 @@ function PaperPlaneIcon() {
   );
 }
 
+function PencilIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
 function RefreshIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -186,6 +210,7 @@ function XIcon() {
 }
 
 export function SubmissionsPage() {
+  const [detailId, setDetailId] = useState<string | null>(() => readSubmissionDeepLink());
   const [forms, setForms] = useState<FormListItem[]>([]);
   const [subs, setSubs] = useState<SubmissionListItem[]>([]);
   const [formId, setFormId] = useState(() => {
@@ -202,6 +227,8 @@ export function SubmissionsPage() {
   const [selected, setSelected] = useState<SubmissionListItem | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [pendingDelete, setPendingDelete] = useState<SubmissionListItem | null>(null);
+  const [formSchemas, setFormSchemas] = useState<Record<string, FormDocument>>({});
+  const [resending, setResending] = useState(false);
   const [pendingBulkDelete, setPendingBulkDelete] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -210,6 +237,17 @@ export function SubmissionsPage() {
   const formFilterRef = useRef<HTMLDivElement>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const rowMenuRef = useRef<HTMLDivElement>(null);
+
+  const openSubmissionEditor = useCallback((id: string) => {
+    setSelected(null);
+    setDetailId(id);
+    writeSubmissionDeepLink(id);
+  }, []);
+
+  const closeSubmission = useCallback(() => {
+    setDetailId(null);
+    writeSubmissionDeepLink(null);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -257,7 +295,16 @@ export function SubmissionsPage() {
     return forms.reduce((acc, f) => acc + (f.subCount || 0), 0);
   }, [forms]);
 
-  const [formSchemas, setFormSchemas] = useState<Record<string, FormDocument>>({});
+  const handleFormChange = (next: string) => {
+    setFormId(next);
+    setPage(1);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (next) url.searchParams.set("formId", next);
+      else url.searchParams.delete("formId");
+      window.history.replaceState({}, "", url.pathname + url.search);
+    }
+  };
 
   useEffect(() => {
     if (selected?.formId && !formSchemas[selected.formId]) {
@@ -282,17 +329,6 @@ export function SubmissionsPage() {
     return map;
   }, [selected?.formId, formSchemas]);
 
-  const handleFormChange = (next: string) => {
-    setFormId(next);
-    setPage(1);
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      if (next) url.searchParams.set("formId", next);
-      else url.searchParams.delete("formId");
-      window.history.replaceState({}, "", url.pathname + url.search);
-    }
-  };
-
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -303,7 +339,9 @@ export function SubmissionsPage() {
       ]);
       setForms(formList);
       setSubs(submissionList);
-      setSelected((prev) => (prev ? submissionList.find((s) => s.id === prev.id) ?? null : null));
+      setSelected((prev) =>
+        prev ? submissionList.find((s) => s.id === prev.id) ?? null : null,
+      );
       setSelectedIds((prev) => {
         const next = new Set<string>();
         for (const id of prev) {
@@ -319,24 +357,29 @@ export function SubmissionsPage() {
   }, [formId]);
 
   useEffect(() => {
+    if (detailId) return;
     void refresh();
-  }, [refresh]);
+  }, [refresh, detailId]);
 
   const showToast = (msg: string) => {
     setToast(msg);
     window.setTimeout(() => setToast(null), 2500);
   };
 
-  const [resending, setResending] = useState(false);
-
   const handleResendNotifications = async (submissionId: string) => {
     setResending(true);
     try {
       const res = await resendSubmissionNotifications(submissionId);
       showToast("Notification resent successfully");
-      setSelected((prev) => (prev && prev.id === submissionId ? { ...prev, notificationLogs: res.logs } : prev));
+      setSelected((prev) =>
+        prev && prev.id === submissionId
+          ? { ...prev, notificationLogs: res.logs }
+          : prev,
+      );
       setSubs((prev) =>
-        prev.map((s) => (s.id === submissionId ? { ...s, notificationLogs: res.logs } : s)),
+        prev.map((s) =>
+          s.id === submissionId ? { ...s, notificationLogs: res.logs } : s,
+        ),
       );
     } catch (err: any) {
       showToast(`Resend failed: ${err.message || String(err)}`);
@@ -357,7 +400,7 @@ export function SubmissionsPage() {
       result = result.filter(submissionIsSpam);
     } else if (statusFilter === "spam") {
       result = result.filter(submissionIsSpam);
-    } else if (statusFilter === "clean") {
+    } else if (statusFilter === "open") {
       result = result.filter((s) => !submissionIsSpam(s));
     }
 
@@ -481,6 +524,20 @@ export function SubmissionsPage() {
       setBusy(false);
     }
   };
+
+  if (detailId) {
+    return (
+      <FreeformShell>
+        <SubmissionDetailPage
+          submissionId={detailId}
+          onBack={() => {
+            closeSubmission();
+            void refresh();
+          }}
+        />
+      </FreeformShell>
+    );
+  }
 
   return (
     <FreeformShell>
@@ -662,7 +719,7 @@ export function SubmissionsPage() {
               }}
             >
               <option value="all">All statuses</option>
-              <option value="clean">Clean</option>
+              <option value="open">Open</option>
               <option value="spam">Spam</option>
             </FfFilterSelect>
 
@@ -804,13 +861,16 @@ export function SubmissionsPage() {
                     <td className="whitespace-nowrap">
                       {flagged ? (
                         <span
-                          className="ff-badge is-danger"
+                          className="ff-badge is-warn"
                           title={s.spamReason ?? undefined}
                         >
-                          Spam ({s.spamScore?.toFixed(1)})
+                          Spam
+                          {typeof s.spamScore === "number"
+                            ? ` (${s.spamScore.toFixed(1)})`
+                            : ""}
                         </span>
                       ) : (
-                        <span className="ff-badge is-success">Clean</span>
+                        <span className="ff-badge is-success">Open</span>
                       )}
                     </td>
                     <td className="whitespace-nowrap text-kumo-subtle">
@@ -849,6 +909,17 @@ export function SubmissionsPage() {
                               }}
                             >
                               View
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="ff-row-actions-item"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                openSubmissionEditor(s.id);
+                              }}
+                            >
+                              Edit
                             </button>
                             <button
                               type="button"
@@ -900,19 +971,15 @@ export function SubmissionsPage() {
           />
         )}
 
-        {/* EmDash Native Slide-Over Drawer for Submission Details (Like CommentDetail) */}
         {selected && (
           <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true">
-            {/* Backdrop */}
             <div
               className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
               onClick={() => setSelected(null)}
               aria-hidden="true"
             />
-            {/* Slide-over panel */}
             <div className="fixed inset-y-0 end-0 flex max-w-full pl-10">
               <div className="w-screen max-w-lg bg-kumo-base border-s border-kumo-line shadow-2xl flex flex-col">
-                {/* Header */}
                 <div className="flex items-center justify-between border-b border-kumo-line px-6 py-4">
                   <div>
                     <h2 className="text-lg font-semibold text-kumo-strong">
@@ -932,21 +999,28 @@ export function SubmissionsPage() {
                   </button>
                 </div>
 
-                {/* Content body */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                  {/* Status / Spam assessment */}
                   <div className="rounded-lg border border-kumo-line bg-kumo-tint/20 p-4 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold uppercase tracking-wider text-kumo-subtle">
                         Status &amp; Security
                       </span>
-                      {typeof selected.spamScore === "number" && selected.spamScore >= 5 ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-500/15 text-red-600 dark:text-red-400">
-                          Spam ({selected.spamScore.toFixed(1)}/10)
+                      {submissionIsSpam(selected) ? (
+                        <span
+                          className="ff-badge is-warn"
+                          title={selected.spamReason ?? undefined}
+                        >
+                          Spam
+                          {typeof selected.spamScore === "number"
+                            ? ` (${selected.spamScore.toFixed(1)}/10)`
+                            : ""}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-500/15 text-green-600 dark:text-green-400">
-                          Clean {selected.spamScore !== null ? `(${selected.spamScore?.toFixed(1)}/10)` : ""}
+                        <span className="ff-badge is-success">
+                          Open
+                          {typeof selected.spamScore === "number"
+                            ? ` (${selected.spamScore.toFixed(1)}/10)`
+                            : ""}
                         </span>
                       )}
                     </div>
@@ -955,7 +1029,6 @@ export function SubmissionsPage() {
                     )}
                   </div>
 
-                  {/* AI Brief / Intent Summary */}
                   {selected.brief && (
                     <div className="rounded-lg border border-kumo-line bg-kumo-base p-4 space-y-2">
                       <div className="text-xs font-semibold uppercase tracking-wider text-kumo-subtle">
@@ -977,7 +1050,6 @@ export function SubmissionsPage() {
                     </div>
                   )}
 
-                  {/* Form Submission Data Fields */}
                   <div className="space-y-4">
                     <div className="text-xs font-semibold uppercase tracking-wider text-kumo-subtle border-b border-kumo-line pb-2">
                       Submitted Values
@@ -991,36 +1063,22 @@ export function SubmissionsPage() {
                           options.map((o) => [
                             typeof o === "string" ? o : o.value,
                             typeof o === "string" ? o : o.label,
-                          ])
+                          ]),
                         );
 
-                        let renderedValue: React.ReactNode;
+                        let renderedValue: ReactNode;
                         if (Array.isArray(value)) {
                           renderedValue = (
                             <div className="flex flex-wrap gap-1.5">
                               {value.map((v, i) => {
                                 const valStr = String(v);
-                                const optLabel = optMap.get(valStr) || valStr;
                                 return (
-                                  <span
-                                    key={i}
-                                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-kumo-tint border border-kumo-line text-kumo-strong"
-                                  >
-                                    {optLabel}
+                                  <span key={i} className="ff-sub-chip">
+                                    {optMap.get(valStr) || valStr}
                                   </span>
                                 );
                               })}
                             </div>
-                          );
-                        } else if (typeof value === "boolean") {
-                          renderedValue = value ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-500/15 text-green-600 dark:text-green-400">
-                              Yes
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-kumo-tint text-kumo-subtle">
-                              No
-                            </span>
                           );
                         } else if (fieldDef?.type === "rating") {
                           renderedValue = (
@@ -1032,18 +1090,17 @@ export function SubmissionsPage() {
                         } else {
                           const valStr = String(value ?? "—");
                           const optLabel = optMap.get(valStr);
-                          if (optLabel && optLabel !== valStr) {
-                            renderedValue = (
+                          renderedValue =
+                            optLabel && optLabel !== valStr ? (
                               <div>
                                 <span className="font-medium text-kumo-strong">{optLabel}</span>
                                 <span className="text-xs text-kumo-subtle ms-2 font-mono">
                                   ({valStr})
                                 </span>
                               </div>
+                            ) : (
+                              <span className="text-kumo-strong whitespace-pre-wrap">{valStr}</span>
                             );
-                          } else {
-                            renderedValue = <span className="text-kumo-strong">{valStr}</span>;
-                          }
                         }
 
                         return (
@@ -1063,11 +1120,13 @@ export function SubmissionsPage() {
                     </dl>
                   </div>
 
-                  {/* Notification Delivery Logs */}
                   <div className="space-y-3 pt-4 border-t border-kumo-line">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold uppercase tracking-wider text-kumo-subtle">
-                        Notification Delivery Logs {selected.notificationLogs?.length ? `(${selected.notificationLogs.length})` : ""}
+                        Notifications
+                        {selected.notificationLogs?.length
+                          ? ` (${selected.notificationLogs.length})`
+                          : ""}
                       </span>
                       <button
                         type="button"
@@ -1075,13 +1134,12 @@ export function SubmissionsPage() {
                         disabled={resending}
                         onClick={() => void handleResendNotifications(selected.id)}
                       >
-                        <PaperPlaneIcon /> {resending ? "Sending…" : "Resend Notification"}
+                        <PaperPlaneIcon /> {resending ? "Sending…" : "Resend"}
                       </button>
                     </div>
-
-                    {(!selected.notificationLogs || selected.notificationLogs.length === 0) ? (
+                    {!selected.notificationLogs?.length ? (
                       <div className="text-xs text-kumo-subtle italic bg-kumo-tint/20 p-3 rounded">
-                        No delivery attempts logged yet. Click <span className="font-medium text-kumo-strong">Resend Notification</span> to send.
+                        No delivery attempts logged yet.
                       </div>
                     ) : (
                       <div className="space-y-2">
@@ -1091,69 +1149,53 @@ export function SubmissionsPage() {
                             className="rounded-md border border-kumo-line bg-kumo-base p-3 text-xs space-y-1.5 shadow-2xs"
                           >
                             <div className="flex items-center justify-between">
-                              <span className="font-semibold text-kumo-strong">{log.templateName}</span>
+                              <span className="font-semibold text-kumo-strong">
+                                {log.templateName}
+                              </span>
                               <span
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wide ${
+                                className={`ff-badge ${
                                   log.status === "delivered"
-                                    ? "bg-green-500/15 text-green-600 dark:text-green-400"
+                                    ? "is-success"
                                     : log.status === "failed"
-                                    ? "bg-red-500/15 text-red-600 dark:text-red-400"
-                                    : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                      ? "is-danger"
+                                      : "is-warn"
                                 }`}
                               >
                                 {log.status}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between text-kumo-subtle text-[11px]">
-                              <span>To: <strong className="font-mono text-kumo-default">{log.to}</strong></span>
-                              {log.provider && (
-                                <span className="font-mono uppercase bg-kumo-tint px-1.5 py-0.5 rounded text-[10px] text-kumo-strong">
-                                  {log.provider}
-                                </span>
-                              )}
+                            <div className="text-kumo-subtle text-[11px]">
+                              To: <strong className="font-mono text-kumo-default">{log.to}</strong>
+                              {" · "}
+                              {formatWhen(log.sentAt)}
                             </div>
-                            <div className="text-[11px] text-kumo-subtle">
-                              Sent at {formatWhen(log.sentAt)}
-                            </div>
-                            {log.error && (
-                              <div className="text-[11px] text-red-600 dark:text-red-400 bg-red-500/10 p-2 rounded font-mono break-words">
-                                {log.error}
-                              </div>
-                            )}
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
 
-                  {/* Meta / IP / Consent */}
-                  <div className="space-y-3 pt-4 border-t border-kumo-line text-xs text-kumo-subtle">
-                    {selected.ip && (
-                      <div className="flex justify-between">
-                        <span className="font-medium">IP Address:</span>
-                        <span className="font-mono">{selected.ip}</span>
-                      </div>
-                    )}
-                    {selected.consent && selected.consent.length > 0 && (
-                      <div className="space-y-1 pt-2">
-                        <span className="font-semibold text-kumo-strong">Consent Log:</span>
-                        {selected.consent.map((c) => (
-                          <div key={c.fieldHandle} className="bg-kumo-tint/30 p-2 rounded text-xs space-y-0.5">
-                            <div className="font-medium text-kumo-default">{c.label}</div>
-                            <div>Consented on {formatWhen(c.consentedAt)}</div>
-                            {c.privacyPolicyUrl && (
-                              <a href={c.privacyPolicyUrl} target="_blank" rel="noreferrer" className="text-kumo-brand hover:underline inline-block">
-                                View Policy
-                              </a>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  {(selected.ip || (selected.consent && selected.consent.length > 0)) && (
+                    <div className="space-y-3 pt-4 border-t border-kumo-line text-xs text-kumo-subtle">
+                      {selected.ip && (
+                        <div className="flex justify-between">
+                          <span className="font-medium">IP Address:</span>
+                          <span className="font-mono">{selected.ip}</span>
+                        </div>
+                      )}
+                      {selected.consent?.map((c) => (
+                        <div
+                          key={c.fieldHandle}
+                          className="bg-kumo-tint/30 p-2 rounded text-xs space-y-0.5"
+                        >
+                          <div className="font-medium text-kumo-default">{c.label}</div>
+                          <div>Consented on {formatWhen(c.consentedAt)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {/* Footer action buttons */}
                 <div className="border-t border-kumo-line px-6 py-4 flex items-center justify-between gap-3 bg-kumo-base">
                   <button
                     type="button"
@@ -1163,14 +1205,23 @@ export function SubmissionsPage() {
                   >
                     <DownloadIcon /> Export CSV
                   </button>
-                  <button
-                    type="button"
-                    className="ff-btn ff-btn-danger"
-                    disabled={busy}
-                    onClick={() => setPendingDelete(selected)}
-                  >
-                    <TrashIcon /> Delete Submission
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="ff-btn ff-btn-danger"
+                      disabled={busy}
+                      onClick={() => setPendingDelete(selected)}
+                    >
+                      <TrashIcon /> Delete
+                    </button>
+                    <button
+                      type="button"
+                      className="ff-btn"
+                      onClick={() => openSubmissionEditor(selected.id)}
+                    >
+                      <PencilIcon /> Edit
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

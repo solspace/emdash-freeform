@@ -536,22 +536,35 @@ html[data-mode="dark"] .ff-search {
   color: var(--ff-ink);
 }
 
+/* Match Kumo Badge warning / success (EmDash ContentStatusBadge) */
 .ff-badge.is-warn {
-  background: var(--color-kumo-badge-orange, #fff7ed);
-  border-color: #fed7aa;
-  color: var(--text-color-kumo-warning, #c2410c);
+  border-color: transparent;
+  background: color-mix(
+    in oklab,
+    var(--color-kumo-warning-tint, oklch(95% 0.05 75)) 70%,
+    transparent
+  );
+  color: var(--text-color-kumo-warning, oklch(55% 0.14 55));
 }
 
 .ff-badge.is-danger {
-  background: var(--color-kumo-badge-red, #fef2f2);
-  border-color: #fecaca;
+  border-color: transparent;
+  background: color-mix(
+    in oklab,
+    var(--color-kumo-danger-tint, #fef2f2) 60%,
+    transparent
+  );
   color: var(--text-color-kumo-danger, #dc2626);
 }
 
 .ff-badge.is-success {
-  background: var(--color-kumo-badge-green, #f0fdf4);
-  border-color: #bbf7d0;
-  color: var(--text-color-kumo-success, #15803d);
+  border-color: transparent;
+  background: color-mix(
+    in oklab,
+    var(--color-kumo-success-tint, oklch(95% 0.052 163)) 70%,
+    transparent
+  );
+  color: var(--text-color-kumo-success, oklch(43% 0.095 166));
 }
 
 .ff-settings-grid {
@@ -3475,5 +3488,327 @@ html[data-mode="dark"] .text-red-600 {
 .gap-4 { gap: 1rem !important; }
 .gap-6 { gap: 1.5rem !important; }
 
+/* ── Submission editor — match EmDash ContentEditor (posts) ───── */
+.ff-shell.ff-sub-editor {
+  gap: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  /* Cancel EmDash <main class="p-6"> — posts are full-bleed */
+  margin: -1.5rem;
+  width: calc(100% + 3rem);
+  max-width: none;
+  height: calc(100dvh - 3.625rem);
+  max-height: calc(100dvh - 3.625rem);
+  background: var(--color-kumo-elevated, var(--color-kumo-base, #fff));
+  box-sizing: border-box;
+  /* Enable @container for crumb list label (same as form builder) */
+  container-type: inline-size;
+  container-name: ff-editor-bar;
+}
 
+.ff-sub-editor > .ff-error {
+  flex-shrink: 0;
+  margin: 0.75rem 1rem 0;
+}
+
+/*
+ * EmDash editor bar:
+ * `@container/editor-bar flex min-h-12 … gap-1.5 border-b … px-3 py-2 sm:px-4`
+ */
+.ff-sub-editor-bar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3rem; /* min-h-12 */
+  padding: 0.5rem 0.75rem; /* py-2 px-3 */
+  border-bottom: 1px solid var(--color-kumo-line, #e4e1da);
+  background: var(--color-kumo-elevated, var(--color-kumo-base, #fff));
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .ff-sub-editor-bar {
+    padding-inline: 1rem; /* sm:px-4 */
+  }
+}
+
+.ff-sub-editor-bar .ff-builder-crumb {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ff-sub-editor-title {
+  display: block;
+  min-width: 0;
+  max-width: min(28rem, 55vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1rem; /* text-base — same as Forms title / Posts h1 */
+  font-weight: 500; /* font-medium */
+  line-height: 1.625rem;
+  color: var(--text-color-kumo-default, var(--ff-ink));
+}
+
+.ff-sub-editor-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.375rem; /* gap-1.5 */
+}
+
+/* Match EmDash editor-bar secondary buttons (12px / h-26) */
+.ff-editor-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  height: 1.625rem; /* 26px */
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--text-color-kumo-default, var(--ff-ink));
+  font: inherit;
+  font-size: 0.75rem; /* text-xs */
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.ff-editor-bar-btn:hover:not(:disabled) {
+  background: var(--color-kumo-tint, #f4f4f5);
+}
+
+.ff-editor-bar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ff-sub-editor-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  margin-top: 0;
+}
+
+.ff-sub-editor-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--color-kumo-elevated, var(--color-kumo-base, #fff));
+}
+
+/*
+ * EmDash `.emdash-editor-page mx-auto max-w-[52rem] space-y-6 pt-8 sm:pt-12 pb-16`
+ * Measured pad: ~48 top / 52 inline / 64 bottom
+ */
+.ff-sub-editor-page {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 52rem;
+  padding: 2rem 2rem 4rem; /* pt-8 … pb-16 */
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .ff-sub-editor-page {
+    padding: 3rem 3.25rem 4rem; /* sm:pt-12 + ~px-13 */
+  }
+}
+
+.ff-sub-editor-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem; /* space-y-6 — same as posts */
+}
+
+.ff-sub-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* gap-2 like Kumo field */
+}
+
+/* Match post field label: `text-base font-medium` (Kumo → 14px / 500) */
+.ff-sub-field-label {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  color: var(--text-color-kumo-default, var(--ff-ink));
+  user-select: none;
+}
+
+/* Match post inputs: text-base + h-10 */
+.ff-sub-editor-field .ff-field-input,
+.ff-sub-editor-field .ff-select {
+  font-size: 1rem;
+  height: 2.5rem;
+  min-height: 2.5rem;
+  padding-inline: 1rem;
+}
+
+.ff-sub-editor-field .ff-sub-textarea {
+  font-size: 1rem;
+  min-height: 8rem;
+  padding: 0.75rem 1rem !important;
+  line-height: 1.5;
+}
+
+.ff-sub-editor-rail {
+  display: none;
+  width: 23rem; /* ~post right rail */
+  flex-shrink: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-inline-start: 1px solid var(--color-kumo-line, #e4e1da);
+  background: var(--color-kumo-base, #fff);
+  padding: 0;
+}
+
+@media (min-width: 1024px) {
+  .ff-sub-editor-rail {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.ff-sub-rail-panel {
+  border-bottom: 1px solid var(--color-kumo-line, #e4e1da);
+  background: var(--color-kumo-base, #fff);
+  padding: 1.1rem 1.15rem 1.2rem;
+}
+
+.ff-sub-rail-panel:last-child {
+  border-bottom: 0;
+}
+
+.ff-sub-rail-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--text-color-kumo-strong, #18181b);
+}
+
+.ff-sub-rail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+}
+
+.ff-sub-rail-row:first-of-type {
+  margin-top: 0;
+}
+
+.ff-sub-rail-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-color-kumo-subtle, #71717a);
+}
+
+.ff-sub-rail-value {
+  font-size: 0.8125rem;
+  color: var(--text-color-kumo-default, #18181b);
+  word-break: break-all;
+}
+
+.ff-sub-rail-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.375rem;
+  background: var(--color-kumo-tint, #f4f4f5);
+  border: 1px solid var(--color-kumo-line, #e4e1da);
+  color: var(--text-color-kumo-default, #18181b);
+  user-select: all;
+}
+
+.ff-sub-copy-btn {
+  align-self: flex-start;
+  margin-top: 0.35rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 550;
+  color: var(--text-color-kumo-brand, #f6821f);
+  cursor: pointer;
+}
+
+.ff-sub-copy-btn:hover {
+  text-decoration: underline;
+}
+
+.ff-sub-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 550;
+  background: var(--color-kumo-tint, #f4f4f5);
+  border: 1px solid var(--color-kumo-line, #e4e1da);
+  color: var(--text-color-kumo-strong, #18181b);
+}
+
+.ff-sub-textarea {
+  height: auto !important;
+  min-height: 7rem;
+  padding: 0.65rem 0.75rem !important;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.ff-sub-multi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--color-kumo-line, #e4e1da);
+  border-radius: 6px;
+  background: var(--color-kumo-control, #fff);
+}
+
+.ff-sub-log {
+  border: 1px solid var(--color-kumo-line, #e4e1da);
+  border-radius: 0.5rem;
+  background: var(--color-kumo-tint, #fafafa);
+  padding: 0.65rem 0.75rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.w-full {
+  width: 100% !important;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.max-w-\[min\(28rem\,50vw\)\] {
+  max-width: min(28rem, 50vw);
+}
 
