@@ -19,8 +19,9 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Button } from "@cloudflare/kumo";
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Button, Collapsible, Switch } from "@cloudflare/kumo";
+import { CaretDown, X } from "@phosphor-icons/react";
+import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { FieldType, FormField, FormRow, StoredForm } from "../types";
 import { FormNotificationsPanel } from "./FormNotificationsPanel";
 import { FormProtectionPanel } from "./FormProtectionPanel";
@@ -30,7 +31,6 @@ import { FieldOptionsEditor } from "./FieldOptionsEditor";
 import { ActionIcon, FieldIcon } from "./field-icons";
 import { getForm, saveForm } from "./ff-api";
 import { EditorBarListLabel, GhostSquareBackButton } from "./ff-back";
-import { FfSwitchRow } from "./ff-list";
 import { FORM_COLOR_PRESETS, resolveFormColor } from "./ff-nav";
 import { PALETTE_GROUPS, defaultFieldLabel, needsOptions } from "./field-types";
 import {
@@ -267,6 +267,48 @@ function CanvasEndDrop({ active }: { active: boolean }) {
   );
 }
 
+/** EmDash ContentSettingsPanel-style field chrome (narrow right rail). */
+const PROP_INPUT =
+  "w-full border-0 bg-kumo-control text-kumo-default ring ring-kumo-line outline-none focus:outline-none disabled:text-kumo-disabled h-9 rounded-lg px-3 text-base focus:ring-kumo-focus/50 focus:ring-[1.5px] placeholder:text-kumo-subtle";
+
+const PROP_TEXTAREA =
+  "w-full min-h-24 resize-y border-0 bg-kumo-control text-kumo-default ring ring-kumo-line outline-none focus:outline-none disabled:text-kumo-disabled rounded-lg px-3 py-2 text-base focus:ring-kumo-focus/50 focus:ring-[1.5px] placeholder:text-kumo-subtle";
+
+function PropSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="relative min-w-0 border-t border-kumo-line bg-kumo-base first:border-t-0">
+      <div className="p-4">
+        <h3 className="mb-4 text-base font-semibold text-kumo-default">{title}</h3>
+        <div className="grid gap-4">{children}</div>
+      </div>
+    </section>
+  );
+}
+
+function PropField({
+  label,
+  htmlFor,
+  description,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <label htmlFor={htmlFor} className="m-0 block text-base font-medium text-kumo-default">
+        {label}
+      </label>
+      {children}
+      {description ? (
+        <p className="text-xs leading-4 text-kumo-subtle">{description}</p>
+      ) : null}
+    </div>
+  );
+}
+
 function PropertyEditor({
   field,
   onChange,
@@ -280,17 +322,27 @@ function PropertyEditor({
   onRemove: () => void;
   onClose: () => void;
 }) {
+  const [validationOpen, setValidationOpen] = useState(false);
+
+  useEffect(() => {
+    setValidationOpen(false);
+  }, [field?.id]);
+
   if (!field) {
     return (
-      <div className="ff-panel ff-prop-empty">
-        <div className="ff-prop-empty-icon">
-          <ActionIcon name="search" size={24} />
+      <aside className="ff-prop-rail ff-prop-empty" aria-label="Field settings">
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+          <span className="text-kumo-subtle">
+            <ActionIcon name="search" size={24} />
+          </span>
+          <div className="grid gap-1">
+            <h2 className="text-base font-semibold text-kumo-default">Field Settings</h2>
+            <p className="text-sm text-kumo-subtle">
+              Click any field on the canvas to configure its label, handle, validation rules, and choices.
+            </p>
+          </div>
         </div>
-        <h2>Field Settings</h2>
-        <p className="ff-meta">
-          Click any field on the canvas to configure its label, handle, validation rules, and choices.
-        </p>
-      </div>
+      </aside>
     );
   }
 
@@ -325,267 +377,349 @@ function PropertyEditor({
     "rating",
   ].includes(field.type);
 
+  const showRequired =
+    field.type !== "consent" && field.type !== "html" && field.type !== "hidden";
+
   return (
-    <div className="ff-panel ff-prop">
-      <div className="ff-prop-header">
-        <div>
-          <h2>Field Settings</h2>
-          <div className="ff-prop-type-badge">
+    <aside className="ff-prop-rail" aria-label="Field settings">
+      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-kumo-line bg-kumo-base px-4 py-3">
+        <div className="min-w-0">
+          <h2 className="truncate text-base font-semibold text-kumo-default">Field Settings</h2>
+          <div className="mt-1 inline-flex items-center gap-1.5 text-xs text-kumo-subtle">
             <FieldIcon type={field.type} size={13} />
-            <span>{field.type}</span>
+            <span className="capitalize">{field.type.replace(/_/g, " ")}</span>
           </div>
         </div>
-        <button
+        <Button
           type="button"
-          className="ff-prop-close"
+          variant="ghost"
+          shape="square"
+          size="sm"
+          icon={X}
+          aria-label="Close settings"
           title="Close settings (Esc)"
           onClick={onClose}
-        >
-          <ActionIcon name="close" size={14} />
-        </button>
-      </div>
-
-      <div className="ff-prop-group">
-        <label htmlFor="ff-label">Label</label>
-        <input
-          id="ff-label"
-          value={field.label}
-          onChange={(e) => onChange({ label: e.target.value })}
         />
+      </header>
+
+      <div className="ff-prop-rail-body min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-kumo-base [&_input]:text-base [&_input]:font-normal [&_textarea]:text-base [&_textarea]:font-normal">
+        <PropSection title="General">
+          <PropField label="Label" htmlFor="ff-label">
+            <input
+              id="ff-label"
+              className={PROP_INPUT}
+              value={field.label}
+              onChange={(e) => onChange({ label: e.target.value })}
+            />
+          </PropField>
+
+          <PropField
+            label="Handle"
+            htmlFor="ff-handle"
+            description="Used in submissions, notifications, and embeds."
+          >
+            <input
+              id="ff-handle"
+              className={`${PROP_INPUT} font-mono text-sm`}
+              value={field.handle}
+              spellCheck={false}
+              onChange={(e) => onChange({ handle: e.target.value })}
+            />
+          </PropField>
+
+          {showRequired && (
+            <div className="flex items-center justify-between gap-3">
+              <label
+                htmlFor="ff-required"
+                className="m-0 cursor-pointer text-base font-medium text-kumo-default"
+              >
+                Required field
+              </label>
+              <Switch
+                id="ff-required"
+                checked={field.required}
+                aria-label="Required field"
+                onCheckedChange={(checked) => onChange({ required: checked })}
+              />
+            </div>
+          )}
+
+          {supportsPlaceholder && (
+            <PropField label="Placeholder" htmlFor="ff-placeholder">
+              <input
+                id="ff-placeholder"
+                className={PROP_INPUT}
+                placeholder={placeholderHint[field.type] ?? "e.g. Hint text…"}
+                value={field.placeholder ?? ""}
+                onChange={(e) => onChange({ placeholder: e.target.value || undefined })}
+              />
+            </PropField>
+          )}
+
+          {field.type !== "consent" && !needsOptions(field.type) && field.type !== "html" && (
+            <PropField label="Default value" htmlFor="ff-default-val">
+              <input
+                id="ff-default-val"
+                className={PROP_INPUT}
+                placeholder="Initial prefilled value"
+                value={typeof field.defaultValue === "string" ? field.defaultValue : ""}
+                onChange={(e) => onChange({ defaultValue: e.target.value || undefined })}
+              />
+            </PropField>
+          )}
+        </PropSection>
+
+        {field.type === "file" && (
+          <PropSection title="File upload">
+            <PropField label="Allowed extensions" htmlFor="ff-file-ext">
+              <input
+                id="ff-file-ext"
+                className={PROP_INPUT}
+                placeholder="e.g. pdf, png, jpg, docx"
+                value={field.allowedExtensions ?? ""}
+                onChange={(e) => onChange({ allowedExtensions: e.target.value || undefined })}
+              />
+            </PropField>
+            <PropField label="Max file size (MB)" htmlFor="ff-file-size">
+              <input
+                id="ff-file-size"
+                type="number"
+                min={1}
+                max={100}
+                className={PROP_INPUT}
+                value={field.maxFileSizeMb ?? 10}
+                onChange={(e) =>
+                  onChange({
+                    maxFileSizeMb: e.target.value ? Number(e.target.value) : undefined,
+                  })
+                }
+              />
+            </PropField>
+          </PropSection>
+        )}
+
+        {field.type === "rating" && (
+          <PropSection title="Rating">
+            <PropField label="Number of stars" htmlFor="ff-max-stars">
+              <input
+                id="ff-max-stars"
+                type="number"
+                min={3}
+                max={10}
+                className={PROP_INPUT}
+                value={field.maxStars ?? 5}
+                onChange={(e) =>
+                  onChange({
+                    maxStars: e.target.value ? Number(e.target.value) : undefined,
+                  })
+                }
+              />
+            </PropField>
+          </PropSection>
+        )}
+
+        {field.type === "consent" && (
+          <PropSection title="Consent">
+            <p className="text-sm text-kumo-subtle">
+              Consent fields are always required and never pre-checked (GDPR). Acceptance is stored with a timestamp.
+            </p>
+            <PropField label="Privacy policy URL" htmlFor="ff-consent-url">
+              <input
+                id="ff-consent-url"
+                type="url"
+                className={PROP_INPUT}
+                placeholder="https://example.com/privacy"
+                value={field.privacyPolicyUrl ?? ""}
+                onChange={(e) => onChange({ privacyPolicyUrl: e.target.value })}
+              />
+            </PropField>
+          </PropSection>
+        )}
+
+        {field.type === "html" && (
+          <PropSection title="HTML content">
+            <p className="text-sm text-kumo-subtle">
+              Render static HTML markup inside the form layout.
+            </p>
+            <PropField label="HTML markup" htmlFor="ff-html-content">
+              <textarea
+                id="ff-html-content"
+                rows={4}
+                className={`${PROP_TEXTAREA} font-mono text-sm`}
+                placeholder="<p>Custom HTML text or heading</p>"
+                value={typeof field.defaultValue === "string" ? field.defaultValue : ""}
+                onChange={(e) => onChange({ defaultValue: e.target.value })}
+              />
+            </PropField>
+          </PropSection>
+        )}
+
+        {needsOptions(field.type) && (
+          <PropSection title="Options">
+            <FieldOptionsEditor field={field} onChange={onChange} />
+          </PropSection>
+        )}
+
+        {supportsValidation && (
+          <section className="relative min-w-0 border-t border-kumo-line bg-kumo-base">
+            <div className="p-4">
+              <Collapsible.Root open={validationOpen} onOpenChange={setValidationOpen}>
+                <Collapsible.Trigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="relative -ms-3 w-[calc(100%+0.75rem)] justify-between"
+                    />
+                  }
+                >
+                  <span className="font-semibold text-kumo-default">Validation Rules</span>
+                  <CaretDown
+                    className={`h-4 w-4 text-kumo-subtle transition-transform duration-150 ease-out motion-reduce:transition-none ${
+                      validationOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </Collapsible.Trigger>
+                <Collapsible.Panel
+                  className="overflow-hidden duration-150 ease-out [&[hidden]:not([hidden='until-found'])]:hidden motion-reduce:transition-none"
+                  style={({ transitionStatus }) => ({
+                    height:
+                      transitionStatus === "starting" || transitionStatus === "ending"
+                        ? 0
+                        : "var(--collapsible-panel-height)",
+                    transitionProperty: "height",
+                  })}
+                >
+                  <div className="grid gap-4 pt-4">
+                    {["text", "email", "textarea", "phone"].includes(field.type) && (
+                      <>
+                        <div className="flex min-w-0 items-end gap-2">
+                          <div className="min-w-0 flex-1">
+                            <PropField label="Min length" htmlFor="ff-min-len">
+                              <input
+                                id="ff-min-len"
+                                type="number"
+                                min={0}
+                                className={PROP_INPUT}
+                                value={field.minLength ?? ""}
+                                onChange={(e) =>
+                                  onChange({
+                                    minLength: e.target.value
+                                      ? Number(e.target.value)
+                                      : undefined,
+                                  })
+                                }
+                              />
+                            </PropField>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <PropField label="Max length" htmlFor="ff-max-len">
+                              <input
+                                id="ff-max-len"
+                                type="number"
+                                min={0}
+                                className={PROP_INPUT}
+                                value={field.maxLength ?? ""}
+                                onChange={(e) =>
+                                  onChange({
+                                    maxLength: e.target.value
+                                      ? Number(e.target.value)
+                                      : undefined,
+                                  })
+                                }
+                              />
+                            </PropField>
+                          </div>
+                        </div>
+                        <PropField label="Pattern (regex)" htmlFor="ff-pattern">
+                          <input
+                            id="ff-pattern"
+                            className={`${PROP_INPUT} font-mono text-sm`}
+                            placeholder="^[a-zA-Z0-9]+$"
+                            value={field.pattern ?? ""}
+                            onChange={(e) =>
+                              onChange({ pattern: e.target.value || undefined })
+                            }
+                          />
+                        </PropField>
+                        <PropField label="Pattern error message" htmlFor="ff-pattern-err">
+                          <input
+                            id="ff-pattern-err"
+                            className={PROP_INPUT}
+                            placeholder="Must match the required format"
+                            value={field.patternError ?? ""}
+                            onChange={(e) =>
+                              onChange({ patternError: e.target.value || undefined })
+                            }
+                          />
+                        </PropField>
+                      </>
+                    )}
+
+                    {["number", "date", "datetime", "rating"].includes(field.type) && (
+                      <div className="flex min-w-0 items-end gap-2">
+                        <div className="min-w-0 flex-1">
+                          <PropField label="Min value" htmlFor="ff-min-val">
+                            <input
+                              id="ff-min-val"
+                              type={
+                                field.type === "datetime"
+                                  ? "datetime-local"
+                                  : field.type === "date"
+                                    ? "date"
+                                    : "number"
+                              }
+                              className={PROP_INPUT}
+                              value={field.min ?? ""}
+                              onChange={(e) =>
+                                onChange({ min: e.target.value || undefined })
+                              }
+                            />
+                          </PropField>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <PropField label="Max value" htmlFor="ff-max-val">
+                            <input
+                              id="ff-max-val"
+                              type={
+                                field.type === "datetime"
+                                  ? "datetime-local"
+                                  : field.type === "date"
+                                    ? "date"
+                                    : "number"
+                              }
+                              className={PROP_INPUT}
+                              value={field.max ?? ""}
+                              onChange={(e) =>
+                                onChange({ max: e.target.value || undefined })
+                              }
+                            />
+                          </PropField>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Collapsible.Panel>
+              </Collapsible.Root>
+            </div>
+          </section>
+        )}
       </div>
 
-      <div className="ff-prop-group">
-        <label htmlFor="ff-handle">Handle</label>
-        <input
-          id="ff-handle"
-          value={field.handle}
-          onChange={(e) => onChange({ handle: e.target.value })}
-        />
-      </div>
-
-      {field.type !== "consent" && field.type !== "html" && field.type !== "hidden" && (
-        <div className="ff-prop-group">
-          <FfSwitchRow
-            id="ff-required"
-            label="Required field"
-            checked={field.required}
-            onCheckedChange={(checked) => onChange({ required: checked })}
-          />
-        </div>
-      )}
-
-      {supportsPlaceholder && (
-        <div className="ff-prop-group">
-          <label htmlFor="ff-placeholder">Placeholder</label>
-          <input
-            id="ff-placeholder"
-            placeholder={placeholderHint[field.type] ?? "e.g. Hint text…"}
-            value={field.placeholder ?? ""}
-            onChange={(e) => onChange({ placeholder: e.target.value || undefined })}
-          />
-        </div>
-      )}
-
-      {field.type !== "consent" && !needsOptions(field.type) && (
-        <div className="ff-prop-group">
-          <label htmlFor="ff-default-val">Default value</label>
-          <input
-            id="ff-default-val"
-            placeholder="Initial prefilled value"
-            value={typeof field.defaultValue === "string" ? field.defaultValue : ""}
-            onChange={(e) => onChange({ defaultValue: e.target.value || undefined })}
-          />
-        </div>
-      )}
-
-      {field.type === "file" && (
-        <div className="ff-prop-section">
-          <h3>File Upload Settings</h3>
-          <div className="ff-prop-group">
-            <label htmlFor="ff-file-ext">Allowed file extensions</label>
-            <input
-              id="ff-file-ext"
-              placeholder="e.g. pdf, png, jpg, docx"
-              value={field.allowedExtensions ?? ""}
-              onChange={(e) => onChange({ allowedExtensions: e.target.value || undefined })}
-            />
-          </div>
-          <div className="ff-prop-group">
-            <label htmlFor="ff-file-size">Max file size (MB)</label>
-            <input
-              id="ff-file-size"
-              type="number"
-              min={1}
-              max={100}
-              value={field.maxFileSizeMb ?? 10}
-              onChange={(e) =>
-                onChange({
-                  maxFileSizeMb: e.target.value ? Number(e.target.value) : undefined,
-                })
-              }
-            />
-          </div>
-        </div>
-      )}
-
-      {field.type === "rating" && (
-        <div className="ff-prop-section">
-          <h3>Rating Settings</h3>
-          <div className="ff-prop-group">
-            <label htmlFor="ff-max-stars">Number of stars (max rating)</label>
-            <input
-              id="ff-max-stars"
-              type="number"
-              min={3}
-              max={10}
-              value={field.maxStars ?? 5}
-              onChange={(e) =>
-                onChange({
-                  maxStars: e.target.value ? Number(e.target.value) : undefined,
-                })
-              }
-            />
-          </div>
-        </div>
-      )}
-
-      {field.type === "consent" && (
-        <div className="ff-prop-section">
-          <h3>Consent Settings</h3>
-          <p className="ff-meta">
-            Consent fields are always required and never pre-checked (GDPR compliant). Acceptance is stored with a timestamp.
-          </p>
-          <div className="ff-prop-group">
-            <label htmlFor="ff-consent-url">Privacy policy URL</label>
-            <input
-              id="ff-consent-url"
-              type="url"
-              placeholder="https://example.com/privacy"
-              value={field.privacyPolicyUrl ?? ""}
-              onChange={(e) => onChange({ privacyPolicyUrl: e.target.value })}
-            />
-          </div>
-        </div>
-      )}
-
-      {field.type === "html" && (
-        <div className="ff-prop-section">
-          <h3>HTML Content</h3>
-          <p className="ff-meta">Render static HTML markup inside the form layout.</p>
-          <div className="ff-prop-group">
-            <label htmlFor="ff-html-content">HTML markup</label>
-            <textarea
-              id="ff-html-content"
-              rows={4}
-              placeholder="<p>Custom HTML text or heading</p>"
-              value={typeof field.defaultValue === "string" ? field.defaultValue : ""}
-              onChange={(e) => onChange({ defaultValue: e.target.value })}
-            />
-          </div>
-        </div>
-      )}
-
-      {needsOptions(field.type) && (
-        <div className="ff-prop-section">
-          <h3>Options</h3>
-          <FieldOptionsEditor field={field} onChange={onChange} />
-        </div>
-      )}
-
-      {supportsValidation && (
-        <details className="ff-prop-details">
-          <summary>Validation Rules</summary>
-          <div className="ff-prop-details-body">
-            {["text", "email", "textarea", "phone"].includes(field.type) && (
-              <>
-                <div className="ff-prop-row">
-                  <div className="ff-prop-col">
-                    <label htmlFor="ff-min-len">Min length</label>
-                    <input
-                      id="ff-min-len"
-                      type="number"
-                      min={0}
-                      value={field.minLength ?? ""}
-                      onChange={(e) =>
-                        onChange({
-                          minLength: e.target.value ? Number(e.target.value) : undefined,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="ff-prop-col">
-                    <label htmlFor="ff-max-len">Max length</label>
-                    <input
-                      id="ff-max-len"
-                      type="number"
-                      min={0}
-                      value={field.maxLength ?? ""}
-                      onChange={(e) =>
-                        onChange({
-                          maxLength: e.target.value ? Number(e.target.value) : undefined,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="ff-prop-group">
-                  <label htmlFor="ff-pattern">Pattern (regex)</label>
-                  <input
-                    id="ff-pattern"
-                    placeholder="^[a-zA-Z0-9]+$"
-                    value={field.pattern ?? ""}
-                    onChange={(e) => onChange({ pattern: e.target.value || undefined })}
-                  />
-                </div>
-                <div className="ff-prop-group">
-                  <label htmlFor="ff-pattern-err">Pattern error message</label>
-                  <input
-                    id="ff-pattern-err"
-                    placeholder="Must match the required format"
-                    value={field.patternError ?? ""}
-                    onChange={(e) =>
-                      onChange({ patternError: e.target.value || undefined })
-                    }
-                  />
-                </div>
-              </>
-            )}
-
-            {["number", "date", "datetime", "rating"].includes(field.type) && (
-              <div className="ff-prop-row">
-                <div className="ff-prop-col">
-                  <label htmlFor="ff-min-val">Min value</label>
-                  <input
-                    id="ff-min-val"
-                    type={field.type === "datetime" ? "datetime-local" : field.type === "date" ? "date" : "number"}
-                    value={field.min ?? ""}
-                    onChange={(e) => onChange({ min: e.target.value || undefined })}
-                  />
-                </div>
-                <div className="ff-prop-col">
-                  <label htmlFor="ff-max-val">Max value</label>
-                  <input
-                    id="ff-max-val"
-                    type={field.type === "datetime" ? "datetime-local" : field.type === "date" ? "date" : "number"}
-                    value={field.max ?? ""}
-                    onChange={(e) => onChange({ max: e.target.value || undefined })}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </details>
-      )}
-
-      <div className="ff-actions ff-prop-actions">
-        <button type="button" className="ff-btn" onClick={onDuplicate}>
+      <footer className="sticky bottom-0 flex shrink-0 gap-2 border-t border-kumo-line bg-kumo-base px-4 py-3">
+        <Button type="button" variant="secondary" className="flex-1" onClick={onDuplicate}>
           <ActionIcon name="duplicate" size={13} /> Duplicate
-        </button>
-        <button type="button" className="ff-btn ff-btn-danger" onClick={onRemove}>
+        </Button>
+        <Button
+          type="button"
+          variant="secondary-destructive"
+          className="flex-1"
+          onClick={onRemove}
+        >
           <ActionIcon name="delete" size={13} /> Remove
-        </button>
-      </div>
-    </div>
+        </Button>
+      </footer>
+    </aside>
   );
 }
 
@@ -871,8 +1005,10 @@ export function FormBuilder({ formId, onBack }: Props) {
 
   if (error && !form) {
     return (
-      <div className="ff-shell">
-        <p className="ff-error">{error}</p>
+      <div className="ff-shell ff-form-editor">
+        <p className="ff-error" style={{ padding: "1rem" }}>
+          {error}
+        </p>
         <button type="button" className="ff-btn" onClick={onBack}>
           Back
         </button>
@@ -882,14 +1018,16 @@ export function FormBuilder({ formId, onBack }: Props) {
 
   if (!form) {
     return (
-      <div className="ff-shell">
-        <p className="ff-meta">Loading form…</p>
+      <div className="ff-shell ff-form-editor">
+        <p className="ff-meta" style={{ padding: "1rem" }}>
+          Loading form…
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="ff-shell">
+    <div className="ff-shell ff-form-editor">
       <div className="ff-header ff-header-builder">
         {/* Left: title + tabs stacked (flex-col). Middle: theme. Right: Save */}
         <div className="ff-builder-nav-col">
@@ -979,8 +1117,9 @@ export function FormBuilder({ formId, onBack }: Props) {
         </div>
       </div>
 
-      {error && <p className="ff-error">{error}</p>}
+      {error && <p className="ff-error ff-form-editor-error">{error}</p>}
 
+      <div className="ff-form-editor-body">
       {tab === "layout" && (
         <DndContext
           sensors={sensors}
@@ -1163,6 +1302,7 @@ export function FormBuilder({ formId, onBack }: Props) {
           }}
         />
       )}
+      </div>
 
       {toast && <div className="ff-toast">{toast}</div>}
     </div>

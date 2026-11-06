@@ -608,10 +608,123 @@ html[data-mode="dark"] .ff-search {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 0.75rem 1rem;
+  gap: 0.5rem 1rem;
   width: 100%;
   container-type: inline-size;
   container-name: ff-editor-bar;
+}
+
+/* Form editor — match EmDash posts / submission editor chrome */
+.ff-shell.ff-form-editor {
+  gap: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: -1.5rem;
+  width: calc(100% + 3rem);
+  max-width: none;
+  height: calc(100dvh - 3.625rem);
+  max-height: calc(100dvh - 3.625rem);
+  background: var(--color-kumo-elevated, var(--color-kumo-base, #fff));
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.ff-form-editor > .ff-header-builder {
+  flex-shrink: 0;
+  padding: 0.5rem 0.75rem 0.65rem;
+  border-bottom: 1px solid var(--color-kumo-line, #e4e1da);
+  background: var(--color-kumo-elevated, var(--color-kumo-base, #fff));
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .ff-form-editor > .ff-header-builder {
+    padding-inline: 1rem;
+  }
+}
+
+.ff-form-editor-error {
+  flex-shrink: 0;
+  margin: 0.75rem 1rem 0 !important;
+}
+
+.ff-form-editor-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Layout: columns fill height; other tabs scroll with page padding */
+.ff-form-editor-body:has(.ff-builder) {
+  overflow: hidden;
+}
+
+.ff-form-editor-body > .ff-page,
+.ff-form-editor-body > .ff-form-notif-page,
+.ff-form-editor-body > .ff-form-settings,
+.ff-form-editor-body > .ff-list-page {
+  padding: 1.25rem 1.5rem 2rem;
+  box-sizing: border-box;
+}
+
+.ff-form-editor .ff-builder {
+  flex: 1 1 auto;
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+  align-items: stretch;
+  grid-template-columns: 260px minmax(0, 1fr) minmax(280px, 23rem);
+}
+
+.ff-form-editor .ff-builder > .ff-panel {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding: 1rem 1.1rem;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ff-form-editor .ff-builder > .ff-palette-panel {
+  border-inline-end: 1px solid var(--color-kumo-line, #e4e1da);
+  background: var(--color-kumo-base, var(--ff-surface));
+}
+
+.ff-form-editor .ff-builder > .ff-canvas {
+  background: var(--color-kumo-elevated, var(--color-kumo-base, #fff));
+}
+
+.ff-form-editor .ff-builder > .ff-prop-rail {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  border-inline-start: 1px solid var(--color-kumo-line, #e4e1da);
+  max-height: none;
+  height: 100%;
+  background: var(--color-kumo-base, var(--ff-surface));
+  padding: 0;
+}
+
+.ff-form-editor .ff-form-settings .ff-panel {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding: 0 0 1.25rem;
+  margin: 0;
+  border-bottom: 1px solid var(--color-kumo-line, #e4e1da);
+}
+
+.ff-form-editor .ff-form-settings .ff-panel:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.ff-form-editor .ff-form-settings .ff-panel[style] {
+  margin-top: 1.25rem !important;
 }
 
 .ff-builder-nav-col {
@@ -1196,9 +1309,9 @@ html[data-mode="dark"] .ff-btn-ai {
 
 .ff-builder {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 320px;
+  grid-template-columns: 280px minmax(0, 1fr) minmax(320px, 368px);
   gap: 0.85rem;
-  align-items: start;
+  align-items: stretch;
   min-height: 70vh;
 }
 
@@ -2017,177 +2130,32 @@ html[data-mode="dark"] .ff-btn-ai {
   font-size: 0.85rem;
 }
 
-/* Property Editor Panel */
-.ff-prop-empty {
-  text-align: center;
-  padding: 2.5rem 1rem;
-}
-
-.ff-prop-empty-icon {
-  color: var(--ff-muted);
-  margin-bottom: 0.65rem;
-}
-
-.ff-prop-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.85rem;
-  border-bottom: 1px solid var(--ff-line);
-  padding-bottom: 0.65rem;
-}
-
-.ff-prop-header h2 {
-  margin: 0 0 0.25rem !important;
-}
-
-.ff-prop-type-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.72rem;
-  color: var(--ff-muted);
-  background: var(--ff-bg);
-  padding: 0.15rem 0.45rem;
-  border-radius: 4px;
-  border: 1px solid var(--ff-line);
-  font-weight: 500;
-}
-
-.ff-prop-close {
-  border: 1px solid var(--ff-line);
-  background: var(--ff-surface);
-  border-radius: 4px;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--ff-muted);
-  transition: all 0.12s ease;
-}
-
-.ff-prop-close:hover {
-  color: var(--ff-ink);
-  background: var(--ff-bg);
-}
-
-.ff-prop-group {
-  margin-bottom: 0.75rem;
-}
-
-.ff-prop-group label {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--ff-muted);
-  margin-bottom: 0.25rem;
-}
-
-.ff-prop-checkbox-row label {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-size: 0.82rem;
-  color: var(--ff-ink);
-  cursor: pointer;
-}
-
-.ff-prop-checkbox-row input[type="checkbox"] {
-  width: auto;
-  margin: 0;
-}
-
-.ff-prop-section {
-  border-top: 1px solid var(--ff-line);
-  padding-top: 0.75rem;
-  margin-top: 0.75rem;
-}
-
-.ff-prop-section h3 {
-  margin: 0 0 0.35rem;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--ff-muted);
-}
-
-.ff-prop-details {
-  border: 1px solid var(--ff-line);
-  border-radius: 6px;
-  padding: 0.5rem 0.65rem;
-  margin-top: 0.85rem;
-  font-size: 0.8rem;
-  background: var(--ff-bg);
-}
-
-.ff-prop-details summary {
-  cursor: pointer;
-  font-weight: 600;
-  color: var(--ff-ink);
-  user-select: none;
-}
-
-.ff-prop-details-body {
-  margin-top: 0.65rem;
+/* Property Editor — EmDash ContentSettingsPanel right rail */
+.ff-prop-rail {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  max-height: calc(100vh - 11rem);
+  overflow: hidden;
+  background: var(--color-kumo-base, var(--ff-surface));
+  border: 1px solid var(--color-kumo-line, var(--ff-line));
+  border-radius: 0.75rem;
+  box-shadow: var(--ff-shadow);
 }
 
-.ff-prop-row {
-  display: flex;
-  gap: 0.5rem;
+.ff-prop-rail.ff-prop-empty {
+  /* empty state still fills the rail */
 }
 
-.ff-prop-col {
-  flex: 1;
+.ff-prop-rail-body {
+  overscroll-behavior: contain;
 }
 
-.ff-prop-actions {
-  margin-top: 1.25rem;
-  border-top: 1px solid var(--ff-line);
-  padding-top: 0.85rem;
-  display: flex;
-  gap: 0.5rem;
-}
-
-.ff-prop input,
-.ff-prop textarea,
-.ff-prop select {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid var(--ff-line);
-  border-radius: 6px;
-  padding: 0.45rem 0.65rem;
-  font: inherit;
-  font-size: 0.825rem;
-  color: var(--ff-ink);
-  background: var(--ff-control);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.ff-prop select {
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 15 5 5 5-5'/%3E%3Cpath d='m7 9 5-5 5 5'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.5rem center;
-  background-size: 0.85rem 0.85rem;
-  padding-right: 1.75rem;
-}
-
-.ff-prop input:focus,
-.ff-prop textarea:focus,
-.ff-prop select:focus {
-  outline: none;
-  border-color: var(--color-kumo-brand, #f6821f);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-kumo-brand, #f6821f) 18%, transparent);
-}
-
-.ff-prop textarea {
-  min-height: 68px;
-  resize: vertical;
+/* Keep options editor readable inside the rail */
+.ff-prop-rail .ff-options-manager {
+  margin: 0;
 }
 
 /* Drag Overlays */
