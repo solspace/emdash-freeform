@@ -1796,30 +1796,7 @@ html[data-mode="dark"] .ff-btn-ai {
 .ff-field-body {
   pointer-events: none;
   user-select: none;
-  margin: 0.35rem 0 0.45rem;
-}
-
-.ff-field-footer {
-  display: flex;
-  gap: 0.35rem;
-  align-items: center;
-}
-
-.ff-field-handle-pill {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.68rem;
-  color: var(--ff-muted);
-  background: var(--ff-bg);
-  padding: 0.1rem 0.35rem;
-  border-radius: 4px;
-  border: 1px solid var(--ff-line);
-}
-
-.ff-field-type-pill {
-  font-size: 0.65rem;
-  color: var(--ff-muted);
-  text-transform: none;
-  letter-spacing: normal;
+  margin: 0.35rem 0 0;
 }
 
 /* Field Previews */

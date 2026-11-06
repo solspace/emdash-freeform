@@ -127,11 +127,6 @@ function SortableField({
       <div className="ff-field-body">
         <FieldPreview field={field} />
       </div>
-
-      <div className="ff-field-footer">
-        <span className="ff-field-handle-pill">{field.handle}</span>
-        <span className="ff-field-type-pill">{defaultFieldLabel(field.type)}</span>
-      </div>
     </div>
   );
 }
