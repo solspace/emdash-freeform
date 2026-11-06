@@ -1,6 +1,9 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { StoredForm } from "../types";
-import { FORM_COLOR_PRESETS, resolveFormColor } from "./ff-nav";
+import {
+  FORM_COLOR_PRESETS,
+  resolveFormAccent,
+} from "./ff-nav";
 
 type Props = {
   form: StoredForm & { id: string };
@@ -49,12 +52,14 @@ function FieldBlock({
 }
 
 export function FormSettingsPanel({ form, onChange }: Props) {
+  const accent = resolveFormAccent(form);
+
   return (
     <div className="ff-page ff-form-settings grid max-w-3xl gap-8">
       <div>
         <h2 className="text-2xl font-semibold leading-tight text-kumo-strong">Settings</h2>
         <p className="mt-1.5 max-w-2xl text-sm leading-5 text-pretty text-kumo-subtle">
-          Form identity, success message, and dashboard card accent.
+          Form identity, success message, and public form accent.
         </p>
       </div>
 
@@ -122,19 +127,29 @@ export function FormSettingsPanel({ form, onChange }: Props) {
               />
             </FieldBlock>
           </FieldRow>
+        </div>
+      </section>
 
+      <section aria-labelledby="ff-settings-theme">
+        <h3
+          id="ff-settings-theme"
+          className="text-lg font-semibold leading-6 text-balance text-kumo-strong"
+        >
+          Theme
+        </h3>
+        <div className={PANEL}>
           <FieldRow>
             <FieldBlock
-              label="Card color"
-              description="Accent on the Forms dashboard card for this form."
+              label="Accent color"
+              description="Used on the public form submit button and focused input rings. Defaults to the header card color when unset."
             >
               <div
                 className="ff-color-picker ff-color-picker-bare"
                 role="group"
-                aria-label="Form card color"
+                aria-label="Accent color"
               >
                 {FORM_COLOR_PRESETS.map((hex) => {
-                  const active = resolveFormColor(form) === hex;
+                  const active = accent === hex;
                   return (
                     <button
                       key={hex}
@@ -142,15 +157,34 @@ export function FormSettingsPanel({ form, onChange }: Props) {
                       className={`ff-color-swatch${active ? " is-active" : ""}`}
                       style={{ background: hex }}
                       title={hex}
-                      aria-label={`Card color ${hex}`}
+                      aria-label={`Accent color ${hex}`}
                       aria-pressed={active}
-                      onClick={() => onChange({ cardColor: hex })}
+                      onClick={() => onChange({ accentColor: hex })}
                     />
                   );
                 })}
               </div>
             </FieldBlock>
           </FieldRow>
+        </div>
+
+        <div
+          className="ff-theme-preview mt-3 rounded-xl border border-kumo-line bg-kumo-base p-5"
+          style={{ "--ff-accent": accent } as CSSProperties}
+        >
+          <label className="ff-theme-preview-label" htmlFor="ff-theme-preview-input">
+            Sample field
+          </label>
+          <input
+            id="ff-theme-preview-input"
+            className="ff-theme-preview-input"
+            type="text"
+            placeholder="Focus me to see the accent ring"
+            readOnly
+          />
+          <button type="button" className="ff-theme-preview-submit">
+            Submit
+          </button>
         </div>
       </section>
     </div>

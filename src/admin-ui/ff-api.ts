@@ -82,6 +82,7 @@ export async function saveForm(input: {
   honeypotEnabled?: boolean;
   privacy?: import("../types").FormPrivacySettings | null;
   cardColor?: string | null;
+  accentColor?: string | null;
 }): Promise<FormDocument> {
   const res = await apiFetch(`${BASE}/save-form`, {
     method: "POST",

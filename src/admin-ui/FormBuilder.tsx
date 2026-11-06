@@ -824,6 +824,7 @@ export function FormBuilder({ formId, onBack }: Props) {
         rows: form.rows,
         successMessage: form.successMessage,
         cardColor: form.cardColor,
+        accentColor: form.accentColor,
         honeypotEnabled: form.honeypotEnabled,
         captcha: form.captcha,
         privacy: form.privacy,

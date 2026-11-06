@@ -96,6 +96,21 @@ export function resolveFormColor(form: {
   return formAccent(form.handle || form.id);
 }
 
+/**
+ * Public form accent (submit / focus rings).
+ * Explicit accentColor → cardColor → hashed default.
+ */
+export function resolveFormAccent(form: {
+  accentColor?: string;
+  cardColor?: string;
+  handle?: string;
+  id: string;
+}): string {
+  const a = form.accentColor?.trim();
+  if (a && /^#[0-9a-fA-F]{6}$/.test(a)) return a.toLowerCase();
+  return resolveFormColor(form);
+}
+
 export function goToFormSubmissions(formId: string) {
   if (typeof window === "undefined") return;
   window.location.assign(

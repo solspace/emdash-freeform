@@ -128,6 +128,90 @@ html[data-mode="dark"] .ff-search {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
+/* Forms dashboard — Cards view tinted by form card color */
+.ff-dash-card {
+  --ff-card-accent: var(--ff-accent);
+  --mx: 50%;
+  --my: 40%;
+  isolation: isolate;
+  overflow: hidden;
+  background: color-mix(
+    in srgb,
+    var(--ff-card-accent) 20%,
+    var(--color-kumo-base, var(--ff-surface))
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--ff-card-accent) 40%,
+    var(--color-kumo-line, var(--ff-line))
+  );
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ff-card-accent) 12%, transparent);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.ff-dash-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--ff-card-accent);
+  opacity: 0.95;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Soft mouse-follow spotlight on hover */
+.ff-dash-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    260px circle at var(--mx) var(--my),
+    color-mix(in srgb, var(--ff-card-accent) 18%, transparent),
+    transparent 70%
+  );
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.18s ease;
+}
+
+.ff-dash-card:hover::after,
+.ff-dash-card:focus-visible::after {
+  opacity: 1;
+}
+
+.ff-dash-card:hover,
+.ff-dash-card:focus-visible {
+  border-color: color-mix(
+    in srgb,
+    var(--ff-card-accent) 52%,
+    var(--color-kumo-line, var(--ff-line))
+  );
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ff-card-accent) 20%, transparent),
+    0 10px 24px color-mix(in srgb, var(--ff-card-accent) 14%, transparent);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.ff-dash-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.ff-dash-card-title {
+  margin: 0;
+  font-size: 1.5rem; /* text-2xl */
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: var(--text-color-kumo-strong, var(--ff-ink));
+}
+
 .ff-form-card {
   --ff-card-accent: var(--ff-accent);
   position: relative;
@@ -603,7 +687,7 @@ html[data-mode="dark"] .ff-search {
   gap: 1rem;
 }
 
-/* 3-col header: [title+tabs flex-col] · [theme middle] · [Save] */
+/* 3-col header: [title+tabs] · [card color] · [Save] */
 .ff-header-builder {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -748,10 +832,6 @@ html[data-mode="dark"] .ff-search {
   justify-self: start;
 }
 
-.ff-header-builder .ff-header-title {
-  min-width: 0;
-}
-
 .ff-builder-theme-row {
   display: flex;
   align-items: center;
@@ -761,10 +841,14 @@ html[data-mode="dark"] .ff-search {
 
 .ff-builder-theme-row .ff-color-picker {
   margin: 0;
-  margin-top: 0; /* override default .ff-color-picker margin-top */
+  margin-top: 0;
 }
 
-/* Settings field row: swatches without a second pill border */
+.ff-header-builder .ff-header-title {
+  min-width: 0;
+}
+
+/* Settings / Theme field row: swatches without a second pill border */
 .ff-color-picker-bare {
   margin-top: 0;
   padding: 0;
@@ -778,6 +862,83 @@ html[data-mode="dark"] .ff-search {
   align-self: start;
   flex-shrink: 0;
   min-height: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .ff-header-builder {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "nav save"
+      "theme theme";
+  }
+
+  .ff-builder-nav-col {
+    grid-area: nav;
+  }
+
+  .ff-builder-theme-row {
+    grid-area: theme;
+    justify-self: start;
+  }
+
+  .ff-header-builder .ff-actions {
+    grid-area: save;
+  }
+}
+
+/* Theme tab — live preview of public accent */
+.ff-theme-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-width: 22rem;
+}
+
+.ff-theme-preview-label {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 550;
+  color: var(--text-color-kumo-default, var(--ff-ink));
+}
+
+.ff-theme-preview-input {
+  height: 2.25rem;
+  width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--color-kumo-control, var(--ff-bg));
+  color: var(--text-color-kumo-default, var(--ff-ink));
+  padding: 0 0.75rem;
+  font: inherit;
+  font-size: 0.875rem;
+  box-shadow: 0 0 0 1px var(--color-kumo-line, var(--ff-line));
+  outline: none;
+}
+
+.ff-theme-preview-input:focus {
+  box-shadow: 0 0 0 1.5px var(--ff-accent, var(--color-kumo-brand, #006ff7));
+}
+
+.ff-theme-preview-input::placeholder {
+  color: var(--text-color-kumo-subtle, var(--ff-muted));
+}
+
+.ff-theme-preview-submit {
+  align-self: flex-start;
+  height: 2.25rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--ff-accent, var(--color-kumo-brand, #006ff7));
+  color: #fff;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 550;
+  cursor: default;
 }
 
 /* EmDash ContentEditor bar crumb: [←] List / Title */
@@ -939,28 +1100,6 @@ html[data-mode="dark"] .ff-search {
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--ff-accent, var(--color-kumo-brand, #e5622d));
-}
-
-@media (max-width: 900px) {
-  .ff-header-builder {
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-      "nav save"
-      "theme theme";
-  }
-
-  .ff-builder-nav-col {
-    grid-area: nav;
-  }
-
-  .ff-builder-theme-row {
-    grid-area: theme;
-    justify-self: start;
-  }
-
-  .ff-header-builder .ff-actions {
-    grid-area: save;
-  }
 }
 
 .ff-root .ff-header h1 {

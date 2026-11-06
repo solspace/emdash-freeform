@@ -30,14 +30,6 @@ type Props = {
   onError: (message: string | null) => void;
 };
 
-function cardSurface(accent: string): CSSProperties {
-  return {
-    "--ff-card-accent": accent,
-    background: `color-mix(in srgb, ${accent} 12%, var(--ff-surface))`,
-    borderColor: `color-mix(in srgb, ${accent} 32%, var(--ff-line))`,
-  } as CSSProperties;
-}
-
 /** Phosphor DotsThree — EmDash RowActionsMenu trigger. */
 function DotsThreeIcon() {
   return (
@@ -86,7 +78,14 @@ export function FormsDashboard({
   const [creating, setCreating] = useState(false);
   const [templateId, setTemplateId] = useState("contact");
   const [query, setQuery] = useState("");
-  const [view, setView] = useState<"cards" | "list">("list");
+  const [view, setView] = useState<"cards" | "list">(() => {
+    try {
+      const saved = localStorage.getItem("ff.forms.view");
+      return saved === "cards" || saved === "list" ? saved : "list";
+    } catch {
+      return "list";
+    }
+  });
   const [pendingDelete, setPendingDelete] = useState<FormListItem | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<unknown>(null);
@@ -97,6 +96,14 @@ export function FormsDashboard({
   const [aiBusy, setAiBusy] = useState(false);
   const [aiConfigured, setAiConfigured] = useState(false);
   const [aiSettingsLink, setAiSettingsLink] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("ff.forms.view", view);
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }, [view]);
 
   useEffect(() => {
     let cancelled = false;
@@ -518,10 +525,17 @@ export function FormsDashboard({
             return (
               <article
                 key={form.id}
-                className="relative rounded-lg border border-kumo-line bg-kumo-base p-5 shadow-xs hover:border-kumo-brand/50 transition-all cursor-pointer flex flex-col justify-between min-h-[140px]"
+                className="ff-dash-card relative flex min-h-[168px] cursor-pointer flex-col justify-between rounded-lg border p-6 shadow-xs"
+                style={{ "--ff-card-accent": accent } as CSSProperties}
                 role="button"
                 tabIndex={0}
                 onClick={() => onEdit(form.id, form.handle)}
+                onMouseMove={(e) => {
+                  const el = e.currentTarget;
+                  const r = el.getBoundingClientRect();
+                  el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+                  el.style.setProperty("--my", `${e.clientY - r.top}px`);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
@@ -531,9 +545,9 @@ export function FormsDashboard({
               >
                 <div>
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full shrink-0" style={{ background: accent }} />
-                      <h3 className="font-semibold text-kumo-strong text-base">{form.name}</h3>
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <span className="h-3.5 w-3.5 shrink-0 rounded-full" style={{ background: accent }} />
+                      <h3 className="ff-dash-card-title truncate">{form.name}</h3>
                     </div>
                     <div
                       className="relative inline-flex"

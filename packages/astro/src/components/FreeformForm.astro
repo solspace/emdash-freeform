@@ -241,7 +241,36 @@ const agentActionLd = formData
         data-agent-endpoint={agentEndpoint}
         data-agent-schema={agentSchemaPath}
         data-prefilled-fields={prefilledFields.join(",")}
+        {...(formData.accentColor || formData.cardColor
+          ? {
+              "data-ff-themed": "",
+              style: `--ff-accent: ${(formData.accentColor || formData.cardColor)!.toLowerCase()}`,
+            }
+          : {})}
       >
+        {(formData.accentColor || formData.cardColor) && (
+          <style is:inline>{`
+            #ff-${formId}[data-ff-themed] [data-freeform-submit] {
+              background: var(--ff-accent);
+              color: #fff;
+              border: 0;
+              border-radius: 0.5rem;
+              padding: 0.55rem 1.1rem;
+              font: inherit;
+              cursor: pointer;
+            }
+            #ff-${formId}[data-ff-themed] [data-freeform-submit]:disabled {
+              opacity: 0.65;
+              cursor: not-allowed;
+            }
+            #ff-${formId}[data-ff-themed] [data-freeform-input]:focus,
+            #ff-${formId}[data-ff-themed] textarea[data-freeform-input]:focus,
+            #ff-${formId}[data-ff-themed] select[data-freeform-input]:focus {
+              outline: 2px solid var(--ff-accent);
+              outline-offset: 1px;
+            }
+          `}</style>
+        )}
         <div data-freeform-message role="status" aria-live="polite" hidden />
 
         {formData.rows.map((row) => (

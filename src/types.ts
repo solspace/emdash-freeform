@@ -124,6 +124,11 @@ export interface StoredForm {
   /** Accent / card background color (CSS hex, e.g. `#006ff7`). */
   cardColor?: string;
   /**
+   * Public form accent (submit button, focused input rings).
+   * CSS hex. When omitted, falls back to `cardColor` then a hashed default.
+   */
+  accentColor?: string;
+  /**
    * When `false`, honeypot field is not rendered and not checked on submit.
    * Default / omitted = enabled.
    */

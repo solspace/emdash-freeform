@@ -103,6 +103,7 @@ export const formsRoutes = {
         honeypotEnabled,
         privacy,
         cardColor,
+        accentColor,
       } = routeCtx.input as {
         id?: string;
         name?: string;
@@ -113,6 +114,7 @@ export const formsRoutes = {
         honeypotEnabled?: boolean;
         privacy?: StoredForm["privacy"] | null;
         cardColor?: string | null;
+        accentColor?: string | null;
       };
       const formId = id ?? uid();
       const existing = id
@@ -169,6 +171,15 @@ export const formsRoutes = {
         }
       } else if (existing?.cardColor) {
         form.cardColor = existing.cardColor;
+      }
+      if (accentColor !== undefined) {
+        if (accentColor === null || accentColor === "") {
+          delete form.accentColor;
+        } else if (/^#[0-9a-fA-F]{6}$/.test(accentColor.trim())) {
+          form.accentColor = accentColor.trim().toLowerCase();
+        }
+      } else if (existing?.accentColor) {
+        form.accentColor = existing.accentColor;
       }
       if (typeof honeypotEnabled === "boolean") {
         form.honeypotEnabled = honeypotEnabled;
