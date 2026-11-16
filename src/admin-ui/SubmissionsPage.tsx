@@ -1,6 +1,15 @@
-import { Badge } from "@cloudflare/kumo";
-import { CheckCircle, Warning } from "@phosphor-icons/react";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Badge, Button, Tabs } from "@cloudflare/kumo";
+import {
+  ArrowClockwise,
+  CheckCircle,
+  DownloadSimple,
+  PaperPlaneTilt,
+  PencilSimple,
+  Trash,
+  Warning,
+  X,
+} from "@phosphor-icons/react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { FormField, SubmissionBrief } from "../types";
 import {
   deleteSubmission,
@@ -13,18 +22,16 @@ import {
   type FormListItem,
   type SubmissionListItem,
 } from "./ff-api";
+import { resolveFormColor } from "./ff-nav";
 import {
-  FF_UNDERLINE_TABLIST,
-  ffUnderlineTabClass,
-  resolveFormColor,
-} from "./ff-nav";
-import {
-  FF_CHIP,
-  FF_FILTER_TRIGGER,
   FF_LIST_PAGE,
-  FF_TOOLBAR_BTN,
+  FF_ROW_TITLE,
+  FF_TABLE_TOOLBAR,
+  FF_TABLE_TOOLBAR_START,
   FfCheckbox,
   FfDataTable,
+  FfDataTableBulkBar,
+  FfDataTableMessage,
   FfFilterSelect,
   FfListPagination,
   FfListSearch,
@@ -106,6 +113,30 @@ function submissionIsSpam(s: SubmissionListItem): boolean {
   return typeof s.spamScore === "number" && s.spamScore >= 5;
 }
 
+/** EmDash ContentStatusLabel — icon + text for filter triggers/options. */
+function SubmissionStatusLabel({
+  status,
+  className = "",
+}: {
+  status: "open" | "spam";
+  className?: string;
+}) {
+  if (status === "spam") {
+    return (
+      <span className={`inline-flex items-center gap-1.5 ${className}`.trim()}>
+        <Warning className="h-3.5 w-3.5 text-kumo-warning" aria-hidden="true" />
+        Spam
+      </span>
+    );
+  }
+  return (
+    <span className={`inline-flex items-center gap-1.5 ${className}`.trim()}>
+      <CheckCircle className="h-3.5 w-3.5 text-kumo-success" aria-hidden="true" />
+      Open
+    </span>
+  );
+}
+
 /** EmDash ContentStatusBadge treatment — Kumo Badge + Phosphor icon. */
 function SubmissionStatusBadge({
   spam,
@@ -144,96 +175,11 @@ function SubmissionStatusBadge({
   );
 }
 
-function TrashIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 6h18" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-      <line x1="10" y1="11" x2="10" y2="17" />
-      <line x1="14" y1="11" x2="14" y2="17" />
-    </svg>
-  );
-}
-
-function WarningIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-      <line x1="12" y1="9" x2="12" y2="13" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  );
-}
-
-function DownloadIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  );
-}
-
-function PaperPlaneIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <line x1="22" y1="2" x2="11" y2="13" />
-      <polygon points="22 2 15 22 11 13 2 9 22 2" />
-    </svg>
-  );
-}
-
-function PencilIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
-    </svg>
-  );
-}
-
-function RefreshIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-    </svg>
-  );
-}
-
-function FilterIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-    </svg>
-  );
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
-
-function XIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
+const STATUS_FILTER_ITEMS = {
+  all: "All statuses",
+  open: <SubmissionStatusLabel status="open" />,
+  spam: <SubmissionStatusLabel status="spam" />,
+} as const;
 
 export function SubmissionsPage() {
   const [detailId, setDetailId] = useState<string | null>(() => readSubmissionDeepLink());
@@ -259,8 +205,6 @@ export function SubmissionsPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState<(typeof PAGE_SIZES)[number]>(20);
-  const [formFilterOpen, setFormFilterOpen] = useState(false);
-  const formFilterRef = useRef<HTMLDivElement>(null);
 
   const openSubmissionEditor = useCallback((id: string) => {
     setSelected(null);
@@ -273,18 +217,6 @@ export function SubmissionsPage() {
     writeSubmissionDeepLink(null);
   }, []);
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (formFilterRef.current && !formFilterRef.current.contains(e.target as Node)) {
-        setFormFilterOpen(false);
-      }
-    }
-    if (formFilterOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [formFilterOpen]);
-
   const formColorMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const f of forms) {
@@ -293,13 +225,26 @@ export function SubmissionsPage() {
     return map;
   }, [forms]);
 
-  const selectedForm = useMemo(() => {
-    return forms.find((f) => f.id === formId) ?? null;
-  }, [forms, formId]);
-
-  const totalSubmissionsAcrossAllForms = useMemo(() => {
-    return forms.reduce((acc, f) => acc + (f.subCount || 0), 0);
-  }, [forms]);
+  /** Same Kumo Select items as All statuses — small, one-line triggers. */
+  const formFilterItems = useMemo(() => {
+    const items: Record<string, ReactNode> = {
+      all: "All forms",
+    };
+    for (const f of forms) {
+      const color = formColorMap.get(f.id) || "#3b82f6";
+      items[f.id] = (
+        <span className="inline-flex min-w-0 items-center gap-1.5 whitespace-nowrap">
+          <span
+            className="h-2 w-2 shrink-0 rounded-full"
+            style={{ background: color }}
+            aria-hidden="true"
+          />
+          <span className="truncate">{f.name}</span>
+        </span>
+      );
+    }
+    return items;
+  }, [forms, formColorMap]);
 
   const handleFormChange = (next: string) => {
     setFormId(next);
@@ -548,246 +493,163 @@ export function SubmissionsPage() {
   return (
     <FreeformShell>
       <div className={FF_LIST_PAGE}>
-        {/* Title & Action Row (EmDash ContentList Header) */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-semibold leading-tight text-kumo-strong">
-              Submissions
-            </h1>
+        {/* EmDash ContentList header */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <div className="flex min-w-0 items-center gap-4">
+            <h1 className="text-2xl font-semibold leading-tight">Submissions</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <button
-              type="button"
-              className={FF_TOOLBAR_BTN}
+            <Button
+              variant="secondary"
+              size="sm"
               disabled={busy || filtered.length === 0}
+              icon={<DownloadSimple aria-hidden="true" />}
               onClick={() => void onExport(filtered.map((s) => s.id))}
             >
-              <DownloadIcon /> Export CSV
-            </button>
-            <button
-              type="button"
-              className={FF_TOOLBAR_BTN}
+              Export CSV
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<ArrowClockwise aria-hidden="true" />}
               onClick={() => void refresh()}
             >
-              <RefreshIcon /> Refresh
-            </button>
+              Refresh
+            </Button>
           </div>
         </div>
 
-        {/* Kumo underline tabs — same spacing as Content List All / Trash */}
-        <nav className={FF_UNDERLINE_TABLIST} aria-label="Submissions views">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("all");
+        {/* EmDash ContentList Tabs — All / Trash pattern → All / Spam */}
+        <Tabs
+          variant="underline"
+          value={activeTab}
+          onValueChange={(v) => {
+            if (v === "all" || v === "spam") {
+              setActiveTab(v);
               setPage(1);
-            }}
-            className={ffUnderlineTabClass(activeTab === "all")}
-          >
-            All
-            <span className={FF_CHIP}>{subs.length}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("spam");
-              setPage(1);
-            }}
-            className={ffUnderlineTabClass(activeTab === "spam")}
-          >
-            <WarningIcon />
-            Spam
-            {spamCount > 0 && (
-              <span className={`${FF_CHIP} !bg-red-500/15 !text-red-600 dark:!text-red-400`}>
-                {spamCount}
-              </span>
-            )}
-          </button>
-        </nav>
-
-        {/* Table Toolbar — EmDash TableToolbar + FilterBar recipes */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <FfListSearch
-              placeholder="Search submissions…"
-              aria-label="Search submissions"
-              value={query}
-              onChange={(v) => {
-                setQuery(v);
-                setPage(1);
-              }}
-            />
-
-            {/* Form filter (custom popover — forms list with counts/colors) */}
-            <div className="relative inline-block" ref={formFilterRef}>
-              <button
-                type="button"
-                onClick={() => setFormFilterOpen((o) => !o)}
-                className={`${FF_FILTER_TRIGGER} !pe-2 ${
-                  formId ? "border-kumo-brand bg-kumo-tint/50 text-kumo-strong" : ""
-                }`}
-                aria-haspopup="listbox"
-                aria-expanded={formFilterOpen}
-                aria-label="Filter submissions by form"
-              >
-                {selectedForm ? (
-                  <span
-                    className="h-2 w-2 rounded-full shrink-0"
-                    style={{ background: formColorMap.get(selectedForm.id) || "#3b82f6" }}
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <FilterIcon />
-                )}
-                <span className="truncate max-w-36">
-                  {selectedForm ? selectedForm.name : "All forms"}
+              setSelectedIds(new Set());
+            }
+          }}
+          tabs={[
+            { value: "all", label: "All" },
+            {
+              value: "spam",
+              label: (
+                <span className="flex items-center gap-2">
+                  <Warning className="h-4 w-4" aria-hidden="true" />
+                  Spam
+                  {spamCount > 0 ? (
+                    <Badge variant="secondary">{spamCount}</Badge>
+                  ) : null}
                 </span>
-                <ChevronDownIcon />
-              </button>
+              ),
+            },
+          ]}
+        />
 
-              {formFilterOpen && (
-                <div
-                  className="absolute start-0 mt-1 z-30 min-w-[220px] rounded-lg bg-kumo-base py-1 shadow-lg ring ring-kumo-line"
-                  role="listbox"
+        {/* EmDash TableToolbar — only on All (Trash view has no filter bar) */}
+        {activeTab === "all" && (
+          <div className={FF_TABLE_TOOLBAR}>
+            <div className={FF_TABLE_TOOLBAR_START}>
+              <FfListSearch
+                placeholder="Search submissions..."
+                aria-label="Search submissions"
+                value={query}
+                onChange={(v) => {
+                  setQuery(v);
+                  setPage(1);
+                }}
+              />
+
+              <FfFilterSelect
+                aria-label="Filter by form"
+                value={formId || "all"}
+                items={formFilterItems}
+                renderValue={(v) => {
+                  if (v === "all" || !v) return "All forms";
+                  return formFilterItems[v] ?? "All forms";
+                }}
+                onValueChange={(v) => {
+                  handleFormChange(v === "all" ? "" : v);
+                }}
+              />
+
+              <FfFilterSelect
+                aria-label="Filter by status"
+                value={statusFilter}
+                items={STATUS_FILTER_ITEMS}
+                renderValue={(v) =>
+                  v === "all" ? "All statuses" : <SubmissionStatusLabel status={v} />
+                }
+                onValueChange={(v) => {
+                  setStatusFilter(v);
+                  setPage(1);
+                }}
+              />
+
+              <FfFilterSelect
+                aria-label="Filter by date"
+                value={dateFilter}
+                items={{
+                  all: "All time",
+                  "7d": "Last 7 days",
+                  "30d": "Last 30 days",
+                  "90d": "Last 90 days",
+                }}
+                onValueChange={(v) => {
+                  setDateFilter(v);
+                  setPage(1);
+                }}
+              />
+
+              {hasExtraFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<X aria-hidden="true" />}
+                  onClick={clearExtraFilters}
                 >
-                  <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-kumo-subtle">
-                    Filter by form
-                  </div>
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={!formId}
-                    onClick={() => {
-                      handleFormChange("");
-                      setFormFilterOpen(false);
-                    }}
-                    className={`w-full px-3 py-2 text-sm text-start flex items-center justify-between gap-2 hover:bg-kumo-tint transition-colors ${
-                      !formId ? "font-semibold text-kumo-strong bg-kumo-tint/40" : "text-kumo-default"
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <FilterIcon />
-                      <span>All forms</span>
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="text-xs text-kumo-subtle">{totalSubmissionsAcrossAllForms}</span>
-                      {!formId && <CheckIcon />}
-                    </span>
-                  </button>
-
-                  <div className="border-t border-kumo-hairline my-1" />
-
-                  {forms.map((f) => {
-                    const isSelected = formId === f.id;
-                    const color = formColorMap.get(f.id) || "#3b82f6";
-                    return (
-                      <button
-                        key={f.id}
-                        type="button"
-                        role="option"
-                        aria-selected={isSelected}
-                        onClick={() => {
-                          handleFormChange(f.id);
-                          setFormFilterOpen(false);
-                        }}
-                        className={`w-full px-3 py-2 text-sm text-start flex items-center justify-between gap-2 hover:bg-kumo-tint transition-colors ${
-                          isSelected ? "font-semibold text-kumo-strong bg-kumo-tint/40" : "text-kumo-default"
-                        }`}
-                      >
-                        <span className="flex items-center gap-2 min-w-0">
-                          <span
-                            className="h-2 w-2 rounded-full shrink-0"
-                            style={{ background: color }}
-                            aria-hidden="true"
-                          />
-                          <span className="truncate">{f.name}</span>
-                        </span>
-                        <span className="flex items-center gap-2 shrink-0">
-                          <span className="text-xs text-kumo-subtle">{f.subCount}</span>
-                          {isSelected && <CheckIcon />}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                  Clear filters
+                </Button>
               )}
-            </div>
-
-            <FfFilterSelect
-              aria-label="Filter by status"
-              value={statusFilter}
-              disabled={activeTab === "spam"}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as StatusFilter);
-                setPage(1);
-              }}
-            >
-              <option value="all">All statuses</option>
-              <option value="open">Open</option>
-              <option value="spam">Spam</option>
-            </FfFilterSelect>
-
-            <FfFilterSelect
-              aria-label="Filter by date"
-              value={dateFilter}
-              onChange={(e) => {
-                setDateFilter(e.target.value as DateFilter);
-                setPage(1);
-              }}
-            >
-              <option value="all">All time</option>
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-            </FfFilterSelect>
-
-            {hasExtraFilters && (
-              <button
-                type="button"
-                onClick={clearExtraFilters}
-                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-kumo-line bg-kumo-control px-3 text-sm font-medium text-kumo-subtle transition-colors hover:bg-kumo-tint hover:text-kumo-default"
-                title="Clear filters"
-              >
-                <XIcon />
-                Clear
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Bulk Action Bar (Matches ContentList Bulk Bar) */}
-        {selectedIds.size > 0 && (
-          <div className="flex flex-wrap items-center gap-3 rounded-xl bg-kumo-elevated px-4 py-2 ring ring-kumo-line">
-            <span className="text-sm font-medium text-kumo-strong">
-              {selectedIds.size} selected
-            </span>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                className={FF_TOOLBAR_BTN}
-                style={{ height: "1.75rem", fontSize: "0.75rem" }}
-                onClick={() => void onExport(Array.from(selectedIds))}
-              >
-                <DownloadIcon /> Export
-              </button>
-              <button
-                type="button"
-                className="ff-btn ff-btn-danger ff-btn-sm"
-                onClick={() => setPendingBulkDelete(true)}
-              >
-                <TrashIcon /> Delete
-              </button>
             </div>
           </div>
         )}
 
-        {error && (
+        {/* EmDash DataTableBulkBar */}
+        {selectedIds.size > 0 && (
+          <FfDataTableBulkBar
+            selectedCount={selectedIds.size}
+            busy={busy}
+            onClear={() => setSelectedIds(new Set())}
+          >
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy}
+              icon={<DownloadSimple aria-hidden="true" />}
+              onClick={() => void onExport(Array.from(selectedIds))}
+            >
+              Export
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              disabled={busy}
+              icon={<Trash aria-hidden="true" />}
+              onClick={() => setPendingBulkDelete(true)}
+            >
+              Move to trash
+            </Button>
+          </FfDataTableBulkBar>
+        )}
+
+        {error && !pendingDelete && !pendingBulkDelete && (
           <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">
             {error}
           </div>
         )}
 
-        {/* EmDash DataTable recipe */}
         <FfDataTable>
           <thead>
             <tr>
@@ -802,28 +664,18 @@ export function SubmissionsPage() {
               <th scope="col">Form</th>
               <th scope="col">Status</th>
               <th scope="col">Date</th>
-              <th scope="col" className="w-0 text-end">
-                Actions
+              <th scope="col" className="w-0">
+                <span className="sr-only">Actions</span>
               </th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={6} className="!border-t text-center text-kumo-subtle">
-                  <div className="py-4.5">Loading submissions…</div>
-                </td>
-              </tr>
+              <FfDataTableMessage colSpan={6}>Loading submissions…</FfDataTableMessage>
             ) : pagedItems.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="!border-t text-center text-kumo-subtle">
-                  <div className="py-4.5">
-                    {activeTab === "spam"
-                      ? "No spam submissions found."
-                      : "No submissions found."}
-                  </div>
-                </td>
-              </tr>
+              <FfDataTableMessage colSpan={6}>
+                {activeTab === "spam" ? "Spam is empty" : "No submissions found."}
+              </FfDataTableMessage>
             ) : (
               pagedItems.map((s) => {
                 const isChecked = selectedIds.has(s.id);
@@ -832,8 +684,8 @@ export function SubmissionsPage() {
                 return (
                   <tr
                     key={s.id}
-                    data-selected={isChecked ? "" : undefined}
-                    className="cursor-pointer [&_td]:hover:bg-kumo-tint/40"
+                    data-selected={isChecked || undefined}
+                    data-clickable=""
                     onClick={() => setSelected(s)}
                   >
                     <td className="w-10" onClick={(e) => e.stopPropagation()}>
@@ -846,7 +698,7 @@ export function SubmissionsPage() {
                     <td>
                       <button
                         type="button"
-                        className="max-w-lg line-clamp-1 text-start font-medium text-kumo-default hover:text-kumo-brand"
+                        className={`${FF_ROW_TITLE} max-w-lg line-clamp-1`}
                         onClick={() => setSelected(s)}
                       >
                         {briefText(s.brief, s.data)}
@@ -895,7 +747,7 @@ export function SubmissionsPage() {
                           variant="danger"
                           onClick={() => setPendingDelete(s)}
                         >
-                          Delete
+                          Move to Trash
                         </DropdownMenu.Item>
                       </RowActionsMenu>
                     </td>
@@ -1066,14 +918,15 @@ export function SubmissionsPage() {
                           ? ` (${selected.notificationLogs.length})`
                           : ""}
                       </span>
-                      <button
-                        type="button"
-                        className="ff-btn ff-btn-secondary ff-btn-sm"
+                      <Button
+                        size="sm"
+                        variant="secondary"
                         disabled={resending}
+                        icon={<PaperPlaneTilt aria-hidden="true" />}
                         onClick={() => void handleResendNotifications(selected.id)}
                       >
-                        <PaperPlaneIcon /> {resending ? "Sending…" : "Resend"}
-                      </button>
+                        {resending ? "Sending…" : "Resend"}
+                      </Button>
                     </div>
                     {!selected.notificationLogs?.length ? (
                       <div className="text-xs text-kumo-subtle italic bg-kumo-tint/20 p-3 rounded">
@@ -1135,30 +988,29 @@ export function SubmissionsPage() {
                 </div>
 
                 <div className="border-t border-kumo-line px-6 py-4 flex items-center justify-between gap-3 bg-kumo-base">
-                  <button
-                    type="button"
-                    className="ff-btn ff-btn-secondary"
+                  <Button
+                    variant="secondary"
                     disabled={busy}
+                    icon={<DownloadSimple aria-hidden="true" />}
                     onClick={() => void onExport([selected.id])}
                   >
-                    <DownloadIcon /> Export CSV
-                  </button>
+                    Export CSV
+                  </Button>
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="ff-btn ff-btn-danger"
+                    <Button
+                      variant="destructive"
                       disabled={busy}
+                      icon={<Trash aria-hidden="true" />}
                       onClick={() => setPendingDelete(selected)}
                     >
-                      <TrashIcon /> Delete
-                    </button>
-                    <button
-                      type="button"
-                      className="ff-btn"
+                      Move to trash
+                    </Button>
+                    <Button
+                      icon={<PencilSimple aria-hidden="true" />}
                       onClick={() => openSubmissionEditor(selected.id)}
                     >
-                      <PencilIcon /> Edit
-                    </button>
+                      Edit
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1174,15 +1026,15 @@ export function SubmissionsPage() {
             setError(null);
           }}
           role="alertdialog"
-          title="Delete submission?"
+          title="Move to Trash?"
           description={
             <>
-              Permanently delete this submission from{" "}
-              <strong>{pendingDelete?.formName}</strong>? This cannot be undone.
+              Move this submission from <strong>{pendingDelete?.formName}</strong> to
+              trash? This permanently removes it and cannot be undone.
             </>
           }
-          confirmLabel="Delete"
-          pendingLabel="Deleting..."
+          confirmLabel="Move to Trash"
+          pendingLabel="Moving..."
           isPending={busy}
           error={pendingDelete ? error : null}
           preventCloseWhilePending
@@ -1199,10 +1051,14 @@ export function SubmissionsPage() {
             setError(null);
           }}
           role="alertdialog"
-          title={`Delete ${selectedIds.size} submission${selectedIds.size === 1 ? "" : "s"}?`}
-          description={`Permanently delete ${selectedIds.size} selected submission${selectedIds.size === 1 ? "" : "s"}? This cannot be undone.`}
-          confirmLabel="Delete"
-          pendingLabel="Deleting..."
+          title="Move to Trash?"
+          description={
+            selectedIds.size === 1
+              ? "Move 1 item to trash? This permanently removes it and cannot be undone."
+              : `Move ${selectedIds.size} items to trash? This permanently removes them and cannot be undone.`
+          }
+          confirmLabel="Move to Trash"
+          pendingLabel="Moving..."
           isPending={busy}
           error={pendingBulkDelete ? error : null}
           preventCloseWhilePending

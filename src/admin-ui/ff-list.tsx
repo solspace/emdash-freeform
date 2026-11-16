@@ -1,47 +1,74 @@
 /**
- * EmDash ContentList visual recipes (Kumo tokens + class strings).
- * DataTable / ListPaginationFooter aren't exported from @emdash-cms/admin,
- * so we mirror their public class patterns — colors track EmDash as tokens evolve.
+ * EmDash ContentList visual recipes via shared Kumo primitives.
+ * DataTable / ListPaginationFooter / TableToolbar aren't exported from
+ * `@emdash-cms/admin`, so we mirror their public class patterns + Kumo usage
+ * so Freeform tracks EmDash as tokens/components evolve.
  */
-import { Switch } from "@cloudflare/kumo";
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import {
+  Button,
+  Checkbox,
+  InputGroup,
+  Select,
+  Switch,
+  type CheckboxProps,
+} from "@cloudflare/kumo";
+import { CaretUpDown, MagnifyingGlass, X } from "@phosphor-icons/react";
+import type {
+  ChangeEvent,
+  InputHTMLAttributes,
+  ReactNode,
+} from "react";
 
 export const FF_LIST_PAGE =
-  "ff-page ff-list-page gap-4 [&_tbody_*]:scroll-mb-48";
+  "ff-page ff-list-page flex min-h-full flex-col gap-4 [&_tbody_*]:scroll-mb-48";
 
 /** EmDash secondary Button (Add New): borderless ring + subtle hover. */
 export const FF_TOOLBAR_BTN =
   "ff-toolbar-btn inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border-0 bg-kumo-base px-3 text-sm font-medium text-kumo-default shadow-xs ring ring-kumo-line transition-colors hover:bg-kumo-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand disabled:cursor-not-allowed disabled:opacity-50";
 
-/** Filter trigger — matches Forms toolbar selects (h-9). */
+/**
+ * EmDash ContentList filter trigger (Kumo Select size="sm"):
+ * h-6.5 / text-xs / ring / bg-kumo-control — not the taller h-9 inputs.
+ */
 export const FF_FILTER_TRIGGER =
-  "inline-flex h-9 min-w-0 max-w-full shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-kumo-line bg-kumo-control ps-3 pe-8 text-sm font-normal text-kumo-default transition-colors hover:bg-kumo-tint focus:outline-none focus:ring-2 focus:ring-kumo-focus disabled:cursor-not-allowed disabled:opacity-50";
+  "emdash-status-filter-trigger group inline-flex h-6.5 w-max min-w-32 max-w-full shrink-0 cursor-pointer items-center justify-between gap-1 rounded-md border-0 bg-kumo-control ps-3.5 pe-2 text-xs font-normal text-kumo-default shadow-xs ring ring-kumo-line transition-colors hover:bg-kumo-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand disabled:cursor-not-allowed disabled:opacity-50";
 
 /** Soft chip — Forms handle / tab count badge. */
 export const FF_CHIP =
   "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-kumo-tint text-kumo-subtle";
 
-/** Large search — same recipe as Forms list (`h-9` / `w-64`). */
-export const FF_LIST_SEARCH_WRAP =
-  "relative w-full min-w-0 max-w-64 shrink-0";
+/** EmDash ContentList row title (`rowTitleClassName`). */
+export const FF_ROW_TITLE =
+  "font-medium @max-2xl:wrap-anywhere hover:text-kumo-link cursor-pointer text-start";
 
+/** EmDash TableToolbar layout. */
+export const FF_TABLE_TOOLBAR =
+  "flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between";
+
+export const FF_TABLE_TOOLBAR_START =
+  "flex min-w-0 flex-1 flex-wrap items-center gap-2";
+
+/** Exact EmDash DataTable wrap + table class strings from `@emdash-cms/admin`. */
 export const FF_DATA_TABLE_WRAP =
-  "overflow-x-auto rounded-xl bg-kumo-elevated ring ring-kumo-line";
+  "@container overflow-x-auto rounded-xl bg-kumo-elevated ring ring-kumo-line";
 
 export const FF_DATA_TABLE =
   "w-full border-separate border-spacing-0 text-start text-base text-kumo-default " +
   "[:where(&)_th]:text-start " +
   "[&_th]:border-b-0 [&_th]:bg-transparent [&_th]:px-4 [&_th]:py-3.5 [&_th]:font-normal [&_th]:whitespace-nowrap [&_th]:text-kumo-subtle " +
-  "[&_td]:border-kumo-line [&_td]:bg-kumo-base [&_td]:px-4 [&_td]:py-3.5 " +
+  "[&_td]:border-b [&_td]:border-kumo-line [&_td]:bg-kumo-base [&_td]:px-4 [&_td]:py-3.5 " +
+  "[&_tbody_tr:last-child_td]:border-b-0 " +
   "[&_tr[data-selected]_td]:bg-kumo-tint " +
+  "[@media(hover:hover)]:[&_tr[data-clickable]:not([data-selected],[data-drop-active]):hover_td]:bg-[color-mix(in_srgb,var(--color-kumo-tint)_25%,var(--color-kumo-base))] " +
   "[&_tbody_tr:first-child_td]:border-t " +
   "[&_tbody_tr:first-child_td:first-child]:rounded-ss-xl [&_tbody_tr:first-child_td:last-child]:rounded-se-xl " +
-  "[&_tbody_tr:not(:first-child)_td]:border-t";
+  "@max-md:[&_th]:px-3 @max-md:[&_td]:px-3";
 
 /** Sticky footer recipe from EmDash ListPaginationFooter (Shell p-6 offsets). */
 export const FF_LIST_PAGINATION =
   "sticky -bottom-6 z-10 -mx-6 mt-auto -mb-6 flex min-h-12 min-w-0 shrink-0 flex-wrap items-center gap-y-3 border-t border-kumo-line bg-kumo-elevated px-6 py-1 text-sm text-kumo-subtle";
 
+/** EmDash TableToolbarSearch — Kumo InputGroup + MagnifyingGlass. */
 export function FfListSearch({
   value,
   onChange,
@@ -52,67 +79,151 @@ export function FfListSearch({
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
-  /** Extra classes on the outer wrap (width defaults to `w-full sm:w-64`). */
   className?: string;
   "aria-label"?: string;
 }) {
   return (
-    <div className={`${FF_LIST_SEARCH_WRAP}${className ? ` ${className}` : ""}`}>
-      <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-kumo-subtle">
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="11" cy="11" r="8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="m21 21-4.3-4.3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-      <input
+    <InputGroup
+      size="sm"
+      className={`w-full min-w-0 sm:w-64 sm:flex-none${className ? ` ${className}` : ""}`}
+    >
+      <InputGroup.Addon>
+        <MagnifyingGlass className="h-4 w-4" aria-hidden="true" />
+      </InputGroup.Addon>
+      <InputGroup.Input
         type="search"
-        className="h-9 w-full rounded-md border border-kumo-line bg-kumo-control ps-9 pe-3 text-sm text-kumo-default placeholder:text-kumo-subtle focus:outline-none focus:ring-2 focus:ring-kumo-focus"
         placeholder={placeholder}
         aria-label={ariaLabel ?? placeholder}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
       />
-    </div>
+    </InputGroup>
   );
 }
 
-const FILTER_CHEVRON =
-  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")";
-
-export function FfFilterSelect({
+/**
+ * EmDash FilterBar status/date select — Kumo Select size="sm"
+ * (same chrome as Posts “All statuses”, including icon labels).
+ */
+export function FfFilterSelect<T extends string>({
   value,
-  onChange,
+  onValueChange,
+  items,
+  renderValue,
   "aria-label": ariaLabel,
   className = "",
-  style,
-  children,
-  ...rest
-}: SelectHTMLAttributes<HTMLSelectElement>) {
+  disabled,
+}: {
+  value: T;
+  onValueChange: (value: T) => void;
+  /** Map of option value → label (ReactNode). */
+  items: Record<string, ReactNode>;
+  /** Optional closed-trigger label (EmDash uses this for status icons). */
+  renderValue?: (value: T) => ReactNode;
+  "aria-label": string;
+  className?: string;
+  disabled?: boolean;
+}) {
   return (
-    <select
-      {...rest}
-      value={value}
-      onChange={onChange}
+    <Select
+      size="sm"
+      className={`emdash-status-filter-trigger min-w-32 max-w-56 shrink-0 whitespace-nowrap ps-3.5 text-xs ${className}`}
       aria-label={ariaLabel}
-      className={`ff-filter-trigger ${FF_FILTER_TRIGGER} ${className}`}
-      style={{ backgroundImage: FILTER_CHEVRON, ...style }}
+      value={value}
+      disabled={disabled}
+      items={items}
+      renderValue={
+        renderValue
+          ? (v) => renderValue((typeof v === "string" ? v : value) as T)
+          : undefined
+      }
+      onValueChange={(next) => {
+        if (typeof next === "string") onValueChange(next as T);
+      }}
     >
-      {children}
-    </select>
+      {Object.entries(items).map(([optionValue, label]) => (
+        <Select.Option
+          key={optionValue}
+          value={optionValue}
+          className="emdash-compact-select-option text-xs"
+        >
+          {label}
+        </Select.Option>
+      ))}
+    </Select>
   );
 }
 
-/** Kumo Checkbox look — ring hairline, rounded-sm, contrast fill when checked. */
-export function FfCheckbox({
-  className = "",
-  ...props
-}: InputHTMLAttributes<HTMLInputElement>) {
+/** Caret for custom filter triggers that aren't Kumo Select (e.g. form picker). */
+export function FfFilterCaret() {
   return (
-    <input
-      type="checkbox"
-      className={`ff-list-checkbox ${className}`}
-      {...props}
+    <CaretUpDown
+      className="size-3 shrink-0 text-kumo-subtle"
+      weight="bold"
+      aria-hidden="true"
     />
+  );
+}
+
+/** EmDash ContentList checkbox — Kumo Checkbox. */
+export function FfCheckbox({
+  className,
+  onChange,
+  checked,
+  ...props
+}: Omit<CheckboxProps, "onCheckedChange"> & {
+  onChange?: InputHTMLAttributes<HTMLInputElement>["onChange"];
+}) {
+  return (
+    <Checkbox
+      {...props}
+      className={className}
+      checked={checked}
+      onCheckedChange={(next) => {
+        if (!onChange) return;
+        onChange({
+          target: { checked: next },
+          currentTarget: { checked: next },
+        } as ChangeEvent<HTMLInputElement>);
+      }}
+    />
+  );
+}
+
+/**
+ * EmDash DataTableBulkBar — selected count, actions, Clear.
+ */
+export function FfDataTableBulkBar({
+  selectedCount,
+  busy = false,
+  onClear,
+  children,
+}: {
+  selectedCount: number;
+  busy?: boolean;
+  onClear: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-xl bg-kumo-elevated px-4 py-2 ring ring-kumo-line">
+      <span className="text-sm font-medium">
+        {busy
+          ? `Working on ${selectedCount} items…`
+          : `${selectedCount} selected`}
+      </span>
+      <div className="flex flex-wrap items-center gap-2">
+        {children}
+        <Button
+          size="sm"
+          variant="ghost"
+          icon={<X />}
+          disabled={busy}
+          onClick={onClear}
+        >
+          Clear
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -178,6 +289,23 @@ export function FfDataTable({ children }: { children: ReactNode }) {
   );
 }
 
+/** EmDash DataTableMessage cell. */
+export function FfDataTableMessage({
+  colSpan,
+  children,
+}: {
+  colSpan: number;
+  children: ReactNode;
+}) {
+  return (
+    <tr>
+      <td colSpan={colSpan} className="text-center text-kumo-subtle">
+        <div className="py-4.5">{children}</div>
+      </td>
+    </tr>
+  );
+}
+
 type PaginationProps = {
   page: number;
   perPage: number;
@@ -206,7 +334,6 @@ function CaretUpDownIcon() {
 }
 
 function NavIcon({ dir }: { dir: "first" | "prev" | "next" | "last" }) {
-  // Phosphor CaretDoubleLeft / CaretLeft / CaretRight / CaretDoubleRight
   const d: Record<typeof dir, string> = {
     first:
       "M205.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L131.31,128ZM51.31,128l74.35-74.34a8,8,0,0,0-11.32-11.32l-80,80a8,8,0,0,0,0,11.32l80,80a8,8,0,0,0,11.32-11.32Z",
@@ -221,14 +348,9 @@ function NavIcon({ dir }: { dir: "first" | "prev" | "next" | "last" }) {
   );
 }
 
-/** EmDash page-size / page-number select text. */
 const PAGE_SELECT =
   "ff-page-select appearance-none border-0 bg-transparent text-sm font-normal text-kumo-default outline-none cursor-pointer";
 
-/**
- * EmDash InputGroup nav button sizing (h-9 / ~42px wide).
- * Keep muted icon color; height matches Posts pagination.
- */
 const PAGE_BTN =
   "ff-page-nav-btn relative inline-flex h-full min-w-[2.625rem] shrink-0 items-center justify-center gap-1.5 border-0 bg-transparent px-3 text-kumo-subtle transition-colors hover:bg-kumo-tint hover:text-kumo-default focus:outline-none focus-visible:bg-kumo-tint disabled:cursor-not-allowed";
 
@@ -312,7 +434,6 @@ export function FfListPagination({
         aria-label={label}
         data-slot="pagination-controls"
       >
-        {/* EmDash InputGroup height: h-9 (36px) inside min-h-12 (48px) footer */}
         <div className="ff-page-nav-group isolate flex h-9 items-center overflow-hidden rounded-lg bg-kumo-control">
           <button
             type="button"

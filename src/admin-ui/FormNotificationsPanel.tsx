@@ -247,12 +247,13 @@ export function FormNotificationsPanel({ formId, emailFields }: Props) {
         <FfFilterSelect
           aria-label="Filter by status"
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-        >
-          <option value="all">All statuses</option>
-          <option value="on">On</option>
-          <option value="off">Off</option>
-        </FfFilterSelect>
+          items={{
+            all: "All statuses",
+            on: "On",
+            off: "Off",
+          }}
+          onValueChange={setStatusFilter}
+        />
         <span className={`${FF_CHIP} ms-auto`}>
           {filtered.length} of {assignments.length}
         </span>
