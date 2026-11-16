@@ -1,14 +1,21 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { getAiSettings, saveAiSettings, type AiSettings } from "./ff-api";
 import { FfSwitchRow } from "./ff-list";
+import type { SettingsSaveMeta } from "./settings-save";
 import "./styles.css";
 
 type Props = {
+  formId: string;
   onToast?: (msg: string) => void;
+  onSaveMetaChange?: (meta: SettingsSaveMeta) => void;
 };
 
-export function AiSettingsPanel({ onToast }: Props) {
+function spamSnapshot(enabled: boolean, threshold: number) {
+  return JSON.stringify({ enabled, threshold });
+}
+
+export function AiSettingsPanel({ formId, onToast, onSaveMetaChange }: Props) {
   const [settings, setSettings] = useState<AiSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -16,28 +23,51 @@ export function AiSettingsPanel({ onToast }: Props) {
   const [apiKey, setApiKey] = useState("");
   const [spamEnabled, setSpamEnabled] = useState(false);
   const [spamThreshold, setSpamThreshold] = useState(5);
+  const [savedSpamEnabled, setSavedSpamEnabled] = useState(false);
+  const [savedSpamThreshold, setSavedSpamThreshold] = useState(5);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  const applyLoaded = useCallback((next: AiSettings) => {
+    setSettings(next);
+    setSpamEnabled(next.spam.enabled);
+    setSpamThreshold(next.spam.threshold);
+    setSavedSpamEnabled(next.spam.enabled);
+    setSavedSpamThreshold(next.spam.threshold);
+    setApiKey("");
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const next = await getAiSettings();
-      setSettings(next);
-      setSpamEnabled(next.spam.enabled);
-      setSpamThreshold(next.spam.threshold);
+      applyLoaded(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [applyLoaded]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  const onSave = async () => {
+  const isDirty = useMemo(() => {
+    const keyDraft = Boolean(apiKey.trim());
+    const spamDirty =
+      spamSnapshot(spamEnabled, spamThreshold) !==
+      spamSnapshot(savedSpamEnabled, savedSpamThreshold);
+    return keyDraft || spamDirty;
+  }, [apiKey, spamEnabled, spamThreshold, savedSpamEnabled, savedSpamThreshold]);
+
+  useEffect(() => {
+    onSaveMetaChange?.({ isDirty, isSaving: saving });
+  }, [isDirty, saving, onSaveMetaChange]);
+
+  const onSave = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!isDirty || saving) return;
     setSaving(true);
     setError(null);
     try {
@@ -46,8 +76,7 @@ export function AiSettingsPanel({ onToast }: Props) {
         spamEnabled,
         spamThreshold,
       });
-      setSettings(next);
-      setApiKey("");
+      applyLoaded(next);
       onToast?.("AI settings saved");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -61,8 +90,7 @@ export function AiSettingsPanel({ onToast }: Props) {
     setError(null);
     try {
       const next = await saveAiSettings({ clearKey: true });
-      setSettings(next);
-      setApiKey("");
+      applyLoaded(next);
       setShowClearConfirm(false);
       onToast?.("API key removed");
     } catch (err) {
@@ -83,8 +111,10 @@ export function AiSettingsPanel({ onToast }: Props) {
   }
 
   return (
-    <div className="grid gap-8">
-      {error && <div className="ff-alert-box ff-alert-error">{error}</div>}
+    <form id={formId} className="grid gap-8" onSubmit={(e) => void onSave(e)} noValidate>
+      {error && !showClearConfirm && (
+        <div className="ff-alert-box ff-alert-error">{error}</div>
+      )}
 
       <section className="ff-settings-section" aria-labelledby="ff-openai-heading">
         <div className="ff-settings-section-copy">
@@ -92,7 +122,8 @@ export function AiSettingsPanel({ onToast }: Props) {
             OpenAI integration
           </h2>
           <p className="ff-settings-section-desc">
-            Used for natural-language form generation, automatic submission summaries, and AI spam scoring. The key is stored securely in your database.
+            Used for natural-language form generation, automatic submission summaries, and AI spam
+            scoring. The key is stored securely in your database.
           </p>
         </div>
 
@@ -110,19 +141,12 @@ export function AiSettingsPanel({ onToast }: Props) {
                 placeholder={settings?.configured ? "••••••••••••••••" : "sk-..."}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
+                autoComplete="off"
               />
             </div>
 
-            <div className="ff-card-actions">
-              <button
-                type="button"
-                className="ff-btn-submit"
-                disabled={saving || (!apiKey.trim() && !settings?.configured)}
-                onClick={() => void onSave()}
-              >
-                {saving ? "Saving…" : "Save settings"}
-              </button>
-              {settings?.configured && (
+            {settings?.configured && (
+              <div className="ff-card-actions">
                 <button
                   type="button"
                   className="ff-btn ff-btn-danger"
@@ -131,8 +155,8 @@ export function AiSettingsPanel({ onToast }: Props) {
                 >
                   Remove key
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -143,7 +167,8 @@ export function AiSettingsPanel({ onToast }: Props) {
             AI spam protection
           </h2>
           <p className="ff-settings-section-desc">
-            When enabled, submissions are scored by AI (0–10). Scores at or above the threshold are flagged in the submissions list.
+            When enabled, submissions are scored by AI (0–10). Scores at or above the threshold are
+            flagged in the submissions list.
           </p>
         </div>
 
@@ -176,17 +201,6 @@ export function AiSettingsPanel({ onToast }: Props) {
                 </p>
               </div>
             )}
-
-            <div className="ff-card-actions">
-              <button
-                type="button"
-                className="ff-btn-submit"
-                disabled={saving}
-                onClick={() => void onSave()}
-              >
-                {saving ? "Saving…" : "Save spam settings"}
-              </button>
-            </div>
           </div>
         </div>
       </section>
@@ -208,6 +222,6 @@ export function AiSettingsPanel({ onToast }: Props) {
         preventCloseWhilePending
         onConfirm={() => void onClearKey()}
       />
-    </div>
+    </form>
   );
 }

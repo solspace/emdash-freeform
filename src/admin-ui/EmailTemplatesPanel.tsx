@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { NotificationFormat } from "../types";
 import {
   deleteTemplate,
@@ -8,6 +8,7 @@ import {
   type TemplateDocument,
 } from "./ff-api";
 import { ConfirmDialog } from "./ConfirmDialog";
+import type { SettingsSaveMeta } from "./settings-save";
 import "./styles.css";
 
 const EMPTY_DRAFT = {
@@ -24,8 +25,14 @@ const EMPTY_DRAFT = {
 
 type Draft = typeof EMPTY_DRAFT;
 
+function draftSnapshot(d: Draft) {
+  return JSON.stringify(d);
+}
+
 type Props = {
+  formId: string;
   onToast?: (msg: string) => void;
+  onSaveMetaChange?: (meta: SettingsSaveMeta) => void;
 };
 
 const SAMPLE_VARS: Record<string, string> = {
@@ -91,13 +98,14 @@ function PaperPlaneIcon() {
   );
 }
 
-export function EmailTemplatesPanel({ onToast }: Props) {
+export function EmailTemplatesPanel({ formId, onToast, onSaveMetaChange }: Props) {
   const [templates, setTemplates] = useState<TemplateDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  const [savedDraft, setSavedDraft] = useState<Draft>(EMPTY_DRAFT);
   const [creating, setCreating] = useState(false);
   const [viewOnly, setViewOnly] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<TemplateDocument | null>(null);
@@ -135,15 +143,13 @@ export function EmailTemplatesPanel({ onToast }: Props) {
     setEditingId(null);
     setViewOnly(false);
     setDraft(EMPTY_DRAFT);
+    setSavedDraft(EMPTY_DRAFT);
     setEditorTab("code");
     setShowAdvanced(false);
   };
 
   const startEdit = (tpl: TemplateDocument) => {
-    setCreating(false);
-    setEditingId(tpl.id);
-    setViewOnly(Boolean(tpl.system));
-    setDraft({
+    const next: Draft = {
       name: tpl.name,
       subject: tpl.subject,
       body: tpl.body,
@@ -153,16 +159,18 @@ export function EmailTemplatesPanel({ onToast }: Props) {
       fromEmail: tpl.fromEmail ?? "",
       cc: tpl.cc ?? "",
       bcc: tpl.bcc ?? "",
-    });
+    };
+    setCreating(false);
+    setEditingId(tpl.id);
+    setViewOnly(Boolean(tpl.system));
+    setDraft(next);
+    setSavedDraft(next);
     setEditorTab("code");
     setShowAdvanced(Boolean(tpl.replyTo || tpl.fromEmail || tpl.fromName || tpl.cc || tpl.bcc));
   };
 
   const startDuplicate = (tpl: TemplateDocument) => {
-    setCreating(true);
-    setEditingId(null);
-    setViewOnly(false);
-    setDraft({
+    const next: Draft = {
       name: `${tpl.name} (copy)`,
       subject: tpl.subject,
       body: tpl.body,
@@ -172,7 +180,12 @@ export function EmailTemplatesPanel({ onToast }: Props) {
       fromEmail: tpl.fromEmail ?? "",
       cc: tpl.cc ?? "",
       bcc: tpl.bcc ?? "",
-    });
+    };
+    setCreating(true);
+    setEditingId(null);
+    setViewOnly(false);
+    setDraft(next);
+    setSavedDraft(EMPTY_DRAFT); // duplicate is a new draft — treat as dirty vs empty create baseline
     setEditorTab("code");
     setShowAdvanced(Boolean(tpl.replyTo || tpl.fromEmail || tpl.fromName || tpl.cc || tpl.bcc));
   };
@@ -182,6 +195,7 @@ export function EmailTemplatesPanel({ onToast }: Props) {
     setEditingId(null);
     setViewOnly(false);
     setDraft(EMPTY_DRAFT);
+    setSavedDraft(EMPTY_DRAFT);
     setEditorTab("code");
     setTestResult(null);
   };
@@ -202,8 +216,20 @@ export function EmailTemplatesPanel({ onToast }: Props) {
     }, 0);
   };
 
-  const save = async () => {
-    if (viewOnly) return;
+  const editing = creating || editingId !== null;
+
+  const isDirty = useMemo(() => {
+    if (!editing || viewOnly) return false;
+    return draftSnapshot(draft) !== draftSnapshot(savedDraft);
+  }, [editing, viewOnly, draft, savedDraft]);
+
+  useEffect(() => {
+    onSaveMetaChange?.({ isDirty, isSaving: saving });
+  }, [isDirty, saving, onSaveMetaChange]);
+
+  const save = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (viewOnly || !isDirty || saving) return;
     if (!draft.name.trim()) {
       setError("Template name is required.");
       return;
@@ -262,7 +288,6 @@ export function EmailTemplatesPanel({ onToast }: Props) {
     }
   };
 
-  const editing = creating || editingId !== null;
   const viewingSystem = templates.find((t) => t.id === editingId);
 
   const previewSubject = renderSamplePreview(draft.subject, draft.format);
@@ -324,7 +349,12 @@ export function EmailTemplatesPanel({ onToast }: Props) {
       )}
 
       {editing ? (
-        <div className="ff-settings-panel">
+        <form
+          id={formId}
+          className="ff-settings-panel"
+          onSubmit={(e) => void save(e)}
+          noValidate
+        >
           <div className="ff-settings-row-stack">
           <div className="ff-form-grid-2">
             <div className="ff-field-group" style={{ flex: 2 }}>
@@ -581,19 +611,9 @@ export function EmailTemplatesPanel({ onToast }: Props) {
             )}
           </div>
 
-          {/* Action buttons */}
+          {/* Action buttons — primary Save lives in SettingsFrame header */}
           <div className="ff-card-actions">
             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              {!viewOnly && (
-                <button
-                  type="button"
-                  className="ff-btn-submit cursor-pointer"
-                  disabled={saving}
-                  onClick={() => void save()}
-                >
-                  {saving ? "Saving template…" : "Save template"}
-                </button>
-              )}
               {viewOnly && viewingSystem && (
                 <button
                   type="button"
@@ -622,7 +642,7 @@ export function EmailTemplatesPanel({ onToast }: Props) {
             </button>
           </div>
           </div>
-        </div>
+        </form>
       ) : (
         <div className="ff-settings-panel">
           {!loading && templates.length === 0 ? (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { EmailProviderType } from "../types";
 import {
   getEmailSettings,
@@ -7,10 +7,13 @@ import {
   type EmailSettingsResponse,
 } from "./ff-api";
 import { FfSwitchRow } from "./ff-list";
+import type { SettingsSaveMeta } from "./settings-save";
 import "./styles.css";
 
 type Props = {
+  formId: string;
   onToast?: (msg: string) => void;
+  onSaveMetaChange?: (meta: SettingsSaveMeta) => void;
 };
 
 const PRESETS = [
@@ -22,7 +25,17 @@ const PRESETS = [
 
 function CheckIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <polyline points="20 6 9 17 4 12" />
     </svg>
   );
@@ -30,18 +43,41 @@ function CheckIcon() {
 
 function PaperPlaneIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <line x1="22" y1="2" x2="11" y2="13" />
       <polygon points="22 2 15 22 11 13 2 9 22 2" />
     </svg>
   );
 }
 
-export function EmailProviderPanel({ onToast }: Props) {
+type Draft = {
+  provider: EmailProviderType;
+  smtpHost: string;
+  smtpPort: number;
+  smtpUser: string;
+  smtpPass: string;
+  smtpFrom: string;
+  smtpSecure: boolean;
+};
+
+function draftSnapshot(d: Draft) {
+  return JSON.stringify(d);
+}
+
+export function EmailProviderPanel({ formId, onToast, onSaveMetaChange }: Props) {
   const [settings, setSettings] = useState<EmailSettingsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [provider, setProvider] = useState<EmailProviderType>("smtp");
@@ -51,41 +87,78 @@ export function EmailProviderPanel({ onToast }: Props) {
   const [smtpPass, setSmtpPass] = useState("");
   const [smtpFrom, setSmtpFrom] = useState("");
   const [smtpSecure, setSmtpSecure] = useState(false);
+  const [savedDraft, setSavedDraft] = useState<Draft | null>(null);
 
   const [testEmail, setTestEmail] = useState("");
   const [testing, setTesting] = useState(false);
   const [testSuccess, setTestSuccess] = useState<string | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
 
-  const load = async () => {
+  const applyLoaded = useCallback((data: EmailSettingsResponse) => {
+    const next: Draft = {
+      provider: data.provider || "smtp",
+      smtpHost: data.smtpHost || "",
+      smtpPort: data.smtpPort || 587,
+      smtpUser: data.smtpUser || "",
+      smtpPass: "",
+      smtpFrom: data.smtpFrom || "",
+      smtpSecure: Boolean(data.smtpSecure),
+    };
+    setSettings(data);
+    setProvider(next.provider);
+    setSmtpHost(next.smtpHost);
+    setSmtpPort(next.smtpPort);
+    setSmtpUser(next.smtpUser);
+    setSmtpPass("");
+    setSmtpFrom(next.smtpFrom);
+    setSmtpSecure(next.smtpSecure);
+    setSavedDraft(next);
+  }, []);
+
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const data = await getEmailSettings();
-      setSettings(data);
-      setProvider(data.provider || "smtp");
-      setSmtpHost(data.smtpHost || "");
-      setSmtpPort(data.smtpPort || 587);
-      setSmtpUser(data.smtpUser || "");
-      setSmtpPass(data.smtpPass || "");
-      setSmtpFrom(data.smtpFrom || "");
-      setSmtpSecure(Boolean(data.smtpSecure));
+      applyLoaded(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
-  };
+  }, [applyLoaded]);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
+
+  const draft: Draft = useMemo(
+    () => ({
+      provider,
+      smtpHost,
+      smtpPort,
+      smtpUser,
+      smtpPass,
+      smtpFrom,
+      smtpSecure,
+    }),
+    [provider, smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, smtpSecure],
+  );
+
+  const isDirty = useMemo(() => {
+    if (!savedDraft) return false;
+    return draftSnapshot(draft) !== draftSnapshot(savedDraft);
+  }, [draft, savedDraft]);
+
+  useEffect(() => {
+    onSaveMetaChange?.({ isDirty, isSaving: saving });
+  }, [isDirty, saving, onSaveMetaChange]);
 
   const handleSave = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+    e?.preventDefault();
+    if (!isDirty || saving) return;
     setSaving(true);
     setError(null);
-    setSaveSuccess(false);
     try {
       const updated = await saveEmailSettings({
         provider,
@@ -96,10 +169,8 @@ export function EmailProviderPanel({ onToast }: Props) {
         smtpFrom,
         smtpSecure,
       });
-      setSettings(updated);
-      setSaveSuccess(true);
+      applyLoaded(updated);
       onToast?.("Email settings saved successfully");
-      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -115,7 +186,7 @@ export function EmailProviderPanel({ onToast }: Props) {
   };
 
   const handleSendTest = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+    e?.preventDefault();
     if (!testEmail || !/\S+@\S+\.\S+/.test(testEmail)) {
       setTestError("Please enter a valid recipient email address.");
       setTestSuccess(null);
@@ -128,8 +199,8 @@ export function EmailProviderPanel({ onToast }: Props) {
       const res = await testEmailSettings(testEmail.trim());
       setTestSuccess(`Test email delivered via ${res.provider}. Check ${testEmail}.`);
       onToast?.(`Test email sent to ${testEmail}`);
-    } catch (err: any) {
-      setTestError(err.message || String(err));
+    } catch (err: unknown) {
+      setTestError(err instanceof Error ? err.message : String(err));
     } finally {
       setTesting(false);
     }
@@ -165,7 +236,12 @@ export function EmailProviderPanel({ onToast }: Props) {
           </div>
         </div>
 
-        <form onSubmit={handleSave} className="ff-settings-panel">
+        <form
+          id={formId}
+          onSubmit={(e) => void handleSave(e)}
+          className="ff-settings-panel"
+          noValidate
+        >
           <div className="ff-settings-row-stack">
             <div className="ff-field-group">
               <span className="ff-field-label">Dispatch method</span>
@@ -213,7 +289,13 @@ export function EmailProviderPanel({ onToast }: Props) {
           {provider === "smtp" && (
             <div className="ff-settings-row-stack">
               <div className="ff-preset-row">
-                <span style={{ fontSize: "0.8125rem", fontWeight: 500, color: "var(--text-color-kumo-subtle)" }}>
+                <span
+                  style={{
+                    fontSize: "0.8125rem",
+                    fontWeight: 500,
+                    color: "var(--text-color-kumo-subtle)",
+                  }}
+                >
                   Quick presets
                 </span>
                 {PRESETS.map((p) => (
@@ -230,7 +312,9 @@ export function EmailProviderPanel({ onToast }: Props) {
 
               <div className="ff-form-grid-2">
                 <div className="ff-field-group">
-                  <label htmlFor="ff-smtp-host" className="ff-field-label">SMTP host</label>
+                  <label htmlFor="ff-smtp-host" className="ff-field-label">
+                    SMTP host
+                  </label>
                   <input
                     id="ff-smtp-host"
                     type="text"
@@ -241,7 +325,9 @@ export function EmailProviderPanel({ onToast }: Props) {
                   />
                 </div>
                 <div className="ff-field-group">
-                  <label htmlFor="ff-smtp-port" className="ff-field-label">Port</label>
+                  <label htmlFor="ff-smtp-port" className="ff-field-label">
+                    Port
+                  </label>
                   <input
                     id="ff-smtp-port"
                     type="number"
@@ -254,7 +340,9 @@ export function EmailProviderPanel({ onToast }: Props) {
 
               <div className="ff-form-grid-2">
                 <div className="ff-field-group">
-                  <label htmlFor="ff-smtp-user" className="ff-field-label">Username</label>
+                  <label htmlFor="ff-smtp-user" className="ff-field-label">
+                    Username
+                  </label>
                   <input
                     id="ff-smtp-user"
                     type="text"
@@ -275,12 +363,15 @@ export function EmailProviderPanel({ onToast }: Props) {
                     placeholder={settings?.hasSmtpPass ? "••••••••••••" : "SMTP password"}
                     value={smtpPass}
                     onChange={(e) => setSmtpPass(e.target.value)}
+                    autoComplete="new-password"
                   />
                 </div>
               </div>
 
               <div className="ff-field-group">
-                <label htmlFor="ff-smtp-from" className="ff-field-label">Default sender (From)</label>
+                <label htmlFor="ff-smtp-from" className="ff-field-label">
+                  Default sender (From)
+                </label>
                 <input
                   id="ff-smtp-from"
                   type="text"
@@ -304,37 +395,28 @@ export function EmailProviderPanel({ onToast }: Props) {
           {provider === "emdash" && (
             <div className="ff-settings-row">
               <p className="ff-card-subtitle">
-                Emails go through <code className="ff-field-input-mono">ctx.email.send</code> — EmDash 1.5+
-                built-in SMTP, Cloudflare Email Sending, or any installed email plugin selected under{" "}
-                <strong>Settings → Email</strong>.
+                Emails go through <code className="ff-field-input-mono">ctx.email.send</code> — EmDash
+                1.5+ built-in SMTP, Cloudflare Email Sending, or any installed email plugin selected
+                under <strong>Settings → Email</strong>.
               </p>
             </div>
           )}
 
           {provider === "log" && (
             <div className="ff-settings-row">
-              <div className="ff-alert-box ff-alert-success" style={{ background: "rgba(245, 158, 11, 0.12)", borderColor: "rgba(245, 158, 11, 0.3)", color: "#b45309" }}>
-                Dev Mailbox is active — notifications are simulated and stored in delivery logs without sending real email.
+              <div
+                className="ff-alert-box ff-alert-success"
+                style={{
+                  background: "rgba(245, 158, 11, 0.12)",
+                  borderColor: "rgba(245, 158, 11, 0.3)",
+                  color: "#b45309",
+                }}
+              >
+                Dev Mailbox is active — notifications are simulated and stored in delivery logs
+                without sending real email.
               </div>
             </div>
           )}
-
-          <div className="ff-settings-row">
-            <div className="ff-card-actions">
-              <button type="submit" className="ff-btn-submit" disabled={saving}>
-                {saving ? (
-                  "Saving…"
-                ) : saveSuccess ? (
-                  <>
-                    <CheckIcon /> Saved
-                  </>
-                ) : (
-                  "Save delivery settings"
-                )}
-              </button>
-              <span className="ff-card-subtitle">Changes apply immediately to form notifications.</span>
-            </div>
-          </div>
         </form>
       </section>
 
@@ -348,10 +430,12 @@ export function EmailProviderPanel({ onToast }: Props) {
           </p>
         </div>
 
-        <form onSubmit={handleSendTest} className="ff-settings-panel">
+        <form onSubmit={(e) => void handleSendTest(e)} className="ff-settings-panel">
           <div className="ff-settings-row-inline">
             <div className="ff-field-group" style={{ flex: "1 1 240px", minWidth: 0 }}>
-              <label htmlFor="ff-test-email" className="ff-field-label">Recipient email</label>
+              <label htmlFor="ff-test-email" className="ff-field-label">
+                Recipient email
+              </label>
               <input
                 id="ff-test-email"
                 type="email"
@@ -378,7 +462,9 @@ export function EmailProviderPanel({ onToast }: Props) {
           {testError && (
             <div className="ff-settings-row">
               <div className="ff-alert-box ff-alert-error">
-                <span><strong>Connection failed:</strong> {testError}</span>
+                <span>
+                  <strong>Connection failed:</strong> {testError}
+                </span>
               </div>
             </div>
           )}

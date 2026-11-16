@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createWebhook,
   deleteWebhook,
@@ -12,7 +12,24 @@ import {
   type WebhookListItem,
 } from "./ff-api";
 import { ConfirmDialog } from "./ConfirmDialog";
+import type { SettingsSaveMeta } from "./settings-save";
 import "./styles.css";
+
+type CreateDraft = {
+  name: string;
+  url: string;
+  formScope: string;
+};
+
+const EMPTY_CREATE: CreateDraft = {
+  name: "",
+  url: "",
+  formScope: "__all__",
+};
+
+function createSnapshot(d: CreateDraft) {
+  return JSON.stringify(d);
+}
 
 type SecretReveal = {
   name: string;
@@ -42,7 +59,12 @@ function WebhookEmptyIcon() {
   );
 }
 
-export function WebhooksPanel() {
+type Props = {
+  formId: string;
+  onSaveMetaChange?: (meta: SettingsSaveMeta) => void;
+};
+
+export function WebhooksPanel({ formId, onSaveMetaChange }: Props) {
   const [webhooks, setWebhooks] = useState<WebhookListItem[]>([]);
   const [forms, setForms] = useState<FormListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,9 +81,9 @@ export function WebhooksPanel() {
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [confirmError, setConfirmError] = useState<unknown>(null);
 
-  const [name, setName] = useState("");
-  const [url, setUrl] = useState("");
-  const [formScope, setFormScope] = useState("__all__");
+  const [name, setName] = useState(EMPTY_CREATE.name);
+  const [url, setUrl] = useState(EMPTY_CREATE.url);
+  const [formScope, setFormScope] = useState(EMPTY_CREATE.formScope);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -86,7 +108,23 @@ export function WebhooksPanel() {
     return forms.find((f) => f.id === formId)?.name ?? "One form";
   };
 
-  const onCreate = async () => {
+  const draft: CreateDraft = useMemo(
+    () => ({ name, url, formScope }),
+    [name, url, formScope],
+  );
+
+  const isDirty = useMemo(
+    () => createSnapshot(draft) !== createSnapshot(EMPTY_CREATE),
+    [draft],
+  );
+
+  useEffect(() => {
+    onSaveMetaChange?.({ isDirty, isSaving: busy });
+  }, [isDirty, busy, onSaveMetaChange]);
+
+  const onCreate = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!isDirty || busy) return;
     if (!name.trim() || !url.trim()) {
       setError("Name and HTTPS URL are required.");
       return;
@@ -104,9 +142,9 @@ export function WebhooksPanel() {
         secret: created.secret,
         action: "created",
       });
-      setName("");
-      setUrl("");
-      setFormScope("__all__");
+      setName(EMPTY_CREATE.name);
+      setUrl(EMPTY_CREATE.url);
+      setFormScope(EMPTY_CREATE.formScope);
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -360,7 +398,12 @@ export function WebhooksPanel() {
           </p>
         </div>
 
-        <div className="ff-settings-panel">
+        <form
+          id={formId}
+          className="ff-settings-panel"
+          onSubmit={(e) => void onCreate(e)}
+          noValidate
+        >
           <div className="ff-settings-row-stack">
             <div className="ff-form-grid-2">
               <div className="ff-field-group">
@@ -403,21 +446,11 @@ export function WebhooksPanel() {
               />
             </div>
 
-            <div className="ff-card-actions">
-              <button
-                type="button"
-                className="ff-btn-submit"
-                disabled={busy}
-                onClick={() => void onCreate()}
-              >
-                {busy ? "Adding…" : "Add webhook"}
-              </button>
-              <span className="ff-card-subtitle">
-                Secrets are shown once — store them in your receiver securely.
-              </span>
-            </div>
+            <p className="ff-card-subtitle">
+              Secrets are shown once after save — store them in your receiver securely.
+            </p>
           </div>
-        </div>
+        </form>
       </section>
 
       <ConfirmDialog
