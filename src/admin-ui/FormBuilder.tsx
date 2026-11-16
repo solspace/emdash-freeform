@@ -32,7 +32,6 @@ import { FieldOptionsEditor } from "./FieldOptionsEditor";
 import { ActionIcon, FieldIcon } from "./field-icons";
 import { getForm, saveForm } from "./ff-api";
 import { EditorBarListLabel, GhostSquareBackButton } from "./ff-back";
-import { FORM_COLOR_PRESETS, resolveFormColor } from "./ff-nav";
 import { PALETTE_GROUPS, defaultFieldLabel, needsOptions } from "./field-types";
 import {
   appendFieldAsRow,
@@ -1030,7 +1029,7 @@ export function FormBuilder({ formId, onBack }: Props) {
   return (
     <div className="ff-shell ff-form-editor">
       <div className="ff-header ff-header-builder">
-        {/* Left: title + tabs stacked (flex-col). Middle: theme. Right: Save */}
+        {/* Left: crumb · Center: tabs · Right: Save */}
         <div className="ff-builder-nav-col">
           <div className="ff-header-title">
             <div className="ff-builder-crumb" data-ff-editor-bar="">
@@ -1059,52 +1058,29 @@ export function FormBuilder({ formId, onBack }: Props) {
               </div>
             </div>
           </div>
-
-          <nav className="ff-builder-tabs" aria-label="Form sections" role="tablist">
-            {(
-              [
-                ["layout", "Layout"],
-                ["notifications", "Notifications"],
-                ["protection", "Protection"],
-                ["settings", "Settings"],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                className={`ff-builder-tab${tab === id ? " is-active" : ""}`}
-                aria-selected={tab === id}
-                onClick={() => setTab(id)}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
         </div>
 
-        <div className="ff-builder-theme-row">
-          <div className="ff-color-picker" role="group" aria-label="Form card color">
-            {FORM_COLOR_PRESETS.map((hex) => {
-              const active = resolveFormColor(form) === hex;
-              return (
-                <button
-                  key={hex}
-                  type="button"
-                  className={`ff-color-swatch${active ? " is-active" : ""}`}
-                  style={{ background: hex }}
-                  title={hex}
-                  aria-label={`Card color ${hex}`}
-                  aria-pressed={active}
-                  onClick={() => {
-                    setForm({ ...form, cardColor: hex });
-                    setDirty(true);
-                  }}
-                />
-              );
-            })}
-          </div>
-        </div>
+        <nav className="ff-builder-tabs" aria-label="Form sections" role="tablist">
+          {(
+            [
+              ["layout", "Layout"],
+              ["notifications", "Notifications"],
+              ["protection", "Protection"],
+              ["settings", "Settings"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              className={`ff-builder-tab${tab === id ? " is-active" : ""}`}
+              aria-selected={tab === id}
+              onClick={() => setTab(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
 
         <div className="ff-actions">
           <SaveButton

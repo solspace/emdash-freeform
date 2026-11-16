@@ -687,7 +687,7 @@ html[data-mode="dark"] .ff-search {
   gap: 1rem;
 }
 
-/* 3-col header: [title+tabs] · [card color] · [Save] */
+/* 3-col header: [crumb] · [tabs] · [Save] */
 .ff-header-builder {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -724,7 +724,8 @@ html[data-mode="dark"] .ff-search {
 
 .ff-form-editor > .ff-header-builder {
   flex-shrink: 0;
-  padding: 0.5rem 0.75rem 0.65rem;
+  /* +1px top so tabs center in the full bar (incl. 1px bottom border) */
+  padding: calc(0.5rem + 1px) 0.75rem 0.5rem;
   border-bottom: 1px solid var(--color-kumo-line, #e4e1da);
   background: var(--color-kumo-elevated, var(--color-kumo-base, #fff));
   box-sizing: border-box;
@@ -805,21 +806,13 @@ html[data-mode="dark"] .ff-search {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.4rem; /* tight title → tabs */
   min-width: 0;
   justify-self: start;
 }
 
-.ff-builder-theme-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.ff-header-builder .ff-builder-tabs {
   justify-self: center;
-}
-
-.ff-builder-theme-row .ff-color-picker {
-  margin: 0;
-  margin-top: 0;
+  align-self: center;
 }
 
 .ff-header-builder .ff-header-title {
@@ -837,7 +830,7 @@ html[data-mode="dark"] .ff-search {
 
 .ff-header-builder .ff-actions {
   justify-self: end;
-  align-self: start;
+  align-self: center;
   flex-shrink: 0;
   min-height: 2rem;
   display: flex;
@@ -850,15 +843,15 @@ html[data-mode="dark"] .ff-search {
     grid-template-columns: 1fr auto;
     grid-template-areas:
       "nav save"
-      "theme theme";
+      "tabs tabs";
   }
 
   .ff-builder-nav-col {
     grid-area: nav;
   }
 
-  .ff-builder-theme-row {
-    grid-area: theme;
+  .ff-header-builder .ff-builder-tabs {
+    grid-area: tabs;
     justify-self: start;
   }
 
@@ -1362,6 +1355,7 @@ html[data-mode="dark"] .ff-btn-ai {
   flex-wrap: nowrap;
   max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .ff-builder-tab {
