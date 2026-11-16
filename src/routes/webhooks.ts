@@ -1,4 +1,5 @@
-import { PluginRouteError, type PluginContext } from "emdash";
+import type { PluginContext } from "emdash";
+import { PluginRouteError } from "../lib/plugin-route-error";
 import { generateWebhookSecret, getDeliveryLog } from "../lib/webhooks";
 import { uid } from "../lib/handles";
 import type { StoredWebhook } from "../types";

@@ -1,4 +1,5 @@
-import { PluginRouteError, type PluginContext } from "emdash";
+import type { PluginContext } from "emdash";
+import { PluginRouteError } from "../lib/plugin-route-error";
 import { MAX_TOTAL_FIELDS_PER_FORM, RANGE_VALIDATION_TYPES, TEXT_VALIDATION_TYPES } from "../constants";
 import { deleteFormAndSubmissions, removeField } from "../lib/field-ops";
 import {

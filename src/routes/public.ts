@@ -1,4 +1,5 @@
-import { PluginRouteError, type PluginContext } from "emdash";
+import type { PluginContext } from "emdash";
+import { PluginRouteError } from "../lib/plugin-route-error";
 import { CSRF_FIELD, HONEYPOT_FIELD } from "../constants";
 import { generateBrief } from "../ai/brief";
 import { scoreSubmissionWithAI } from "../ai/spam";

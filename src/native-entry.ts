@@ -56,7 +56,7 @@ function wrapHooks(
 export function createPlugin(_options: Record<string, unknown> = {}) {
   return definePlugin({
     id: "freeform",
-    version: "0.1.4",
+    version: "1.4.1",
     capabilities: ["network:request:unrestricted", "email:send"],
     storage: {
       forms: { indexes: ["createdAt"] },

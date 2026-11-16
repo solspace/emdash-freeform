@@ -1,4 +1,5 @@
-import { PluginRouteError, type PluginContext } from "emdash";
+import type { PluginContext } from "emdash";
+import { PluginRouteError } from "../lib/plugin-route-error";
 import { resendNotificationsForSubmission } from "../lib/notifications";
 import type { StoredSubmission } from "../types";
 

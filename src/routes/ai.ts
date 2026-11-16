@@ -1,4 +1,5 @@
-import { PluginRouteError, type PluginContext } from "emdash";
+import type { PluginContext } from "emdash";
+import { PluginRouteError } from "../lib/plugin-route-error";
 import { editFormWithAI } from "../ai/generate";
 import { getAiCredentials } from "../lib/ai-config";
 import type { StoredForm } from "../types";

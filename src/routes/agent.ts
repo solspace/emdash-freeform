@@ -1,4 +1,5 @@
-import { PluginRouteError, type PluginContext } from "emdash";
+import type { PluginContext } from "emdash";
+import { PluginRouteError } from "../lib/plugin-route-error";
 import { findFormByHandle, runAgentSubmission } from "../lib/agent-submit";
 import { isMultiType, isOptionType } from "../lib/options";
 import { ensureDemoSeed } from "../lib/seed";

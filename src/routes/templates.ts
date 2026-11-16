@@ -1,4 +1,5 @@
-import { PluginRouteError, type PluginContext } from "emdash";
+import type { PluginContext } from "emdash";
+import { PluginRouteError } from "../lib/plugin-route-error";
 import { ensureDefaultTemplates } from "../lib/default-templates";
 import { sendEmail } from "../lib/email-sender";
 import { uid } from "../lib/handles";
