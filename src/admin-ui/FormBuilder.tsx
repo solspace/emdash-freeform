@@ -19,6 +19,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { SaveButton } from "@emdash-cms/admin";
 import { Button, Collapsible, Switch } from "@cloudflare/kumo";
 import { CaretDown, X } from "@phosphor-icons/react";
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -1102,14 +1103,11 @@ export function FormBuilder({ formId, onBack }: Props) {
         </div>
 
         <div className="ff-actions">
-          {dirty ? <span className="ff-builder-unsaved">Unsaved</span> : null}
-          <Button
-            variant="primary"
+          <SaveButton
+            isDirty={dirty}
+            isSaving={saving}
             onClick={() => void persist()}
-            disabled={saving || !dirty}
-          >
-            {saving ? "Saving…" : "Save"}
-          </Button>
+          />
         </div>
       </div>
 

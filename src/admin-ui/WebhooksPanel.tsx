@@ -1,3 +1,5 @@
+import { Button, Switch } from "@cloudflare/kumo";
+import { ArrowsClockwise, Copy, ListBullets, Trash } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createWebhook,
@@ -12,6 +14,8 @@ import {
   type WebhookListItem,
 } from "./ff-api";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { FfDataTable } from "./ff-list";
+import { DropdownMenu, RowActionsMenu } from "./RowActionsMenu";
 import type { SettingsSaveMeta } from "./settings-save";
 import "./styles.css";
 
@@ -36,18 +40,6 @@ type SecretReveal = {
   secret: string;
   action: "created" | "rotated";
 };
-
-function TrashIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 6h18" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-      <line x1="10" y1="11" x2="10" y2="17" />
-      <line x1="14" y1="11" x2="14" y2="17" />
-    </svg>
-  );
-}
 
 function WebhookEmptyIcon() {
   return (
@@ -171,34 +163,31 @@ export function WebhooksPanel({ formId, onSaveMetaChange }: Props) {
       {error && <div className="ff-alert-box ff-alert-error">{error}</div>}
 
       {reveal && (
-        <div className="ff-settings-panel">
-          <div className="ff-settings-row-stack">
-            <div className="ff-settings-card-intro">
-              <h3 className="ff-card-title" style={{ fontSize: "1rem" }}>
+        <div className="rounded-xl bg-kumo-elevated p-4 ring ring-kumo-line">
+          <div className="flex flex-col gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-kumo-strong">
                 {reveal.action === "created" ? "Webhook created" : "Signing secret rotated"}
               </h3>
-              <p className="ff-card-subtitle">
+              <p className="mt-1 text-sm text-kumo-subtle">
                 Copy the secret for <strong>{reveal.name}</strong> now. It will not be shown again.
               </p>
             </div>
-            <div className="ff-settings-row-inline" style={{ padding: 0 }}>
-              <code
-                className="ff-field-input ff-field-input-mono"
-                style={{ height: "auto", padding: "0.5rem 0.75rem", flex: 1, userSelect: "all" }}
-              >
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="min-w-0 flex-1 select-all rounded-md bg-kumo-control px-3 py-2 font-mono text-xs text-kumo-default ring ring-kumo-line">
                 {reveal.secret}
               </code>
-              <button
-                type="button"
-                className="ff-btn-submit"
-                style={{ height: "2.25rem", padding: "0 0.9rem" }}
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<Copy className="size-4" aria-hidden="true" />}
                 onClick={() => {
                   void navigator.clipboard.writeText(reveal.secret);
                   setReveal(null);
                 }}
               >
                 Copy &amp; dismiss
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -211,134 +200,96 @@ export function WebhooksPanel({ formId, onSaveMetaChange }: Props) {
           </h2>
           <p className="ff-settings-section-desc">
             Requests include an HMAC-SHA256 signature in the{" "}
-            <code className="ff-field-input-mono">x-freeform-signature</code> header.
+            <code className="font-mono text-xs">x-freeform-signature</code> header.
           </p>
         </div>
 
-        <div className="ff-settings-panel">
-          {loading ? (
-            <div className="ff-settings-row">
-              <p className="ff-card-subtitle">Loading webhooks…</p>
+        {loading ? (
+          <div className="rounded-xl bg-kumo-elevated px-4 py-6 text-sm text-kumo-subtle ring ring-kumo-line">
+            Loading webhooks…
+          </div>
+        ) : webhooks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl bg-kumo-elevated px-6 py-16 text-center ring ring-kumo-line">
+            <span className="text-kumo-subtle">
+              <WebhookEmptyIcon />
+            </span>
+            <div>
+              <p className="text-sm font-medium text-kumo-default">No webhooks yet</p>
+              <p className="mt-1 text-sm text-kumo-subtle">
+                Add an HTTPS endpoint below to receive JSON payloads on each submission.
+              </p>
             </div>
-          ) : webhooks.length === 0 ? (
-            <div className="ff-settings-row" style={{ alignItems: "center", textAlign: "center", gap: "0.75rem", padding: "1.75rem 1rem" }}>
-              <span className="text-kumo-subtle" style={{ display: "flex", justifyContent: "center" }}>
-                <WebhookEmptyIcon />
-              </span>
-              <div className="ff-settings-card-intro" style={{ alignItems: "center" }}>
-                <p className="ff-card-title" style={{ fontSize: "0.95rem" }}>
-                  No webhooks yet
-                </p>
-                <p className="ff-card-subtitle">
-                  Add an HTTPS endpoint below to receive JSON payloads on each submission.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table className="ff-settings-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Endpoint</th>
-                    <th scope="col">Scope</th>
-                    <th scope="col">Status</th>
-                    <th scope="col" style={{ textAlign: "end" }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {webhooks.map((wh) => (
-                    <tr key={wh.id}>
-                      <td style={{ fontWeight: 500, color: "var(--text-color-kumo-strong)" }}>
-                        {wh.name}
-                      </td>
-                      <td
-                        className="ff-field-input-mono"
-                        title={wh.url}
-                        style={{
-                          maxWidth: "18rem",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          color: "var(--text-color-kumo-subtle)",
-                        }}
+          </div>
+        ) : (
+          <FfDataTable>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Endpoint</th>
+                <th>Scope</th>
+                <th>Enabled</th>
+                <th className="w-12">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {webhooks.map((wh) => (
+                <tr key={wh.id}>
+                  <td className="font-medium text-kumo-default">{wh.name}</td>
+                  <td
+                    className="max-w-[18rem] truncate font-mono text-xs text-kumo-subtle"
+                    title={wh.url}
+                  >
+                    {wh.url}
+                  </td>
+                  <td className="text-kumo-subtle">{formLabel(wh.formId)}</td>
+                  <td>
+                    <Switch
+                      checked={wh.enabled}
+                      disabled={busy}
+                      aria-label={wh.enabled ? `Pause ${wh.name}` : `Enable ${wh.name}`}
+                      onCheckedChange={(checked) => {
+                        void updateWebhook({ id: wh.id, enabled: checked })
+                          .then(refresh)
+                          .catch((err) => {
+                            setError(err instanceof Error ? err.message : String(err));
+                          });
+                      }}
+                    />
+                  </td>
+                  <td className="text-end" onClick={(e) => e.stopPropagation()}>
+                    <RowActionsMenu label={`Actions for ${wh.name}`}>
+                      <DropdownMenu.Item
+                        icon={<ListBullets className="size-4" aria-hidden="true" />}
+                        disabled={busy}
+                        onClick={() => void openLog(wh)}
                       >
-                        {wh.url}
-                      </td>
-                      <td style={{ color: "var(--text-color-kumo-subtle)" }}>
-                        {formLabel(wh.formId)}
-                      </td>
-                      <td>
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium ${
-                            wh.enabled
-                              ? "bg-green-500/15 text-green-600 dark:text-green-400"
-                              : "bg-kumo-tint text-kumo-subtle"
-                          }`}
-                        >
-                          <span
-                            aria-hidden="true"
-                            style={{
-                              width: 6,
-                              height: 6,
-                              borderRadius: "50%",
-                              background: wh.enabled ? "currentColor" : "var(--text-color-kumo-subtle)",
-                            }}
-                          />
-                          {wh.enabled ? "Active" : "Paused"}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            className="ff-btn ff-btn-secondary ff-btn-sm"
-                            disabled={busy}
-                            onClick={() => {
-                              void updateWebhook({ id: wh.id, enabled: !wh.enabled })
-                                .then(refresh)
-                                .catch((err) => {
-                                  setError(err instanceof Error ? err.message : String(err));
-                                });
-                            }}
-                          >
-                            {wh.enabled ? "Pause" : "Enable"}
-                          </button>
-                          <button
-                            type="button"
-                            className="ff-btn ff-btn-secondary ff-btn-sm"
-                            disabled={busy}
-                            onClick={() => void openLog(wh)}
-                          >
-                            Log
-                          </button>
-                          <button
-                            type="button"
-                            className="ff-btn ff-btn-secondary ff-btn-sm"
-                            disabled={busy}
-                            onClick={() => setPendingRotate(wh)}
-                          >
-                            Rotate
-                          </button>
-                          <button
-                            type="button"
-                            className="ff-icon-btn-danger"
-                            title="Delete webhook"
-                            aria-label={`Delete ${wh.name}`}
-                            disabled={busy}
-                            onClick={() => setPendingDelete(wh)}
-                          >
-                            <TrashIcon />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                        View log
+                      </DropdownMenu.Item>
+                      <DropdownMenu.Item
+                        icon={<ArrowsClockwise className="size-4" aria-hidden="true" />}
+                        disabled={busy}
+                        onClick={() => setPendingRotate(wh)}
+                      >
+                        Rotate secret
+                      </DropdownMenu.Item>
+                      <DropdownMenu.Separator />
+                      <DropdownMenu.Item
+                        variant="danger"
+                        icon={<Trash className="size-4" aria-hidden="true" />}
+                        disabled={busy}
+                        onClick={() => setPendingDelete(wh)}
+                      >
+                        Delete
+                      </DropdownMenu.Item>
+                    </RowActionsMenu>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </FfDataTable>
+        )}
       </section>
 
       {logFor && (
@@ -350,41 +301,48 @@ export function WebhooksPanel({ formId, onSaveMetaChange }: Props) {
               </h2>
               <p className="ff-settings-section-desc">Recent delivery attempts for this endpoint.</p>
             </div>
-            <button
-              type="button"
-              className="ff-btn ff-btn-secondary ff-btn-sm"
-              onClick={() => setLogFor(null)}
-            >
+            <Button variant="secondary" size="sm" onClick={() => setLogFor(null)}>
               Close
-            </button>
+            </Button>
           </div>
-          <div className="ff-settings-panel">
-            {logFor.entries.length === 0 ? (
-              <div className="ff-settings-row">
-                <p className="ff-card-subtitle">No deliveries logged yet.</p>
-              </div>
-            ) : (
-              logFor.entries.map((entry, idx) => (
-                <div key={idx} className="ff-settings-row-inline">
-                  <span className="ff-field-input-mono text-xs">
-                    {new Date(entry.deliveredAt).toLocaleString()}
-                  </span>
-                  <span
-                    className={
-                      entry.status === "success"
-                        ? "text-green-600 font-semibold text-xs"
-                        : "text-red-500 font-semibold text-xs"
-                    }
-                  >
-                    {entry.statusCode ? `HTTP ${entry.statusCode}` : entry.status}
-                  </span>
-                  <span className="ff-card-subtitle" style={{ flex: 1 }}>
-                    {entry.error ?? `${entry.attempts} attempt(s)`}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
+          {logFor.entries.length === 0 ? (
+            <div className="rounded-xl bg-kumo-elevated px-4 py-6 text-sm text-kumo-subtle ring ring-kumo-line">
+              No deliveries logged yet.
+            </div>
+          ) : (
+            <FfDataTable>
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Status</th>
+                  <th>Detail</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logFor.entries.map((entry, idx) => (
+                  <tr key={idx}>
+                    <td className="whitespace-nowrap font-mono text-xs text-kumo-subtle">
+                      {new Date(entry.deliveredAt).toLocaleString()}
+                    </td>
+                    <td>
+                      <span
+                        className={
+                          entry.status === "success"
+                            ? "text-xs font-semibold text-green-600 dark:text-green-400"
+                            : "text-xs font-semibold text-kumo-danger"
+                        }
+                      >
+                        {entry.statusCode ? `HTTP ${entry.statusCode}` : entry.status}
+                      </span>
+                    </td>
+                    <td className="text-kumo-subtle">
+                      {entry.error ?? `${entry.attempts} attempt(s)`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </FfDataTable>
+          )}
         </section>
       )}
 

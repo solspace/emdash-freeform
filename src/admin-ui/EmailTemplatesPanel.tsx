@@ -1,3 +1,5 @@
+import { Badge, Button } from "@cloudflare/kumo";
+import { Copy, Eye, PaperPlaneTilt, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { NotificationFormat } from "../types";
 import {
@@ -8,6 +10,8 @@ import {
   type TemplateDocument,
 } from "./ff-api";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { FF_CHIP, FfDataTable } from "./ff-list";
+import { DropdownMenu, RowActionsMenu } from "./RowActionsMenu";
 import type { SettingsSaveMeta } from "./settings-save";
 import "./styles.css";
 
@@ -77,23 +81,23 @@ function renderSamplePreview(template: string, format: NotificationFormat): stri
   return result;
 }
 
-function TrashIcon() {
+function EmptyTemplateIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 6h18" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-      <line x1="10" y1="11" x2="10" y2="17" />
-      <line x1="14" y1="11" x2="14" y2="17" />
-    </svg>
-  );
-}
-
-function PaperPlaneIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <line x1="22" y1="2" x2="11" y2="13" />
-      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    <svg
+      width="28"
+      height="28"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+      <path d="M8 13h8" />
+      <path d="M8 17h6" />
     </svg>
   );
 }
@@ -318,33 +322,27 @@ export function EmailTemplatesPanel({ formId, onToast, onSaveMetaChange }: Props
             </p>
           </div>
           {!editing ? (
-            <button
-              type="button"
-              className="ff-btn-submit cursor-pointer shrink-0"
-              onClick={startCreate}
-            >
+            <Button variant="primary" icon={Plus} onClick={startCreate}>
               New template
-            </button>
+            </Button>
           ) : (
-            <button
-              type="button"
-              className="ff-btn-outline"
-              style={{ height: "2rem", padding: "0 0.75rem", fontSize: "0.75rem" }}
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<PaperPlaneTilt aria-hidden="true" />}
               onClick={() => {
                 setTestModalOpen(true);
                 setTestResult(null);
               }}
             >
-              <PaperPlaneIcon /> Send test
-            </button>
+              Send test
+            </Button>
           )}
         </div>
 
       {loading && !editing && (
-        <div className="ff-settings-panel">
-          <div className="ff-settings-row">
-            <p className="ff-card-subtitle">Loading templates…</p>
-          </div>
+        <div className="rounded-xl bg-kumo-elevated px-4 py-6 text-sm text-kumo-subtle ring ring-kumo-line">
+          Loading templates…
         </div>
       )}
 
@@ -613,124 +611,124 @@ export function EmailTemplatesPanel({ formId, onToast, onSaveMetaChange }: Props
 
           {/* Action buttons — primary Save lives in SettingsFrame header */}
           <div className="ff-card-actions">
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <div className="flex items-center gap-2">
               {viewOnly && viewingSystem && (
-                <button
-                  type="button"
-                  className="ff-btn-submit cursor-pointer"
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={<Copy className="size-4" aria-hidden="true" />}
                   onClick={() => startDuplicate(viewingSystem)}
                 >
                   Duplicate
-                </button>
+                </Button>
               )}
-              <button
-                type="button"
-                className="ff-btn-outline cursor-pointer"
-                onClick={cancelEdit}
-              >
+              <Button variant="secondary" size="sm" onClick={cancelEdit}>
                 {viewOnly ? "Back" : "Cancel"}
-              </button>
+              </Button>
             </div>
 
-            <button
-              type="button"
-              className="ff-btn-outline cursor-pointer"
-              style={{ fontSize: "0.8125rem" }}
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<PaperPlaneTilt aria-hidden="true" />}
               onClick={() => setTestModalOpen(true)}
             >
-              <PaperPlaneIcon /> Test with sample data
-            </button>
+              Test with sample data
+            </Button>
           </div>
           </div>
         </form>
-      ) : (
-        <div className="ff-settings-panel">
-          {!loading && templates.length === 0 ? (
-            <div className="ff-settings-row">
-              <p className="ff-card-subtitle">
-                No templates yet. Create one to start sending email notifications.
-              </p>
-            </div>
-          ) : templates.length > 0 ? (
-            <div style={{ overflowX: "auto" }}>
-              <table className="ff-settings-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Subject</th>
-                    <th scope="col">Format</th>
-                    <th scope="col">Reply-To</th>
-                    <th scope="col" style={{ textAlign: "end" }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {templates.map((tpl) => (
-                    <tr key={tpl.id}>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            className="font-medium text-kumo-strong hover:text-kumo-brand"
-                            onClick={() => startEdit(tpl)}
-                          >
-                            {tpl.name}
-                          </button>
-                          {tpl.system && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-kumo-tint text-kumo-subtle">
-                              Built-in
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="text-kumo-subtle max-w-xs truncate">{tpl.subject}</td>
-                      <td>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-mono uppercase ${
-                          tpl.format === "html" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" : "bg-kumo-tint text-kumo-subtle"
-                        }`}>
-                          {tpl.format}
-                        </span>
-                      </td>
-                      <td className="ff-field-input-mono truncate" style={{ maxWidth: "7.5rem", color: "var(--text-color-kumo-subtle)" }}>
-                        {tpl.replyTo || "—"}
-                      </td>
-                      <td>
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            className="ff-btn ff-btn-secondary ff-btn-sm"
-                            onClick={() => startEdit(tpl)}
-                          >
-                            {tpl.system ? "View" : "Edit"}
-                          </button>
-                          {tpl.system ? (
-                            <button
-                              type="button"
-                              className="ff-btn ff-btn-secondary ff-btn-sm"
-                              onClick={() => startDuplicate(tpl)}
-                            >
-                              Duplicate
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="ff-icon-btn-danger"
-                              title="Delete template"
-                              aria-label={`Delete ${tpl.name}`}
-                              onClick={() => setPendingDelete(tpl)}
-                            >
-                              <TrashIcon />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
+      ) : !loading && templates.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl bg-kumo-elevated px-6 py-16 text-center ring ring-kumo-line">
+          <span className="text-kumo-subtle">
+            <EmptyTemplateIcon />
+          </span>
+          <div>
+            <p className="text-sm font-medium text-kumo-default">No templates yet</p>
+            <p className="mt-1 text-sm text-kumo-subtle">
+              Create one to start sending email notifications.
+            </p>
+          </div>
+          <Button variant="primary" icon={Plus} onClick={startCreate}>
+            New template
+          </Button>
         </div>
-      )}
+      ) : !loading ? (
+        <FfDataTable>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Subject</th>
+              <th>Format</th>
+              <th>Reply-To</th>
+              <th className="w-12">
+                <span className="sr-only">Actions</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {templates.map((tpl) => (
+              <tr key={tpl.id}>
+                <td>
+                  <span className="inline-flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      className="font-medium text-kumo-default hover:text-kumo-link text-start"
+                      onClick={() => startEdit(tpl)}
+                    >
+                      {tpl.name}
+                    </button>
+                    {tpl.system && <span className={FF_CHIP}>Built-in</span>}
+                  </span>
+                </td>
+                <td className="max-w-xs truncate text-kumo-subtle">{tpl.subject}</td>
+                <td>
+                  <Badge variant="secondary" className="font-mono uppercase">
+                    {tpl.format}
+                  </Badge>
+                </td>
+                <td className="max-w-[7.5rem] truncate font-mono text-xs text-kumo-subtle">
+                  {tpl.replyTo || "—"}
+                </td>
+                <td className="text-end" onClick={(e) => e.stopPropagation()}>
+                  <RowActionsMenu label={`Actions for ${tpl.name}`}>
+                    <DropdownMenu.Item
+                      icon={
+                        tpl.system ? (
+                          <Eye className="size-4" aria-hidden="true" />
+                        ) : (
+                          <PencilSimple className="size-4" aria-hidden="true" />
+                        )
+                      }
+                      onClick={() => startEdit(tpl)}
+                    >
+                      {tpl.system ? "View" : "Edit"}
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item
+                      icon={<Copy className="size-4" aria-hidden="true" />}
+                      onClick={() => startDuplicate(tpl)}
+                    >
+                      Duplicate
+                    </DropdownMenu.Item>
+                    {!tpl.system && (
+                      <>
+                        <DropdownMenu.Separator />
+                        <DropdownMenu.Item
+                          variant="danger"
+                          icon={<Trash className="size-4" aria-hidden="true" />}
+                          onClick={() => setPendingDelete(tpl)}
+                        >
+                          Delete
+                        </DropdownMenu.Item>
+                      </>
+                    )}
+                  </RowActionsMenu>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </FfDataTable>
+      ) : null}
       </section>
 
       {/* Send Test Email Modal */}
@@ -748,7 +746,7 @@ export function EmailTemplatesPanel({ formId, onToast, onSaveMetaChange }: Props
             aria-labelledby="test-email-modal-title"
           >
             <h3 id="test-email-modal-title" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <PaperPlaneIcon /> Send Test Email
+              <PaperPlaneTilt aria-hidden="true" /> Send Test Email
             </h3>
             <p className="ff-modal-desc">
               Freeform will render this template with sample submission data and dispatch it through your active email provider.
@@ -778,21 +776,17 @@ export function EmailTemplatesPanel({ formId, onToast, onSaveMetaChange }: Props
             )}
 
             <div className="ff-modal-actions">
-              <button
-                type="button"
-                className="ff-btn-outline cursor-pointer"
-                onClick={() => setTestModalOpen(false)}
-              >
+              <Button variant="secondary" onClick={() => setTestModalOpen(false)}>
                 Close
-              </button>
-              <button
-                type="button"
-                className="ff-btn-submit cursor-pointer"
+              </Button>
+              <Button
+                variant="primary"
+                icon={<PaperPlaneTilt aria-hidden="true" />}
                 disabled={sendingTest}
                 onClick={() => void handleSendTest()}
               >
                 {sendingTest ? "Sending…" : "Send Test Email"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
