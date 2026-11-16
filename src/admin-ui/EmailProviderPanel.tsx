@@ -181,7 +181,7 @@ export function EmailProviderPanel({ onToast }: Props) {
                     id: "emdash",
                     title: "EmDash Host",
                     badge: null,
-                    desc: "Delegate to host EmDash ctx.email transport",
+                    desc: "Use the host CMS email pipeline (Settings → Email: SMTP, Cloudflare, or plugins)",
                   },
                   {
                     id: "log",
@@ -304,7 +304,9 @@ export function EmailProviderPanel({ onToast }: Props) {
           {provider === "emdash" && (
             <div className="ff-settings-row">
               <p className="ff-card-subtitle">
-                Emails route through the host CMS email provider (<code className="ff-field-input-mono">ctx.email.send</code>).
+                Emails go through <code className="ff-field-input-mono">ctx.email.send</code> — EmDash 1.5+
+                built-in SMTP, Cloudflare Email Sending, or any installed email plugin selected under{" "}
+                <strong>Settings → Email</strong>.
               </p>
             </div>
           )}

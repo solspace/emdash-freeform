@@ -1,3 +1,5 @@
+import { Badge } from "@cloudflare/kumo";
+import { CheckCircle, Warning } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { FormField, SubmissionBrief } from "../types";
 import {
@@ -102,6 +104,44 @@ function formatWhen(iso: string): string {
 
 function submissionIsSpam(s: SubmissionListItem): boolean {
   return typeof s.spamScore === "number" && s.spamScore >= 5;
+}
+
+/** EmDash ContentStatusBadge treatment — Kumo Badge + Phosphor icon. */
+function SubmissionStatusBadge({
+  spam,
+  score,
+  title,
+  scoreOutOfTen = false,
+}: {
+  spam: boolean;
+  score?: number | null;
+  title?: string;
+  scoreOutOfTen?: boolean;
+}) {
+  const scoreLabel =
+    typeof score === "number"
+      ? scoreOutOfTen
+        ? ` (${score.toFixed(1)}/10)`
+        : ` (${score.toFixed(1)})`
+      : "";
+
+  if (spam) {
+    return (
+      <span title={title}>
+        <Badge variant="warning" className="gap-1.5">
+          <Warning className="h-3 w-3" aria-hidden="true" />
+          Spam{scoreLabel}
+        </Badge>
+      </span>
+    );
+  }
+
+  return (
+    <Badge variant="success" className="gap-1.5">
+      <CheckCircle className="h-3 w-3" aria-hidden="true" />
+      Open{scoreLabel}
+    </Badge>
+  );
 }
 
 function TrashIcon() {
@@ -823,19 +863,11 @@ export function SubmissionsPage() {
                       </span>
                     </td>
                     <td className="whitespace-nowrap">
-                      {flagged ? (
-                        <span
-                          className="ff-badge is-warn"
-                          title={s.spamReason ?? undefined}
-                        >
-                          Spam
-                          {typeof s.spamScore === "number"
-                            ? ` (${s.spamScore.toFixed(1)})`
-                            : ""}
-                        </span>
-                      ) : (
-                        <span className="ff-badge is-success">Open</span>
-                      )}
+                      <SubmissionStatusBadge
+                        spam={flagged}
+                        score={s.spamScore}
+                        title={s.spamReason ?? undefined}
+                      />
                     </td>
                     <td className="whitespace-nowrap text-kumo-subtle">
                       <bdi>{formatWhen(s.createdAt)}</bdi>
@@ -923,24 +955,12 @@ export function SubmissionsPage() {
                       <span className="text-xs font-semibold uppercase tracking-wider text-kumo-subtle">
                         Status &amp; Security
                       </span>
-                      {submissionIsSpam(selected) ? (
-                        <span
-                          className="ff-badge is-warn"
-                          title={selected.spamReason ?? undefined}
-                        >
-                          Spam
-                          {typeof selected.spamScore === "number"
-                            ? ` (${selected.spamScore.toFixed(1)}/10)`
-                            : ""}
-                        </span>
-                      ) : (
-                        <span className="ff-badge is-success">
-                          Open
-                          {typeof selected.spamScore === "number"
-                            ? ` (${selected.spamScore.toFixed(1)}/10)`
-                            : ""}
-                        </span>
-                      )}
+                      <SubmissionStatusBadge
+                        spam={submissionIsSpam(selected)}
+                        score={selected.spamScore}
+                        title={selected.spamReason ?? undefined}
+                        scoreOutOfTen
+                      />
                     </div>
                     {selected.spamReason && (
                       <p className="text-xs text-kumo-subtle mt-1">{selected.spamReason}</p>

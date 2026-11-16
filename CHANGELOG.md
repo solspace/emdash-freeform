@@ -11,6 +11,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **EmDash 1.5 support** — peers/deps on `emdash` / `@emdash-cms/admin` `>=1.5.0`, `@cloudflare/kumo` `>=2.15.0`; notification mail typed against exported `EmailMessage`; EmDash Host transport documents Settings → Email (built-in SMTP / Cloudflare / plugins)
 - **Admin UX overhaul** — Forms / Submissions / Settings chrome aligned with EmDash posts & SEO patterns (fewer borders, denser panels, Phosphor field icons)
 - **Forms dashboard** — List/Cards toggle persisted; cards keep accent tint at rest with a soft mouse-follow spotlight and larger titles
 - **Dialogs** — Notification + Generate with AI use EmDash edit-dialog shell (`max-h` + `sm:w-[32rem]`); confirms use centered Kumo Dialog

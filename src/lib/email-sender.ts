@@ -1,17 +1,12 @@
-import type { PluginContext } from "emdash";
+import type { EmailMessage, PluginContext } from "emdash";
 import type { EmailProviderSettings, EmailProviderType } from "../types";
 import { sendSmtpEmail } from "./smtp";
 
-export interface OutgoingEmailMessage {
-  to: string;
+/** Freeform outbound mail — EmDash `EmailMessage` plus provider-local From/Bcc. */
+export type OutgoingEmailMessage = EmailMessage & {
   from?: string;
-  replyTo?: string;
-  cc?: string[];
   bcc?: string[];
-  subject: string;
-  text: string;
-  html?: string;
-}
+};
 
 const KV_PROVIDER = "settings:email:provider";
 const KV_RESEND_KEY = "settings:email:resendApiKey";
