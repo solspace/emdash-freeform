@@ -3,6 +3,7 @@ import {
   DragOverlay,
   PointerSensor,
   closestCenter,
+  defaultDropAnimationSideEffects,
   pointerWithin,
   useDndContext,
   useDraggable,
@@ -12,6 +13,7 @@ import {
   type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
+  type DropAnimation,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -22,7 +24,15 @@ import { CSS } from "@dnd-kit/utilities";
 import { SaveButton } from "@emdash-cms/admin";
 import { Button, Collapsible, Switch } from "@cloudflare/kumo";
 import { CaretDown, X } from "@phosphor-icons/react";
-import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { FieldType, FormField, FormRow, StoredForm } from "../types";
 import { FormNotificationsPanel } from "./FormNotificationsPanel";
 import { FormProtectionPanel } from "./FormProtectionPanel";
@@ -57,15 +67,47 @@ type DragData =
   | { kind: "palette"; type: FieldType }
   | { kind: "field"; fieldId: string };
 
+/** Palette is a copy-source: settle into the dropzone, don't fly back to the menu. */
+const paletteAcceptDropAnimation: DropAnimation = {
+  duration: 280,
+  easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+  keyframes: ({ transform }) => [
+    {
+      opacity: 1,
+      transform: CSS.Transform.toString(transform.initial),
+    },
+    {
+      opacity: 0,
+      transform: CSS.Transform.toString({
+        ...transform.initial,
+        y: transform.initial.y + 10,
+        scaleX: transform.initial.scaleX * 0.88,
+        scaleY: transform.initial.scaleY * 0.88,
+      }),
+    },
+  ],
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: {
+      active: {
+        opacity: "0.45",
+      },
+    },
+  }),
+};
+
+const FIELD_SETTLE_MS = 420;
+
 function SortableField({
   field,
   selected,
+  justDropped,
   onSelect,
   onDuplicate,
   onRemove,
 }: {
   field: FormField;
   selected: boolean;
+  justDropped?: boolean;
   onSelect: () => void;
   onDuplicate: () => void;
   onRemove: () => void;
@@ -76,16 +118,19 @@ function SortableField({
       data: { kind: "field", fieldId: field.id } satisfies DragData,
     });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  // Let the settle keyframes own transform; avoid fighting sortable's inline transform.
+  const style = justDropped
+    ? undefined
+    : {
+        transform: CSS.Transform.toString(transform),
+        transition,
+      };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`ff-field${selected ? " is-selected" : ""}${isDragging ? " is-dragging" : ""}`}
+      className={`ff-field${selected ? " is-selected" : ""}${isDragging ? " is-dragging" : ""}${justDropped ? " is-just-dropped" : ""}`}
       onClick={onSelect}
       {...attributes}
       {...listeners}
@@ -135,6 +180,7 @@ function RowDropZone({
   row,
   rowIndex,
   selectedFieldId,
+  justDroppedFieldId,
   onSelectField,
   onDuplicateField,
   onRemoveField,
@@ -142,6 +188,7 @@ function RowDropZone({
   row: FormRow;
   rowIndex: number;
   selectedFieldId: string | null;
+  justDroppedFieldId: string | null;
   onSelectField: (id: string) => void;
   onDuplicateField: (id: string) => void;
   onRemoveField: (id: string) => void;
@@ -197,6 +244,7 @@ function RowDropZone({
               <SortableField
                 field={field}
                 selected={selectedFieldId === field.id}
+                justDropped={justDroppedFieldId === field.id}
                 onSelect={() => onSelectField(field.id)}
                 onDuplicate={() => onDuplicateField(field.id)}
                 onRemove={() => onRemoveField(field.id)}
@@ -761,9 +809,13 @@ export function FormBuilder({ formId, onBack }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [activeDrag, setActiveDrag] = useState<DragData | null>(null);
+  const [justDroppedFieldId, setJustDroppedFieldId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [tab, setTab] = useState<BuilderTab>("layout");
   const [paletteSearch, setPaletteSearch] = useState("");
+  /** Read by DragOverlay on the drag-end render; set synchronously in onDragEnd. */
+  const dropAnimationRef = useRef<DropAnimation | null | undefined>(undefined);
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -816,6 +868,23 @@ export function FormBuilder({ formId, onBack }: Props) {
     if (selectId !== undefined) setSelectedFieldId(selectId);
   };
 
+  /** Mark a newly accepted palette field so it can settle into the dropzone. */
+  const acceptPaletteField = useCallback((rows: FormRow[], fieldId: string) => {
+    if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+    setJustDroppedFieldId(fieldId);
+    setRows(rows, fieldId);
+    settleTimerRef.current = setTimeout(() => {
+      setJustDroppedFieldId((current) => (current === fieldId ? null : current));
+      settleTimerRef.current = null;
+    }, FIELD_SETTLE_MS);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+    };
+  }, []);
+
   const persist = async () => {
     if (!form) return;
     setSaving(true);
@@ -845,8 +914,14 @@ export function FormBuilder({ formId, onBack }: Props) {
   };
 
   const onDragStart = (e: DragStartEvent) => {
+    dropAnimationRef.current = undefined;
     const data = e.active.data.current as DragData | undefined;
     if (data) setActiveDrag(data);
+  };
+
+  const onDragCancel = () => {
+    dropAnimationRef.current = undefined;
+    setActiveDrag(null);
   };
 
   const collisionDetectionStrategy: CollisionDetection = useCallback((args) => {
@@ -867,6 +942,15 @@ export function FormBuilder({ formId, onBack }: Props) {
   const onDragEnd = (e: DragEndEvent) => {
     const activeData = e.active.data.current as DragData | undefined;
     const over = e.over;
+
+    // Palette drops are copies: fade at the dropzone instead of flying back to the menu.
+    const paletteAccepted = Boolean(
+      activeData?.kind === "palette" && over && form,
+    );
+    dropAnimationRef.current = paletteAccepted
+      ? paletteAcceptDropAnimation
+      : undefined;
+
     setActiveDrag(null);
     if (!over || !form) return;
 
@@ -881,7 +965,7 @@ export function FormBuilder({ formId, onBack }: Props) {
           activeData.type,
           targetRowIndex,
         );
-        setRows(rows, fieldId);
+        acceptPaletteField(rows, fieldId);
         return;
       }
       if (activeData?.kind === "field") {
@@ -897,7 +981,7 @@ export function FormBuilder({ formId, onBack }: Props) {
     if (overId === "canvas-end") {
       if (activeData?.kind === "palette") {
         const { rows, fieldId } = appendFieldAsRow(form.rows, activeData.type);
-        setRows(rows, fieldId);
+        acceptPaletteField(rows, fieldId);
         return;
       }
       if (activeData?.kind === "field") {
@@ -922,7 +1006,7 @@ export function FormBuilder({ formId, onBack }: Props) {
             hit.rowIndex,
             hit.fieldIndex + 1,
           );
-          setRows(rows, fieldId);
+          acceptPaletteField(rows, fieldId);
         }
         return;
       }
@@ -936,13 +1020,13 @@ export function FormBuilder({ formId, onBack }: Props) {
             rowIndex,
             form.rows[rowIndex].fields.length,
           );
-          setRows(rows, fieldId);
+          acceptPaletteField(rows, fieldId);
         }
         return;
       }
       // fallback
       const { rows, fieldId } = appendFieldAsRow(form.rows, type);
-      setRows(rows, fieldId);
+      acceptPaletteField(rows, fieldId);
       return;
     }
 
@@ -977,7 +1061,7 @@ export function FormBuilder({ formId, onBack }: Props) {
   const handleAddField = (type: FieldType) => {
     if (!form) return;
     const { rows, fieldId } = appendFieldAsRow(form.rows, type);
-    setRows(rows, fieldId);
+    acceptPaletteField(rows, fieldId);
   };
 
   const handleDuplicateField = (fieldId: string) => {
@@ -1100,6 +1184,7 @@ export function FormBuilder({ formId, onBack }: Props) {
           collisionDetection={collisionDetectionStrategy}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
+          onDragCancel={onDragCancel}
         >
           <div className="ff-builder">
             <aside className="ff-panel ff-palette-panel">
@@ -1174,6 +1259,7 @@ export function FormBuilder({ formId, onBack }: Props) {
                         row={row}
                         rowIndex={rowIndex}
                         selectedFieldId={selectedFieldId}
+                        justDroppedFieldId={justDroppedFieldId}
                         onSelectField={setSelectedFieldId}
                         onDuplicateField={handleDuplicateField}
                         onRemoveField={handleRemoveField}
@@ -1204,7 +1290,7 @@ export function FormBuilder({ formId, onBack }: Props) {
             />
           </div>
 
-          <DragOverlay>
+          <DragOverlay dropAnimation={dropAnimationRef.current}>
             {activeDrag?.kind === "palette" ? (
               <div className="ff-palette-item ff-drag-overlay-palette">
                 <span className="ff-palette-icon">

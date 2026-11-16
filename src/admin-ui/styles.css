@@ -1771,6 +1771,30 @@ html[data-mode="dark"] .ff-btn-ai {
   opacity: 0.35;
 }
 
+/* Palette drop / click-add: settle into the dropzone */
+.ff-field.is-just-dropped {
+  animation: ff-field-settle 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  z-index: 2;
+}
+
+@keyframes ff-field-settle {
+  0% {
+    opacity: 0.2;
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.03);
+    box-shadow: 0 0 0 4px var(--ff-accent-soft);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 3px var(--ff-accent-soft);
+  }
+}
+
 .ff-field-header {
   display: flex;
   justify-content: space-between;
