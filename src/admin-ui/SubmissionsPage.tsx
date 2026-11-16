@@ -3,6 +3,7 @@ import {
   ArrowClockwise,
   CheckCircle,
   DownloadSimple,
+  Eye,
   PaperPlaneTilt,
   PencilSimple,
   Trash,
@@ -728,15 +729,20 @@ export function SubmissionsPage() {
                       <RowActionsMenu
                         label={`Actions for submission from ${s.formName || "form"}`}
                       >
-                        <DropdownMenu.Item onClick={() => setSelected(s)}>
+                        <DropdownMenu.Item
+                          icon={<Eye className="size-4" aria-hidden="true" />}
+                          onClick={() => setSelected(s)}
+                        >
                           View
                         </DropdownMenu.Item>
                         <DropdownMenu.Item
+                          icon={<PencilSimple className="size-4" aria-hidden="true" />}
                           onClick={() => openSubmissionEditor(s.id)}
                         >
                           Edit
                         </DropdownMenu.Item>
                         <DropdownMenu.Item
+                          icon={<DownloadSimple className="size-4" aria-hidden="true" />}
                           disabled={busy}
                           onClick={() => void onExport([s.id])}
                         >
@@ -745,9 +751,10 @@ export function SubmissionsPage() {
                         <DropdownMenu.Separator />
                         <DropdownMenu.Item
                           variant="danger"
+                          icon={<Trash className="size-4" aria-hidden="true" />}
                           onClick={() => setPendingDelete(s)}
                         >
-                          Move to Trash
+                          Move to trash
                         </DropdownMenu.Item>
                       </RowActionsMenu>
                     </td>
