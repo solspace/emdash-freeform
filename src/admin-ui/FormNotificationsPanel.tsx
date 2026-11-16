@@ -218,7 +218,7 @@ export function FormNotificationsPanel({ formId, emailFields }: Props) {
             Email alerts sent when this form receives a submission.{" "}
             <button
               type="button"
-              className="font-medium text-kumo-brand hover:underline"
+              className="font-medium text-kumo-link hover:underline"
               onClick={() => goToSettingsSection("templates")}
             >
               Add email template
@@ -440,7 +440,7 @@ export function FormNotificationsPanel({ formId, emailFields }: Props) {
                     Need a different email?{" "}
                     <button
                       type="button"
-                      className="font-medium text-kumo-brand hover:underline"
+                      className="font-medium text-kumo-link hover:underline"
                       onClick={() => goToSettingsSection("templates")}
                     >
                       Create a new template

@@ -1,22 +1,27 @@
-/* Map Freeform chrome to EmDash/Kumo theme tokens (light + dark). */
+/* Map Freeform chrome to current EmDash/Kumo tokens (cool neutrals, not warm cream). */
 .ff-root {
-  --ff-bg: var(--color-kumo-recessed, #f6f5f2);
+  /* Soft page / wash fills — match EmDash main (elevated), not heavy recessed */
+  --ff-bg: var(--color-kumo-elevated, oklch(98.75% 0 0));
   --ff-surface: var(--color-kumo-base, #ffffff);
-  --ff-elevated: var(--color-kumo-elevated, #ffffff);
-  --ff-ink: var(--text-color-kumo-default, #1a1a1a);
-  --ff-muted: var(--text-color-kumo-subtle, #6b6b6b);
-  --ff-line: var(--color-kumo-line, #e4e1da);
-  --ff-hairline: var(--color-kumo-hairline, #ebe7df);
-  /* Freeform brand blue (Craft Freeform default) */
-  --ff-accent: #006ff7;
-  --ff-accent-hover: #005ad4;
-  --ff-accent-soft: color-mix(in oklab, #006ff7 16%, transparent);
-  --ff-accent-ink: #006ff7;
+  --ff-elevated: var(--color-kumo-elevated, oklch(98.75% 0 0));
+  --ff-tint: var(--color-kumo-tint, oklch(97% 0 0));
+  --ff-recessed: var(--color-kumo-recessed, oklch(96.5% 0 0));
+  --ff-ink: var(--text-color-kumo-default, oklch(20.5% 0 0));
+  --ff-muted: var(--text-color-kumo-subtle, oklch(55.6% 0 0));
+  --ff-line: var(--color-kumo-line, oklch(14.5% 0 0 / 0.1));
+  --ff-hairline: var(--color-kumo-hairline, oklch(93.5% 0 0));
+  /* Follow EmDash brand (Posts links / focus), not a separate Freeform blue */
+  /* UI accent = EmDash system brand (not site --text-color-kumo-brand, which can be orange) */
+  --ff-accent: var(--color-kumo-brand, oklch(57.72% 0.2324 260));
+  --ff-accent-hover: color-mix(in oklab, var(--ff-accent) 82%, black);
+  --ff-accent-soft: color-mix(in oklab, var(--ff-accent) 14%, transparent);
+  --ff-accent-ink: var(--ff-accent);
+  --ff-link: var(--text-color-kumo-link, oklch(42.4% 0.199 265.638));
   --ff-danger: var(--text-color-kumo-danger, #b42318);
   --ff-danger-line: var(--color-kumo-danger, #f0c4c0);
   --ff-danger-soft: var(--color-kumo-danger-tint, #fef3f2);
-  --ff-control: var(--color-kumo-control, var(--ff-surface));
-  --ff-fill: var(--color-kumo-fill, var(--ff-bg));
+  --ff-control: var(--color-kumo-control, #ffffff);
+  --ff-fill: var(--color-kumo-fill, var(--ff-recessed));
   --ff-on-accent: #fff;
   --ff-radius: 10px;
   --ff-shadow: 0 1px 2px var(--color-kumo-shadow-edge, rgb(0 0 0 / 4%)),
@@ -31,15 +36,17 @@
 }
 
 html[data-mode="dark"] .ff-root {
-  --ff-bg: var(--color-kumo-canvas, #141416);
-  --ff-surface: var(--color-kumo-base, #1e1e21);
-  --ff-elevated: var(--color-kumo-elevated, #27272a);
-  --ff-ink: var(--text-color-kumo-default, #f4f4f5);
-  --ff-muted: var(--text-color-kumo-subtle, #a1a1aa);
-  --ff-line: var(--color-kumo-line, #2e2e32);
-  --ff-hairline: var(--color-kumo-hairline, #27272a);
-  --ff-fill: var(--color-kumo-fill, #27272a);
-  --ff-control: var(--color-kumo-control, #1e1e21);
+  --ff-bg: var(--color-kumo-elevated, oklch(12% 0 0));
+  --ff-surface: var(--color-kumo-base, oklch(17% 0 0));
+  --ff-elevated: var(--color-kumo-elevated, oklch(12% 0 0));
+  --ff-tint: var(--color-kumo-tint, oklch(26.9% 0 0));
+  --ff-recessed: var(--color-kumo-recessed, oklch(15% 0 0));
+  --ff-ink: var(--text-color-kumo-default, oklch(97% 0 0));
+  --ff-muted: var(--text-color-kumo-subtle, oklch(70.8% 0 0));
+  --ff-line: var(--color-kumo-line, oklch(32% 0 0));
+  --ff-hairline: var(--color-kumo-hairline, oklch(26.9% 0 0));
+  --ff-fill: var(--color-kumo-fill, oklch(26.9% 0 0));
+  --ff-control: var(--color-kumo-control, oklch(20.5% 0 0));
   --ff-shadow: 0 1px 2px rgb(0 0 0 / 25%), 0 8px 24px rgb(0 0 0 / 35%);
 }
 
@@ -86,8 +93,8 @@ html[data-mode="dark"] .ff-search {
 
 .ff-search:focus {
   outline: none;
-  border-color: var(--color-kumo-brand, #f6821f);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-kumo-brand, #f6821f) 18%, transparent);
+  border-color: var(--color-kumo-brand, var(--ff-accent));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-kumo-brand, var(--ff-accent)) 18%, transparent);
 }
 
 .ff-view-toggle {
@@ -95,7 +102,7 @@ html[data-mode="dark"] .ff-search {
   border: 1px solid var(--ff-line);
   border-radius: 8px;
   padding: 2px;
-  background: var(--color-kumo-canvas, var(--ff-bg));
+  background: var(--color-kumo-tint, var(--ff-tint));
   gap: 2px;
 }
 
@@ -726,8 +733,8 @@ html[data-mode="dark"] .ff-search {
   flex-shrink: 0;
   /* +1px top so tabs center in the full bar (incl. 1px bottom border) */
   padding: calc(0.5rem + 1px) 0.75rem 0.5rem;
-  border-bottom: 1px solid var(--color-kumo-line, #e4e1da);
-  background: var(--color-kumo-elevated, var(--color-kumo-base, #fff));
+  border-bottom: 1px solid var(--color-kumo-line, var(--ff-line));
+  background: var(--color-kumo-elevated, var(--ff-elevated));
   box-sizing: border-box;
 }
 
@@ -783,19 +790,19 @@ html[data-mode="dark"] .ff-search {
 }
 
 .ff-form-editor .ff-builder > .ff-palette-panel {
-  border-inline-end: 1px solid var(--color-kumo-line, #e4e1da);
+  border-inline-end: 1px solid var(--color-kumo-line, var(--ff-line));
   background: var(--color-kumo-base, var(--ff-surface));
 }
 
 .ff-form-editor .ff-builder > .ff-canvas {
-  background: var(--color-kumo-elevated, var(--color-kumo-base, #fff));
+  background: var(--color-kumo-elevated, var(--ff-elevated));
 }
 
 .ff-form-editor .ff-builder > .ff-prop-rail {
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  border-inline-start: 1px solid var(--color-kumo-line, #e4e1da);
+  border-inline-start: 1px solid var(--color-kumo-line, var(--ff-line));
   max-height: none;
   height: 100%;
   background: var(--color-kumo-base, var(--ff-surface));
@@ -1003,8 +1010,8 @@ html[data-mode="dark"] .ff-search {
   max-width: 100%;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  background: var(--ff-tint, var(--color-kumo-tint, #f3f1ec));
-  border: 1px solid var(--ff-line, var(--color-kumo-line, #e6e2da));
+  background: var(--ff-tint, var(--color-kumo-tint));
+  border: 1px solid var(--ff-line, var(--color-kumo-line));
   color: var(--ff-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.75rem;
@@ -1018,7 +1025,7 @@ html[data-mode="dark"] .ff-search {
 .ff-builder-unsaved {
   font-size: 0.75rem;
   font-weight: 500;
-  color: var(--ff-accent, var(--color-kumo-brand, #e5622d));
+  color: var(--ff-accent, var(--color-kumo-brand));
 }
 
 .ff-root .ff-header h1 {
@@ -1342,7 +1349,7 @@ html[data-mode="dark"] .ff-btn-ai {
   line-height: 1.4;
 }
 
-/* Match EmDash/Kumo recessed Tabs (Redirects / 404 Errors) */
+/* Match EmDash/Kumo segmented tabs — soft tint track, white active pill */
 .ff-builder-tabs {
   display: inline-flex;
   align-items: stretch;
@@ -1350,8 +1357,8 @@ html[data-mode="dark"] .ff-btn-ai {
   height: 2.25rem; /* h-9 */
   padding: 0 0.125rem; /* px-0.5 */
   border-radius: 0.5rem; /* rounded-lg */
-  background: var(--color-kumo-recessed, var(--ff-bg));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-kumo-hairline, var(--ff-line)) 70%, transparent);
+  background: var(--color-kumo-tint, var(--ff-tint));
+  box-shadow: 0 0 0 1px var(--color-kumo-line, var(--ff-line));
   flex-wrap: nowrap;
   max-width: 100%;
   overflow-x: auto;
@@ -1383,7 +1390,7 @@ html[data-mode="dark"] .ff-btn-ai {
 .ff-builder-tab.is-active,
 .ff-builder-tab[aria-selected="true"] {
   color: var(--text-color-kumo-default, var(--ff-ink));
-  background: var(--color-kumo-elevated, var(--ff-surface));
+  background: var(--color-kumo-base, var(--ff-surface));
   box-shadow: 0 1px 2px var(--color-kumo-shadow-edge, rgb(0 0 0 / 8%));
 }
 
@@ -1449,17 +1456,18 @@ html[data-mode="dark"] .ff-btn-ai {
   padding: 0.35rem 1.6rem 0.35rem 1.7rem;
   font: inherit;
   font-size: 0.78rem;
-  border: 1px solid var(--ff-line);
+  border: 0;
   border-radius: 6px;
-  background: var(--ff-bg);
+  background: var(--ff-control);
   color: var(--ff-ink);
   outline: none;
-  transition: border-color 0.15s ease;
+  box-shadow: 0 0 0 1px var(--ff-line);
+  transition: box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
 .ff-palette-search input:focus {
-  border-color: var(--ff-accent);
   background: var(--ff-surface);
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--ff-accent) 45%, transparent);
 }
 
 .ff-search-icon {
@@ -1522,8 +1530,8 @@ html[data-mode="dark"] .ff-btn-ai {
   height: 32px;
   box-sizing: border-box;
   text-align: left;
-  border: 1px solid var(--ff-line);
-  background: var(--ff-bg);
+  border: 0;
+  background: var(--ff-control);
   color: var(--ff-ink);
   border-radius: 6px;
   padding: 0 0.55rem;
@@ -1531,15 +1539,15 @@ html[data-mode="dark"] .ff-btn-ai {
   font: inherit;
   font-size: 0.78rem;
   font-weight: 500;
-  transition: all 0.15s ease;
+  box-shadow: 0 0 0 1px var(--ff-line);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
   user-select: none;
 }
 
 .ff-palette-item:hover {
-  border-color: var(--ff-accent);
-  background: var(--ff-surface);
+  background: var(--ff-tint);
   transform: scale(1.02);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 0 0 1px var(--ff-line), 0 2px 4px rgb(0 0 0 / 4%);
 }
 
 .ff-palette-item:active {
@@ -1757,8 +1765,8 @@ html[data-mode="dark"] .ff-btn-ai {
 }
 
 .ff-field:hover {
-  border-color: var(--ff-line-strong, #cbd5e1);
-  background: var(--ff-elevated);
+  border-color: color-mix(in srgb, var(--ff-ink) 18%, transparent);
+  background: var(--ff-surface);
 }
 
 .ff-field.is-selected {
@@ -1890,14 +1898,15 @@ html[data-mode="dark"] .ff-btn-ai {
 .ff-preview-input {
   height: 30px;
   box-sizing: border-box;
-  border: 1px solid var(--ff-line);
+  border: 0;
   border-radius: 5px;
-  background: var(--ff-bg);
+  background: var(--ff-control);
   padding: 0 0.55rem;
   display: flex;
   align-items: center;
   font-size: 0.78rem;
   color: var(--ff-muted);
+  box-shadow: 0 0 0 1px var(--ff-line);
 }
 
 .ff-preview-with-icon {
@@ -1940,12 +1949,13 @@ html[data-mode="dark"] .ff-btn-ai {
 .ff-preview-textarea {
   min-height: 48px;
   box-sizing: border-box;
-  border: 1px solid var(--ff-line);
+  border: 0;
   border-radius: 5px;
-  background: var(--ff-bg);
+  background: var(--ff-control);
   padding: 0.35rem 0.55rem;
   font-size: 0.78rem;
   color: var(--ff-muted);
+  box-shadow: 0 0 0 1px var(--ff-line);
 }
 
 .ff-preview-number {
@@ -1963,15 +1973,16 @@ html[data-mode="dark"] .ff-btn-ai {
 .ff-preview-select {
   height: 30px;
   box-sizing: border-box;
-  border: 1px solid var(--ff-line);
+  border: 0;
   border-radius: 5px;
-  background: var(--ff-bg);
+  background: var(--ff-control);
   padding: 0 0.55rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 0.78rem;
   color: var(--ff-muted);
+  box-shadow: 0 0 0 1px var(--ff-line);
 }
 
 .ff-preview-chevron {
@@ -3409,18 +3420,23 @@ html[data-mode="dark"] .ff-alert-error {
 
 .bg-kumo-base { background-color: var(--color-kumo-base, #ffffff) !important; }
 .bg-kumo-control { background-color: var(--color-kumo-control, #ffffff) !important; }
-.bg-kumo-tint { background-color: var(--color-kumo-tint, #f4f4f5) !important; }
-.bg-kumo-contrast { background-color: var(--color-kumo-contrast, #18181b) !important; }
-.bg-kumo-canvas { background-color: var(--color-kumo-canvas, #f6f5f2) !important; }
+.bg-kumo-tint { background-color: var(--color-kumo-tint, oklch(97% 0 0)) !important; }
+.bg-kumo-elevated { background-color: var(--color-kumo-elevated, oklch(98.75% 0 0)) !important; }
+.bg-kumo-recessed { background-color: var(--color-kumo-recessed, oklch(96.5% 0 0)) !important; }
+.bg-kumo-contrast { background-color: var(--color-kumo-contrast, oklch(20.5% 0 0)) !important; }
+.bg-kumo-canvas { background-color: var(--color-kumo-canvas, oklch(98.75% 0 0)) !important; }
 
 .text-kumo-base { color: var(--color-kumo-base, #ffffff) !important; }
-.text-kumo-default { color: var(--text-color-kumo-default, #18181b) !important; }
-.text-kumo-strong { color: var(--text-color-kumo-strong, #09090b) !important; }
-.text-kumo-subtle { color: var(--text-color-kumo-subtle, #71717a) !important; }
-.text-kumo-brand { color: var(--color-kumo-brand, #f6821f) !important; }
+.text-kumo-default { color: var(--text-color-kumo-default, oklch(20.5% 0 0)) !important; }
+.text-kumo-strong { color: var(--text-color-kumo-strong, oklch(14.5% 0 0)) !important; }
+.text-kumo-subtle { color: var(--text-color-kumo-subtle, oklch(55.6% 0 0)) !important; }
+.text-kumo-brand { color: var(--text-color-kumo-brand, var(--color-kumo-brand, oklch(57.72% 0.2324 260))) !important; }
+.text-kumo-link { color: var(--text-color-kumo-link, oklch(42.4% 0.199 265.638)) !important; }
 .text-kumo-danger { color: var(--text-color-kumo-danger, #dc2626) !important; }
+.hover\:text-kumo-link:hover { color: var(--text-color-kumo-link, oklch(42.4% 0.199 265.638)) !important; }
 
-.border-kumo-line { border-color: var(--color-kumo-line, #e4e1da) !important; }
+.border-kumo-line { border-color: var(--color-kumo-line, oklch(14.5% 0 0 / 0.1)) !important; }
+.ring-kumo-line { --tw-ring-color: var(--color-kumo-line, oklch(14.5% 0 0 / 0.1)) !important; }
 
 .p-4 { padding: 1rem !important; }
 .p-5 { padding: 1.25rem !important; }

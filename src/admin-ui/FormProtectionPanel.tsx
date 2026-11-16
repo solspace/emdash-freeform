@@ -278,7 +278,7 @@ export function FormProtectionPanel({
             </p>
             <button
               type="button"
-              className="w-max text-sm font-medium text-kumo-brand hover:underline"
+              className="w-max text-sm font-medium text-kumo-link hover:underline"
               onClick={() => goToSettingsSection("ai")}
             >
               Open AI &amp; spam settings

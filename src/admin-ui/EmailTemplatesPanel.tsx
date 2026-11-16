@@ -412,7 +412,7 @@ export function EmailTemplatesPanel({ formId, onToast, onSaveMetaChange }: Props
               </span>
               <button
                 type="button"
-                className="text-xs text-kumo-brand hover:underline font-medium"
+                className="text-xs text-kumo-link hover:underline font-medium"
                 onClick={() => setShowAdvanced(!showAdvanced)}
               >
                 {showAdvanced ? "Hide headers ▲" : "Configure headers ▼"}

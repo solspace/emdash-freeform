@@ -416,7 +416,7 @@ export function FormsDashboard({
                             style={{ background: accent }}
                             aria-hidden="true"
                           />
-                          <span className="font-medium text-kumo-strong hover:text-kumo-brand">
+                          <span className="font-medium text-kumo-link hover:underline">
                             {form.name}
                           </span>
                         </div>
@@ -432,7 +432,7 @@ export function FormsDashboard({
                       <td className="px-4 py-3 text-sm">
                         <button
                           type="button"
-                          className="text-kumo-brand hover:underline font-medium"
+                          className="text-kumo-link hover:underline font-medium"
                           onClick={(e) => {
                             e.stopPropagation();
                             goToFormSubmissions(form.id);
@@ -537,7 +537,7 @@ export function FormsDashboard({
                   <span>{form.fieldCount} fields</span>
                   <button
                     type="button"
-                    className="text-kumo-brand hover:underline font-medium"
+                    className="text-kumo-link hover:underline font-medium"
                     onClick={(e) => {
                       e.stopPropagation();
                       goToFormSubmissions(form.id);
