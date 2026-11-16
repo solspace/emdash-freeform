@@ -318,10 +318,10 @@ function PropertyEditor({
   onRemove: () => void;
   onClose: () => void;
 }) {
-  const [validationOpen, setValidationOpen] = useState(false);
+  const [validationOpen, setValidationOpen] = useState(true);
 
   useEffect(() => {
-    setValidationOpen(false);
+    setValidationOpen(true);
   }, [field?.id]);
 
   if (!field) {
@@ -398,7 +398,7 @@ function PropertyEditor({
         />
       </header>
 
-      <div className="ff-prop-rail-body min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-kumo-base [&_input]:text-base [&_input]:font-normal [&_textarea]:text-base [&_textarea]:font-normal">
+      <div className="ff-prop-rail-body min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-kumo-base [scrollbar-gutter:stable] [&_input]:text-base [&_input]:font-normal [&_textarea]:text-base [&_textarea]:font-normal">
         <PropSection title="General">
           <PropField label="Label" htmlFor="ff-label">
             <input
@@ -562,31 +562,35 @@ function PropertyEditor({
               <Collapsible.Root open={validationOpen} onOpenChange={setValidationOpen}>
                 <Collapsible.Trigger
                   render={
-                    <Button
+                    <button
                       type="button"
-                      variant="ghost"
-                      className="relative -ms-3 w-[calc(100%+0.75rem)] justify-between"
+                      className="flex w-full items-center justify-between gap-2 text-start outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded-md"
                     />
                   }
                 >
-                  <span className="font-semibold text-kumo-default">Validation Rules</span>
+                  <span className="text-base font-semibold text-kumo-default">
+                    Validation Rules
+                  </span>
                   <CaretDown
-                    className={`h-4 w-4 text-kumo-subtle transition-transform duration-150 ease-out motion-reduce:transition-none ${
+                    className={`h-4 w-4 shrink-0 text-kumo-subtle transition-transform duration-150 ease-out motion-reduce:transition-none ${
                       validationOpen ? "rotate-180" : ""
                     }`}
+                    aria-hidden="true"
                   />
                 </Collapsible.Trigger>
                 <Collapsible.Panel
-                  className="overflow-hidden duration-150 ease-out [&[hidden]:not([hidden='until-found'])]:hidden motion-reduce:transition-none"
-                  style={({ transitionStatus }) => ({
-                    height:
-                      transitionStatus === "starting" || transitionStatus === "ending"
-                        ? 0
-                        : "var(--collapsible-panel-height)",
-                    transitionProperty: "height",
-                  })}
+                  className="duration-150 ease-out [&[hidden]:not([hidden='until-found'])]:hidden motion-reduce:transition-none"
+                  style={({ transitionStatus }) => {
+                    const collapsing =
+                      transitionStatus === "starting" || transitionStatus === "ending";
+                    return {
+                      height: collapsing ? 0 : "var(--collapsible-panel-height)",
+                      overflow: collapsing ? "hidden" : "visible",
+                      transitionProperty: "height",
+                    };
+                  }}
                 >
-                  <div className="grid gap-4 pt-4">
+                  <div className="grid gap-4 pt-4 pb-2 [&>*]:min-w-0">
                     {["text", "email", "textarea", "phone"].includes(field.type) && (
                       <>
                         <div className="flex min-w-0 items-end gap-2">
@@ -702,7 +706,7 @@ function PropertyEditor({
         )}
       </div>
 
-      <footer className="sticky bottom-0 flex shrink-0 gap-2 border-t border-kumo-line bg-kumo-base px-4 py-3">
+      <footer className="flex shrink-0 gap-2 border-t border-kumo-line bg-kumo-base px-4 py-3">
         <Button type="button" variant="secondary" className="flex-1" onClick={onDuplicate}>
           <ActionIcon name="duplicate" size={13} /> Duplicate
         </Button>
