@@ -85,7 +85,7 @@ export function FfListSearch({
   return (
     <InputGroup
       size="sm"
-      className={`w-full min-w-0 sm:w-64 sm:flex-none${className ? ` ${className}` : ""}`}
+      className={`ff-list-search${className ? ` ${className}` : ""}`}
     >
       <InputGroup.Addon>
         <MagnifyingGlass className="h-4 w-4" aria-hidden="true" />

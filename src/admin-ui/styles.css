@@ -3860,6 +3860,22 @@ html[data-mode="dark"] .text-red-600 {
   width: 100% !important;
 }
 
+/* FfListSearch — keep compact like EmDash Posts (polyfill .w-full !important
+ * otherwise wins over Tailwind sm:w-64). */
+.ff-list-search {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+@media (min-width: 640px) {
+  .ff-list-search {
+    width: 16rem !important; /* w-64 */
+    max-width: 16rem !important;
+    flex: none !important;
+  }
+}
+
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;

@@ -1,5 +1,5 @@
 import { Button, Dialog } from "@cloudflare/kumo";
-import { CaretDown, Plus, X } from "@phosphor-icons/react";
+import { CaretDown, ListBullets, Plus, SquaresFour, X } from "@phosphor-icons/react";
 import {
   useEffect,
   useMemo,
@@ -335,23 +335,27 @@ export function FormsDashboard({
           <button
             type="button"
             onClick={() => setView("list")}
-            className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+            aria-pressed={view === "list"}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded transition-colors ${
               view === "list"
                 ? "bg-kumo-base text-kumo-strong shadow-xs"
                 : "text-kumo-subtle hover:text-kumo-default"
             }`}
           >
+            <ListBullets size={14} weight="bold" aria-hidden="true" />
             List
           </button>
           <button
             type="button"
             onClick={() => setView("cards")}
-            className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+            aria-pressed={view === "cards"}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded transition-colors ${
               view === "cards"
                 ? "bg-kumo-base text-kumo-strong shadow-xs"
                 : "text-kumo-subtle hover:text-kumo-default"
             }`}
           >
+            <SquaresFour size={14} weight="bold" aria-hidden="true" />
             Cards
           </button>
         </div>

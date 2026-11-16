@@ -7,6 +7,23 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.4.0] — 2026-11-16
+
+### Added
+
+- **Settings Save chrome** — AI / Email / Templates / Webhooks detail pages use EmDash `SaveButton` (Saved → blue Save) with dirty tracking
+- **Form builder header Save** — same Saved/Save pattern as posts & settings; centered Layout · Notifications · Protection · Settings tabs
+- **Drop settle animation** — palette fields fade into the dropzone (no fly-back to the left menu) with a short settle pulse on the new field
+
+### Changed
+
+- **Submissions** — EmDash posts-style filters (`FfFilterSelect`), data table, and `⋯` row menu with danger trash
+- **Templates & Webhooks lists** — `FfDataTable` + row actions + status switches aligned with EmDash list pages
+- **Form builder polish** — Validation Rules default-open and unclipped; Protection toggles on the right (`FfSwitchRow`); Sample field preview removed; header card-color pickers removed (accent stays in Settings)
+- **Light mode palette** — cool EmDash/Kumo neutrals (elevated / tint / soft line) instead of warm cream; UI accent follows `--color-kumo-brand`; list titles use `text-kumo-link` like Pages/Posts
+- **Builder surfaces** — white ringed palette chips & field previews; softer tab track; selection/focus match current EmDash admin chrome
+- **Forms toolbar** — search capped at EmDash width (`w-64`); List/Cards toggle includes Phosphor icons
+
 ## [1.3.0] — 2026-11-07
 
 ### Changed
