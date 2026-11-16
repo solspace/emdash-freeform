@@ -228,8 +228,8 @@ export function FfDataTableBulkBar({
 }
 
 /**
- * EmDash Switch with toggle on the LEFT (Freeform preference on wide pages).
- * Use for single boolean settings — not multi-select lists or table selection.
+ * EmDash settings Switch row — label/description left, toggle right
+ * (`justify-between`, same as BackupSettings / inferred-byline filter).
  */
 export function FfSwitchRow({
   id,
@@ -250,17 +250,10 @@ export function FfSwitchRow({
 }) {
   const descId = id && description ? `${id}-description` : undefined;
   return (
-    <div className={`flex items-start gap-3 ${className}`.trim()}>
-      <Switch
-        id={id}
-        checked={checked}
-        disabled={disabled}
-        aria-label={typeof label === "string" ? label : undefined}
-        aria-describedby={descId}
-        className="mt-0.5 shrink-0"
-        onCheckedChange={onCheckedChange}
-      />
-      <div className="grid min-w-0 gap-1">
+    <div
+      className={`flex items-start justify-between gap-3 ${className}`.trim()}
+    >
+      <div className="grid min-w-0 flex-1 gap-1">
         {typeof label === "string" ? (
           <label
             htmlFor={id}
@@ -277,6 +270,15 @@ export function FfSwitchRow({
           </p>
         ) : null}
       </div>
+      <Switch
+        id={id}
+        checked={checked}
+        disabled={disabled}
+        aria-label={typeof label === "string" ? label : undefined}
+        aria-describedby={descId}
+        className="mt-0.5 shrink-0"
+        onCheckedChange={onCheckedChange}
+      />
     </div>
   );
 }

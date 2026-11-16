@@ -867,58 +867,6 @@ html[data-mode="dark"] .ff-search {
   }
 }
 
-/* Theme tab — live preview of public accent */
-.ff-theme-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  max-width: 22rem;
-}
-
-.ff-theme-preview-label {
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 550;
-  color: var(--text-color-kumo-default, var(--ff-ink));
-}
-
-.ff-theme-preview-input {
-  height: 2.25rem;
-  width: 100%;
-  box-sizing: border-box;
-  border: 0;
-  border-radius: 0.5rem;
-  background: var(--color-kumo-control, var(--ff-bg));
-  color: var(--text-color-kumo-default, var(--ff-ink));
-  padding: 0 0.75rem;
-  font: inherit;
-  font-size: 0.875rem;
-  box-shadow: 0 0 0 1px var(--color-kumo-line, var(--ff-line));
-  outline: none;
-}
-
-.ff-theme-preview-input:focus {
-  box-shadow: 0 0 0 1.5px var(--ff-accent, var(--color-kumo-brand, #006ff7));
-}
-
-.ff-theme-preview-input::placeholder {
-  color: var(--text-color-kumo-subtle, var(--ff-muted));
-}
-
-.ff-theme-preview-submit {
-  align-self: flex-start;
-  height: 2.25rem;
-  padding: 0 1rem;
-  border: 0;
-  border-radius: 0.5rem;
-  background: var(--ff-accent, var(--color-kumo-brand, #006ff7));
-  color: #fff;
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 550;
-  cursor: default;
-}
-
 /* EmDash ContentEditor bar crumb: [←] List / Title */
 .ff-builder-crumb {
   display: flex;

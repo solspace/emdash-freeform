@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { StoredForm } from "../types";
 import {
   FORM_COLOR_PRESETS,
@@ -141,7 +141,7 @@ export function FormSettingsPanel({ form, onChange }: Props) {
           <FieldRow>
             <FieldBlock
               label="Accent color"
-              description="Used on the public form submit button and focused input rings. Defaults to the header card color when unset."
+              description="Used on the public form submit button and focused inputs. Defaults to the header card color when unset."
             >
               <div
                 className="ff-color-picker ff-color-picker-bare"
@@ -166,25 +166,6 @@ export function FormSettingsPanel({ form, onChange }: Props) {
               </div>
             </FieldBlock>
           </FieldRow>
-        </div>
-
-        <div
-          className="ff-theme-preview mt-3 rounded-xl border border-kumo-line bg-kumo-base p-5"
-          style={{ "--ff-accent": accent } as CSSProperties}
-        >
-          <label className="ff-theme-preview-label" htmlFor="ff-theme-preview-input">
-            Sample field
-          </label>
-          <input
-            id="ff-theme-preview-input"
-            className="ff-theme-preview-input"
-            type="text"
-            placeholder="Focus me to see the accent ring"
-            readOnly
-          />
-          <button type="button" className="ff-theme-preview-submit">
-            Submit
-          </button>
         </div>
       </section>
     </div>
