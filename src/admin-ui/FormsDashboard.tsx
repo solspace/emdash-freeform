@@ -343,10 +343,6 @@ export function FormsDashboard({
         </div>
       )}
 
-      {loading && (
-        <p className="text-sm text-kumo-subtle py-4 text-center">Loading forms…</p>
-      )}
-
       {view === "list" ? (
         <div className="rounded-md border border-kumo-line bg-kumo-base overflow-x-auto">
           <table className="w-full text-start">
@@ -360,7 +356,27 @@ export function FormsDashboard({
               </tr>
             </thead>
             <tbody className="divide-y divide-kumo-line">
-              {!loading && filtered.length === 0 ? (
+              {loading ? (
+                Array.from({ length: 3 }, (_, i) => (
+                  <tr key={`form-skeleton-${i}`} aria-hidden="true">
+                    <td className="px-4 py-4">
+                      <span className="ff-skeleton h-4 w-40" />
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="ff-skeleton h-4 w-24" />
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="ff-skeleton h-4 w-8" />
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="ff-skeleton h-4 w-28" />
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="ff-skeleton ms-auto h-4 w-6" />
+                    </td>
+                  </tr>
+                ))
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-sm text-kumo-subtle">
                     {forms.length === 0
@@ -439,7 +455,24 @@ export function FormsDashboard({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((form) => {
+          {loading &&
+            Array.from({ length: 3 }, (_, i) => (
+              <div
+                key={`form-card-skeleton-${i}`}
+                aria-hidden="true"
+                className="flex min-h-[168px] flex-col justify-between rounded-lg border border-kumo-line bg-kumo-base p-6 shadow-xs"
+              >
+                <div className="flex flex-col gap-3">
+                  <span className="ff-skeleton h-5 w-40" />
+                  <span className="ff-skeleton h-3.5 w-24" />
+                </div>
+                <div className="mt-4 pt-3 border-t border-kumo-line flex items-center justify-between">
+                  <span className="ff-skeleton h-3 w-16" />
+                  <span className="ff-skeleton h-3 w-20" />
+                </div>
+              </div>
+            ))}
+          {!loading && filtered.map((form) => {
             const accent = resolveFormColor(form);
             return (
               <article

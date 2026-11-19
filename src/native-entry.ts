@@ -57,7 +57,7 @@ export function createPlugin(_options: Record<string, unknown> = {}) {
   return definePlugin({
     id: "freeform",
     displayName: "Freeform",
-    version: "1.4.2",
+    version: "1.4.3",
     capabilities: ["network:request:unrestricted", "email:send"],
     storage: {
       forms: { indexes: ["createdAt"] },

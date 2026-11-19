@@ -7,6 +7,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.4.3] — 2026-11-19
+
+### Changed
+
+- **Forms list loading state** — while forms load, the list shows placeholder rows (table) and placeholder cards (cards view) instead of an empty table under the column headers; the "Loading forms…" line is removed
+
 ## [1.4.2] — 2026-11-19
 
 ### Changed

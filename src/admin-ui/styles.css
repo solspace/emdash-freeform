@@ -3886,3 +3886,27 @@ html[data-mode="dark"] .text-red-600 {
   max-width: min(28rem, 50vw);
 }
 
+
+/* Loading placeholders for the Forms list (table rows + cards) */
+.ff-skeleton {
+  display: block;
+  background-color: var(--color-kumo-tint, oklch(97% 0 0));
+  border-radius: 0.25rem;
+  animation: ff-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ff-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-skeleton {
+    animation: none;
+  }
+}
