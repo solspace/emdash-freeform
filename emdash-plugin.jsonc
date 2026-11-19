@@ -42,7 +42,7 @@
 	"capabilities": ["network:request:unrestricted", "email:send"],
 	"allowedHosts": [],
 	"admin": {
-		"pages": [{ "path": "/forms", "label": "Freeform", "icon": "form-input" }],
+		"pages": [{ "path": "/forms", "label": "Forms", "icon": "note-pencil" }],
 		"widgets": [{ "id": "stats", "title": "Freeform", "size": "third" }]
 	},
 	"storage": {

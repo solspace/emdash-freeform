@@ -56,6 +56,7 @@ function wrapHooks(
 export function createPlugin(_options: Record<string, unknown> = {}) {
   return definePlugin({
     id: "freeform",
+    displayName: "Freeform",
     version: "1.4.1",
     capabilities: ["network:request:unrestricted", "email:send"],
     storage: {
@@ -68,8 +69,8 @@ export function createPlugin(_options: Record<string, unknown> = {}) {
     admin: {
       entry: "@local/freeform/admin",
       pages: [
-        { path: "/forms", label: "Forms", icon: "form-input", group: "Freeform" },
-        { path: "/submissions", label: "Submissions", icon: "inbox", group: "Freeform" },
+        { path: "/forms", label: "Forms", icon: "note-pencil", group: "Freeform" },
+        { path: "/submissions", label: "Submissions", icon: "tray", group: "Freeform" },
         { path: "/settings", label: "Settings", icon: "settings", group: "Freeform" },
       ],
       widgets: [{ id: "stats", title: "Freeform", size: "third" }],

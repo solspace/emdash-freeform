@@ -7,6 +7,7 @@ import type { PluginDescriptor } from "emdash";
 export function freeformPlugin(): PluginDescriptor {
   return {
     id: "freeform",
+    displayName: "Freeform",
     version: "1.4.1",
     format: "native",
     entrypoint: "@local/freeform/native",
@@ -20,8 +21,8 @@ export function freeformPlugin(): PluginDescriptor {
       webhooks: { indexes: ["createdAt"] },
     },
     adminPages: [
-      { path: "/forms", label: "Forms", icon: "form-input" },
-      { path: "/submissions", label: "Submissions", icon: "inbox" },
+      { path: "/forms", label: "Forms", icon: "note-pencil" },
+      { path: "/submissions", label: "Submissions", icon: "tray" },
       { path: "/settings", label: "Settings", icon: "settings" },
     ],
     adminWidgets: [{ id: "stats", title: "Freeform", size: "third" }],
