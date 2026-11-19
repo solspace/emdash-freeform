@@ -431,7 +431,6 @@ export function WebhooksPanel({ formId, onSaveMetaChange }: Props) {
         variant="primary"
         isPending={confirmBusy}
         error={confirmError}
-        preventCloseWhilePending
         onConfirm={() => {
           if (!pendingRotate) return;
           const wh = pendingRotate;
@@ -470,7 +469,6 @@ export function WebhooksPanel({ formId, onSaveMetaChange }: Props) {
         pendingLabel="Deleting..."
         isPending={confirmBusy}
         error={confirmError}
-        preventCloseWhilePending
         onConfirm={() => {
           if (!pendingDelete) return;
           const wh = pendingDelete;

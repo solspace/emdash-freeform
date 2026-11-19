@@ -1044,7 +1044,6 @@ export function SubmissionsPage() {
           pendingLabel="Moving..."
           isPending={busy}
           error={pendingDelete ? error : null}
-          preventCloseWhilePending
           onConfirm={() => {
             if (pendingDelete) void confirmDeleteSubmission(pendingDelete);
           }}
@@ -1068,7 +1067,6 @@ export function SubmissionsPage() {
           pendingLabel="Moving..."
           isPending={busy}
           error={pendingBulkDelete ? error : null}
-          preventCloseWhilePending
           onConfirm={() => void confirmBulkDelete()}
         />
 

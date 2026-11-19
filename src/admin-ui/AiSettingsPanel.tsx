@@ -219,7 +219,6 @@ export function AiSettingsPanel({ formId, onToast, onSaveMetaChange }: Props) {
         pendingLabel="Removing..."
         isPending={saving}
         error={showClearConfirm ? error : null}
-        preventCloseWhilePending
         onConfirm={() => void onClearKey()}
       />
     </form>

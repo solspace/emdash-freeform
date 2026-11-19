@@ -1,4 +1,4 @@
-import { Badge, Button } from "@cloudflare/kumo";
+import { Badge, Button, LayerDialog } from "@cloudflare/kumo";
 import { Copy, Eye, PaperPlaneTilt, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { NotificationFormat } from "../types";
@@ -10,6 +10,7 @@ import {
   type TemplateDocument,
 } from "./ff-api";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { DialogError } from "./DialogError";
 import { FF_CHIP, FfDataTable } from "./ff-list";
 import { DropdownMenu, RowActionsMenu } from "./RowActionsMenu";
 import type { SettingsSaveMeta } from "./settings-save";
@@ -731,66 +732,58 @@ export function EmailTemplatesPanel({ formId, onToast, onSaveMetaChange }: Props
       ) : null}
       </section>
 
-      {/* Send Test Email Modal */}
-      {testModalOpen && (
-        <div
-          className="ff-modal-overlay"
-          onClick={() => setTestModalOpen(false)}
-        >
-          <div
-            className="ff-modal"
-            style={{ maxWidth: "460px" }}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="test-email-modal-title"
-          >
-            <h3 id="test-email-modal-title" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <PaperPlaneTilt aria-hidden="true" /> Send Test Email
-            </h3>
-            <p className="ff-modal-desc">
-              Freeform will render this template with sample submission data and dispatch it through your active email provider.
-            </p>
-
-            <div className="ff-field-group" style={{ marginBottom: "1rem" }}>
-              <label htmlFor="ff-test-recipient" className="ff-field-label">
-                Recipient Email Address
-              </label>
-              <input
-                id="ff-test-recipient"
-                type="email"
-                className="ff-field-input"
-                placeholder="your.email@example.com"
-                value={testEmailRecipient}
-                onChange={(e) => setTestEmailRecipient(e.target.value)}
-              />
-            </div>
-
-            {testResult && (
-              <div
-                className={`ff-alert-box ${testResult.startsWith("✓") ? "ff-alert-success" : "ff-alert-error"}`}
-                style={{ marginBottom: "1rem" }}
-              >
-                {testResult}
+      {/* Send Test Email — EmDash LayerDialog shell */}
+      <LayerDialog.Root
+        open={testModalOpen}
+        onOpenChange={(next) => {
+          if (!next && !sendingTest) setTestModalOpen(false);
+        }}
+        dismissDisabled={sendingTest}
+        disablePointerDismissal
+      >
+        <LayerDialog.Content>
+          <LayerDialog.Title>Send Test Email</LayerDialog.Title>
+          <LayerDialog.Description>
+            Freeform will render this template with sample submission data and dispatch it
+            through your active email provider.
+          </LayerDialog.Description>
+          <LayerDialog.Body>
+            <div className="grid gap-4">
+              <div>
+                <label
+                  htmlFor="ff-test-recipient"
+                  className="mb-1.5 block text-sm font-medium text-kumo-default"
+                >
+                  Recipient email address
+                </label>
+                <input
+                  id="ff-test-recipient"
+                  type="email"
+                  className="h-9 w-full rounded-lg border-0 bg-kumo-control px-3 text-sm text-kumo-default shadow-xs ring ring-kumo-line placeholder:text-kumo-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand"
+                  placeholder="your.email@example.com"
+                  value={testEmailRecipient}
+                  disabled={sendingTest}
+                  onChange={(e) => setTestEmailRecipient(e.target.value)}
+                />
               </div>
-            )}
 
-            <div className="ff-modal-actions">
-              <Button variant="secondary" onClick={() => setTestModalOpen(false)}>
-                Close
-              </Button>
-              <Button
-                variant="primary"
-                icon={<PaperPlaneTilt aria-hidden="true" />}
-                disabled={sendingTest}
-                onClick={() => void handleSendTest()}
-              >
-                {sendingTest ? "Sending…" : "Send Test Email"}
-              </Button>
+              {testResult &&
+                (testResult.startsWith("✓") ? (
+                  <div role="status" className="ff-alert-box ff-alert-success">
+                    {testResult}
+                  </div>
+                ) : (
+                  <DialogError message={testResult} />
+                ))}
             </div>
-          </div>
-        </div>
-      )}
+          </LayerDialog.Body>
+          <LayerDialog.Actions dismissLabel="Close">
+            <LayerDialog.Action disabled={sendingTest} onClick={() => void handleSendTest()}>
+              {sendingTest ? "Sending…" : "Send Test Email"}
+            </LayerDialog.Action>
+          </LayerDialog.Actions>
+        </LayerDialog.Content>
+      </LayerDialog.Root>
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}
@@ -811,7 +804,6 @@ export function EmailTemplatesPanel({ formId, onToast, onSaveMetaChange }: Props
         pendingLabel="Deleting..."
         isPending={deleting}
         error={deleteError}
-        preventCloseWhilePending
         onConfirm={() => {
           if (!pendingDelete) return;
           const tpl = pendingDelete;

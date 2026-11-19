@@ -1,5 +1,5 @@
-import { Button, Dialog } from "@cloudflare/kumo";
-import { CaretDown, ListBullets, Plus, SquaresFour, X } from "@phosphor-icons/react";
+import { Button, LayerDialog } from "@cloudflare/kumo";
+import { CaretDown, ListBullets, Plus, SquaresFour } from "@phosphor-icons/react";
 import {
   useEffect,
   useMemo,
@@ -238,47 +238,22 @@ export function FormsDashboard({
         </div>
       </div>
 
-      <Dialog.Root
+      <LayerDialog.Root
         open={aiConfigured && aiOpen}
         onOpenChange={(next) => {
-          if (!next && !aiBusy) {
-            setAiOpen(false);
-          }
+          if (!next && !aiBusy) setAiOpen(false);
         }}
+        dismissDisabled={aiBusy}
         disablePointerDismissal
       >
-        <Dialog
-          className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] flex-col overflow-hidden p-0 sm:w-[32rem]"
-          size="base"
-        >
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-kumo-line px-6 py-5">
-              <div className="min-w-0">
-                <Dialog.Title className="text-lg font-semibold">
-                  Generate with AI
-                </Dialog.Title>
-                <Dialog.Description className="mt-1 text-sm text-kumo-subtle">
-                  Describe the form in plain language. Uses your OpenAI key from
-                  Settings → AI &amp; spam.
-                </Dialog.Description>
-              </div>
-              <Dialog.Close
-                aria-label="Close"
-                render={(props) => (
-                  <Button
-                    {...props}
-                    type="button"
-                    variant="ghost"
-                    shape="square"
-                    icon={<X className="size-4" aria-hidden="true" />}
-                    aria-label="Close"
-                    disabled={aiBusy}
-                  />
-                )}
-              />
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-6 py-6">
+        <LayerDialog.Content>
+          <LayerDialog.Title>Generate with AI</LayerDialog.Title>
+          <LayerDialog.Description>
+            Describe the form in plain language. Uses your OpenAI key from Settings → AI
+            &amp; spam.
+          </LayerDialog.Description>
+          <LayerDialog.Body>
+            <div>
               <label
                 htmlFor="ff-ai-prompt"
                 className="mb-1.5 block text-sm font-medium text-kumo-default"
@@ -301,28 +276,17 @@ export function FormsDashboard({
                 }}
               />
             </div>
-
-            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-kumo-line px-6 py-4">
-              <Button
-                variant="secondary"
-                disabled={aiBusy}
-                onClick={() => setAiOpen(false)}
-              >
-                Cancel
-              </Button>
-              <button
-                type="button"
-                className="ff-btn ff-btn-ai"
-                disabled={aiBusy || !aiPrompt.trim()}
-                onClick={() => void onAiCreate()}
-              >
-                <SparklesIcon />
-                {aiBusy ? "Generating…" : "Generate form"}
-              </button>
-            </div>
-          </div>
-        </Dialog>
-      </Dialog.Root>
+          </LayerDialog.Body>
+          <LayerDialog.Actions dismissLabel="Cancel">
+            <LayerDialog.Action
+              disabled={aiBusy || !aiPrompt.trim()}
+              onClick={() => void onAiCreate()}
+            >
+              {aiBusy ? "Generating…" : "Generate form"}
+            </LayerDialog.Action>
+          </LayerDialog.Actions>
+        </LayerDialog.Content>
+      </LayerDialog.Root>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <FfListSearch
@@ -575,7 +539,6 @@ export function FormsDashboard({
         pendingLabel="Deleting..."
         isPending={deleting}
         error={deleteError}
-        preventCloseWhilePending
         onConfirm={() => {
           if (!pendingDelete) return;
           const form = pendingDelete;

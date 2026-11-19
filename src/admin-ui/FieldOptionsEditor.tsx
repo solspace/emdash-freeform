@@ -1,3 +1,4 @@
+import { LayerDialog } from "@cloudflare/kumo";
 import { useId, useMemo, useRef, useState } from "react";
 import type { FieldOption, FormField } from "../types";
 import { FfSwitchRow } from "./ff-list";
@@ -639,29 +640,24 @@ export function FieldOptionsEditor({ field, onChange }: FieldOptionsEditorProps)
         </button>
       </div>
 
-      {/* Bulk Editor Modal / Slide-out */}
-      {bulkOpen && (
-        <div className="ff-modal-overlay" onClick={() => setBulkOpen(false)}>
-          <div className="ff-bulk-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="ff-bulk-modal-header">
-              <h3>Bulk Option Editor</h3>
-              <button
-                type="button"
-                className="ff-bulk-close-btn"
-                onClick={() => setBulkOpen(false)}
-                title="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="ff-bulk-modal-body">
-              <p className="ff-meta">
-                Paste one option per line. Formats supported: <code>Label;value</code> or <code>value: Label</code> or simply <code>Label</code>.
-              </p>
-
-              <div className="ff-bulk-mode-group">
-                <label className="ff-bulk-mode-label">
+      {/* Bulk editor — EmDash LayerDialog shell (bottom sheet on mobile) */}
+      <LayerDialog.Root
+        open={bulkOpen}
+        onOpenChange={(next) => {
+          if (!next) setBulkOpen(false);
+        }}
+        disablePointerDismissal
+      >
+        <LayerDialog.Content>
+          <LayerDialog.Title>Bulk Option Editor</LayerDialog.Title>
+          <LayerDialog.Description>
+            Paste one option per line. Formats supported: <code>Label;value</code> or{" "}
+            <code>value: Label</code> or simply <code>Label</code>.
+          </LayerDialog.Description>
+          <LayerDialog.Body>
+            <div className="grid gap-4">
+              <div className="flex flex-col gap-2 rounded-lg bg-kumo-tint p-3">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-kumo-default">
                   <input
                     type="radio"
                     name="bulk-mode"
@@ -671,7 +667,7 @@ export function FieldOptionsEditor({ field, onChange }: FieldOptionsEditorProps)
                   />
                   <span>Replace all existing options</span>
                 </label>
-                <label className="ff-bulk-mode-label">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-kumo-default">
                   <input
                     type="radio"
                     name="bulk-mode"
@@ -684,33 +680,19 @@ export function FieldOptionsEditor({ field, onChange }: FieldOptionsEditorProps)
               </div>
 
               <textarea
-                className="ff-bulk-textarea font-mono"
+                className="w-full rounded-lg border-0 bg-kumo-control p-3 font-mono text-xs text-kumo-default shadow-xs ring ring-kumo-line placeholder:text-kumo-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand"
                 rows={8}
                 value={bulkText}
                 onChange={(e) => setBulkText(e.target.value)}
                 placeholder="Option 1&#10;Option 2;opt2&#10;Option 3;opt3"
               />
             </div>
-
-            <div className="ff-bulk-modal-footer">
-              <button
-                type="button"
-                className="ff-btn ff-btn-secondary"
-                onClick={() => setBulkOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="ff-btn ff-btn-primary"
-                onClick={handleApplyBulk}
-              >
-                Import Options
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </LayerDialog.Body>
+          <LayerDialog.Actions dismissLabel="Cancel">
+            <LayerDialog.Action onClick={handleApplyBulk}>Import Options</LayerDialog.Action>
+          </LayerDialog.Actions>
+        </LayerDialog.Content>
+      </LayerDialog.Root>
     </div>
   );
 }

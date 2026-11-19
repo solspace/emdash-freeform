@@ -562,7 +562,6 @@ export function SubmissionDetailPage({ submissionId, onBack }: Props) {
         pendingLabel="Deleting..."
         isPending={busy}
         error={pendingDelete ? error : null}
-        preventCloseWhilePending
         onConfirm={() => void confirmDelete()}
       />
 
