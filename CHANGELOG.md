@@ -7,6 +7,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.4.2] — 2026-11-19
+
+### Changed
+
+- **Admin dialogs** — Submissions delete / Move to Trash, Generate with AI, Send Test Email, New/Edit notification, Bulk Option Editor, and the Webhooks / AI confirms use the EmDash `LayerDialog` shell (`ConfirmDialog` mirrors EmDash 1.5: double-press guard, inline errors, dismiss disabled while pending)
+- **Plugin identity** — display name is now "Freeform" in the Plugins list; Forms sidebar icon is `note-pencil`, Submissions is `tray`, and the registry page is labelled "Forms"
+
+### Added
+
+- Monochrome Freeform icon mask in `src/admin-ui/freeform-icon-mask.svg` (not used by the sidebar yet; EmDash sidebar only supports Phosphor icon names)
+
 ## [1.4.1] — 2026-11-16
 
 ### Fixed
