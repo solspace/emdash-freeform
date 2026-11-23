@@ -7,6 +7,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.4.5] — 2026-11-23
+
+### Changed
+
+- Registry form-builder screenshot refreshed.
+
 ## [1.4.4] — 2026-11-23
 
 ### Security

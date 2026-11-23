@@ -8,7 +8,7 @@ export function freeformPlugin(): PluginDescriptor {
   return {
     id: "freeform",
     displayName: "Freeform",
-    version: "1.4.3",
+    version: "1.4.5",
     format: "native",
     entrypoint: "@local/freeform/native",
     adminEntry: "@local/freeform/admin",
