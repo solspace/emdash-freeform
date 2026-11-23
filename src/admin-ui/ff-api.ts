@@ -2,6 +2,7 @@ import { apiFetch, parseApiResponse } from "@emdash-cms/admin";
 import type {
   EmailProviderSettings,
   EmailProviderType,
+  FormAccessSettings,
   FormCaptchaSettings,
   FormRow,
   NotificationFormat,
@@ -81,6 +82,7 @@ export async function saveForm(input: {
   captcha?: FormCaptchaSettings | null;
   honeypotEnabled?: boolean;
   privacy?: import("../types").FormPrivacySettings | null;
+  access?: FormAccessSettings | null;
   cardColor?: string | null;
   accentColor?: string | null;
 }): Promise<FormDocument> {
@@ -160,6 +162,7 @@ export type AiSettings = {
   configured: boolean;
   hint: string | null;
   spam: { enabled: boolean; threshold: number };
+  skipDemoSeed?: boolean;
 };
 
 export async function getAiSettings(): Promise<AiSettings> {
@@ -176,6 +179,7 @@ export async function saveAiSettings(input: {
   clearKey?: boolean;
   spamEnabled?: boolean;
   spamThreshold?: number;
+  skipDemoSeed?: boolean;
 }): Promise<AiSettings> {
   const res = await apiFetch(`${BASE}/save-ai-settings`, {
     method: "POST",

@@ -18,16 +18,21 @@
  */
 interface Props {
   formHandle: string;
+  /**
+   * @deprecated Ignored by the API (prompt-injection risk). Set chat site name
+   * and sales context under Freeform → form → Protection → AI chat & agents.
+   */
   siteName?: string;
-  salesContext: string;
+  /**
+   * @deprecated Ignored by the API. Configure `access.chatSalesContext` on the form.
+   */
+  salesContext?: string;
   initialGreeting?: string;
   class?: string;
 }
 
 const {
   formHandle,
-  siteName,
-  salesContext,
   initialGreeting = "Hi — I'm the on-call concierge for this site. Tell me a bit about your mission and I'll route you to the right person here. What brought you in today?",
   class: className,
 } = Astro.props;
@@ -37,8 +42,6 @@ const {
   class={className}
   data-freeform-chat
   data-form-handle={formHandle}
-  data-site-name={siteName ?? ""}
-  data-sales-context={salesContext}
 >
   <div data-freeform-chat-frame>
     <div data-freeform-chat-header aria-hidden="true">
@@ -180,8 +183,6 @@ const {
       const btn = form.querySelector<HTMLButtonElement>("button")!;
 
       const formHandle = root.dataset.formHandle!;
-      const siteName = root.dataset.siteName || "";
-      const salesContext = root.dataset.salesContext || "";
 
       // Seed history with the greeting already rendered server-side.
       const initial = root.querySelector<HTMLElement>(
@@ -268,8 +269,6 @@ const {
             body: JSON.stringify({
               messages: history,
               formHandle,
-              siteName,
-              salesContext,
               journey: readJourney(),
             }),
           });

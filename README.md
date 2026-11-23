@@ -11,12 +11,11 @@ Freeform is published on the EmDash plugin registry as `@solspace.com/freeform` 
 | **MCP server** (`packages/mcp`) | Optional Cloudflare Worker exposing Freeform to AI agents |
 
 <p align="center">
-  <img src="screenshots/form-builder.jpg" alt="Freeform Visual Form Builder" width="100%">
+  <img src="screenshots/forms-dashboard.jpg" alt="Freeform Forms Dashboard" width="100%">
 </p>
 
 <p align="center">
-  <img src="screenshots/forms-dashboard.jpg" alt="Freeform Forms Dashboard" width="49%">
-  <img src="screenshots/email-templates.jpg" alt="Freeform Settings & Notifications" width="49%">
+  <img src="screenshots/form-builder.jpg" alt="Freeform Visual Form Builder" width="100%">
 </p>
 
 ## Requirements
@@ -111,6 +110,7 @@ Submit a test entry, then check **Freeform → Submissions** in the admin.
 | **Email delivery (SMTP / Resend / etc.)** | **EmDash → Settings → Email** | Required for real notification mail in production — [docs/email.md](docs/email.md) |
 | Notification templates & recipients | Freeform → Settings → Notifications + form → Notifications | What to send and to whom |
 | AI builder, spam scoring, briefs | Freeform → Settings → AI & spam | OpenAI API key, stored in your site |
+| AI chat / agent discovery & submit | Form → Protection → AI chat & agents | Off by default; see [docs/security.md](docs/security.md) |
 | Webhooks | Freeform → Settings → Webhooks | Signed with HMAC-SHA256 — see [Webhooks](#webhooks) |
 | CSV export / delete | Freeform → Submissions | Access / erasure helpers |
 
@@ -168,7 +168,7 @@ Solspace):
 - **Generate with AI** — plain-English prompt → form (button only shows when a key is saved)
 - **Submission brief** — intent, urgency, key facts, suggested next action
 - **Spam scoring** — 0–10 score with reason; threshold skips notification emails
-- **AI chat widget** — `FreeformChat` submits through the same pipeline
+- **AI chat widget** — enable per form under Protection, then `<FreeformChat formHandle="…" />` (sales context lives on the form, not in the browser request)
 
 ## MCP server
 

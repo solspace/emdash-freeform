@@ -5,7 +5,7 @@
 	"publisher": "did:plc:tsp7az5h6qsqjzqsgz37wonx",
 
 	"name": "Freeform",
-	"description": "Build forms in EmDash with an AI-assisted builder, spam scoring, email notifications, webhooks, and CSV exports.",
+	"description": "Build forms in EmDash with an AI-assisted builder, opt-in AI chat/agents, spam scoring, email notifications, webhooks, and CSV exports.",
 	"license": "MIT",
 	"repo": "https://github.com/solspace/emdash-freeform",
 	"keywords": ["forms", "form builder", "submissions", "spam protection", "webhooks"],
@@ -23,10 +23,10 @@
 		},
 		"artifacts": {
 			"icon": { "file": "icon.png" },
+			"banner": { "file": "banner.jpg" },
 			"screenshots": [
-				{ "file": "screenshots/form-builder.jpg" },
 				{ "file": "screenshots/forms-dashboard.jpg" },
-				{ "file": "screenshots/email-templates.jpg" }
+				{ "file": "screenshots/form-builder.jpg" }
 			]
 		}
 	},

@@ -11,8 +11,12 @@ type Props = {
   onSaveMetaChange?: (meta: SettingsSaveMeta) => void;
 };
 
-function spamSnapshot(enabled: boolean, threshold: number) {
-  return JSON.stringify({ enabled, threshold });
+function settingsSnapshot(
+  enabled: boolean,
+  threshold: number,
+  skipDemoSeed: boolean,
+) {
+  return JSON.stringify({ enabled, threshold, skipDemoSeed });
 }
 
 export function AiSettingsPanel({ formId, onToast, onSaveMetaChange }: Props) {
@@ -23,8 +27,10 @@ export function AiSettingsPanel({ formId, onToast, onSaveMetaChange }: Props) {
   const [apiKey, setApiKey] = useState("");
   const [spamEnabled, setSpamEnabled] = useState(false);
   const [spamThreshold, setSpamThreshold] = useState(5);
+  const [skipDemoSeed, setSkipDemoSeed] = useState(false);
   const [savedSpamEnabled, setSavedSpamEnabled] = useState(false);
   const [savedSpamThreshold, setSavedSpamThreshold] = useState(5);
+  const [savedSkipDemoSeed, setSavedSkipDemoSeed] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const applyLoaded = useCallback((next: AiSettings) => {
@@ -33,6 +39,8 @@ export function AiSettingsPanel({ formId, onToast, onSaveMetaChange }: Props) {
     setSpamThreshold(next.spam.threshold);
     setSavedSpamEnabled(next.spam.enabled);
     setSavedSpamThreshold(next.spam.threshold);
+    setSkipDemoSeed(next.skipDemoSeed === true);
+    setSavedSkipDemoSeed(next.skipDemoSeed === true);
     setApiKey("");
   }, []);
 
@@ -55,11 +63,19 @@ export function AiSettingsPanel({ formId, onToast, onSaveMetaChange }: Props) {
 
   const isDirty = useMemo(() => {
     const keyDraft = Boolean(apiKey.trim());
-    const spamDirty =
-      spamSnapshot(spamEnabled, spamThreshold) !==
-      spamSnapshot(savedSpamEnabled, savedSpamThreshold);
-    return keyDraft || spamDirty;
-  }, [apiKey, spamEnabled, spamThreshold, savedSpamEnabled, savedSpamThreshold]);
+    const restDirty =
+      settingsSnapshot(spamEnabled, spamThreshold, skipDemoSeed) !==
+      settingsSnapshot(savedSpamEnabled, savedSpamThreshold, savedSkipDemoSeed);
+    return keyDraft || restDirty;
+  }, [
+    apiKey,
+    spamEnabled,
+    spamThreshold,
+    skipDemoSeed,
+    savedSpamEnabled,
+    savedSpamThreshold,
+    savedSkipDemoSeed,
+  ]);
 
   useEffect(() => {
     onSaveMetaChange?.({ isDirty, isSaving: saving });
@@ -75,6 +91,7 @@ export function AiSettingsPanel({ formId, onToast, onSaveMetaChange }: Props) {
         ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
         spamEnabled,
         spamThreshold,
+        skipDemoSeed,
       });
       applyLoaded(next);
       onToast?.("AI settings saved");
@@ -201,6 +218,29 @@ export function AiSettingsPanel({ formId, onToast, onSaveMetaChange }: Props) {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      </section>
+
+      <section className="ff-settings-section" aria-labelledby="ff-seed-heading">
+        <div className="ff-settings-section-copy">
+          <h2 id="ff-seed-heading" className="ff-settings-section-title">
+            Starter Contact form
+          </h2>
+          <p className="ff-settings-section-desc">
+            On first install (or first Freeform admin visit for native plugins), Freeform can create
+            a demo Contact form. Turn this on to skip that seed going forward.
+          </p>
+        </div>
+
+        <div className="ff-settings-panel">
+          <div className="ff-settings-row-stack">
+            <FfSwitchRow
+              id="ff-skip-demo-seed"
+              label="Skip creating the default Contact form"
+              checked={skipDemoSeed}
+              onCheckedChange={setSkipDemoSeed}
+            />
           </div>
         </div>
       </section>

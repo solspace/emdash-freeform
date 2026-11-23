@@ -103,6 +103,7 @@ export const formsRoutes = {
         captcha,
         honeypotEnabled,
         privacy,
+        access,
         cardColor,
         accentColor,
       } = routeCtx.input as {
@@ -114,6 +115,7 @@ export const formsRoutes = {
         captcha?: StoredForm["captcha"] | null;
         honeypotEnabled?: boolean;
         privacy?: StoredForm["privacy"] | null;
+        access?: StoredForm["access"] | null;
         cardColor?: string | null;
         accentColor?: string | null;
       };
@@ -215,6 +217,23 @@ export const formsRoutes = {
         }
       } else if (existing?.privacy) {
         form.privacy = existing.privacy;
+      }
+      if (access !== undefined) {
+        if (access === null) {
+          delete form.access;
+        } else {
+          const sales = access.chatSalesContext?.trim();
+          const site = access.chatSiteName?.trim();
+          form.access = {
+            chatEnabled: access.chatEnabled === true,
+            agentDiscoverable: access.agentDiscoverable === true,
+            agentSubmitEnabled: access.agentSubmitEnabled === true,
+            ...(sales ? { chatSalesContext: sales.slice(0, 4_000) } : {}),
+            ...(site ? { chatSiteName: site.slice(0, 200) } : {}),
+          };
+        }
+      } else if (existing?.access) {
+        form.access = existing.access;
       }
       await ctx.storage.forms.put(formId, form);
 

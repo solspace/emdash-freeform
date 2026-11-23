@@ -6,7 +6,7 @@ import { scoreSubmissionWithAI } from "../ai/spam";
 import { getAiCredentials } from "../lib/ai-config";
 import { createCsrfToken, verifyCsrfToken } from "../lib/csrf";
 import { sendNotificationsForSubmission } from "../lib/notifications";
-import { ensureDemoSeed } from "../lib/seed";
+import { clientIp } from "../lib/client-ip";
 import { effectiveSpamSettings, getSpamSettings } from "../lib/spam-settings";
 import {
   TURNSTILE_TOKEN_FIELD,
@@ -20,28 +20,26 @@ import type {
   SubmissionConsentRecord,
 } from "../types";
 
-function clientIp(request: Request): string | undefined {
-  const cf = request.headers.get("cf-connecting-ip");
-  if (cf?.trim()) return cf.trim();
-  const xff = request.headers.get("x-forwarded-for");
-  if (xff) {
-    const first = xff.split(",")[0]?.trim();
-    if (first) return first;
-  }
-  return undefined;
-}
-
-/** Never expose captcha secretKey on the public get-form response. */
+/** Never expose captcha secretKey or chat briefing on the public get-form response. */
 function publicFormPayload(formData: StoredForm, resolvedId: string, csrfToken: string) {
-  const { captcha, ...rest } = formData;
+  const { captcha, access, ...rest } = formData;
   const publicCaptcha =
     captcha?.provider === "turnstile" && captcha.siteKey
       ? { provider: "turnstile" as const, siteKey: captcha.siteKey }
       : undefined;
+  // Flags only — never chatSalesContext (prompt material).
+  const publicAccess = access
+    ? {
+        chatEnabled: access.chatEnabled === true,
+        agentDiscoverable: access.agentDiscoverable === true,
+        agentSubmitEnabled: access.agentSubmitEnabled === true,
+      }
+    : undefined;
   return {
     id: resolvedId,
     ...rest,
     ...(publicCaptcha ? { captcha: publicCaptcha } : {}),
+    ...(publicAccess ? { access: publicAccess } : {}),
     csrfToken,
   };
 }
@@ -50,8 +48,7 @@ export const publicRoutes = {
   "get-form": {
     public: true,
     handler: async (routeCtx: any, ctx: PluginContext) => {
-      await ensureDemoSeed(ctx);
-
+      // Do not seed from unauthenticated requests — install/admin only.
       const id = new URL(routeCtx.request.url).searchParams.get("id");
       if (!id) throw PluginRouteError.badRequest("Missing ?id=");
 
@@ -125,7 +122,7 @@ export const publicRoutes = {
       }
 
       const request: Request | undefined = routeCtx.request;
-      const ip = request ? clientIp(request) : undefined;
+      const ip = clientIp(request) ?? undefined;
 
       if (
         formData.captcha?.provider === "turnstile" &&

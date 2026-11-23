@@ -901,6 +901,7 @@ export function FormBuilder({ formId, onBack }: Props) {
         honeypotEnabled: form.honeypotEnabled,
         captcha: form.captcha,
         privacy: form.privacy,
+        access: form.access,
       });
       setForm((prev) => (prev ? { ...prev, ...saved } : prev));
       setDirty(false);
@@ -1335,6 +1336,7 @@ export function FormBuilder({ formId, onBack }: Props) {
           honeypotEnabled={form.honeypotEnabled !== false}
           captcha={form.captcha}
           privacy={form.privacy}
+          access={form.access}
           onHoneypotChange={(enabled) => {
             setForm({ ...form, honeypotEnabled: enabled });
             setDirty(true);
@@ -1348,6 +1350,10 @@ export function FormBuilder({ formId, onBack }: Props) {
           }}
           onPrivacyChange={(next) => {
             setForm({ ...form, privacy: next });
+            setDirty(true);
+          }}
+          onAccessChange={(next) => {
+            setForm({ ...form, access: next });
             setDirty(true);
           }}
         />

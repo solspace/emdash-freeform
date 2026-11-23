@@ -18,6 +18,7 @@ import {
   setFormSpamOverride,
   setSpamSettings,
 } from "../lib/spam-settings";
+import { getSkipDemoSeed, setSkipDemoSeed } from "../lib/seed";
 import type { EmailProviderSettings, SpamSettings, StoredForm } from "../types";
 
 function maskKey(key: string | null): { configured: boolean; hint: string | null } {
@@ -50,6 +51,7 @@ export const settingsRoutes = {
         provider: "openai" as const,
         ...maskKey(key),
         spam,
+        skipDemoSeed: await getSkipDemoSeed(ctx),
       };
     },
   },
@@ -61,6 +63,7 @@ export const settingsRoutes = {
         clearKey?: boolean;
         spamEnabled?: boolean;
         spamThreshold?: number;
+        skipDemoSeed?: boolean;
       };
 
       await setAiProvider(ctx, "openai");
@@ -85,12 +88,17 @@ export const settingsRoutes = {
         });
       }
 
+      if (typeof input.skipDemoSeed === "boolean") {
+        await setSkipDemoSeed(ctx, input.skipDemoSeed);
+      }
+
       const key = await getOpenAiApiKey(ctx);
       const spam = await getSpamSettings(ctx);
       return {
         provider: "openai" as const,
         ...maskKey(key),
         spam,
+        skipDemoSeed: await getSkipDemoSeed(ctx),
         configured: await hasOpenAiKey(ctx),
       };
     },

@@ -1,24 +1,32 @@
-import { AiSettingsPage } from "./admin-ui/AiSettingsPage";
-import { EmailSettingsPage } from "./admin-ui/EmailSettingsPage";
-import { FormsPage } from "./admin-ui/FormsPage";
-import { SettingsPage } from "./admin-ui/SettingsPage";
-import { StatsWidget } from "./admin-ui/StatsWidget";
-import { SubmissionsPage } from "./admin-ui/SubmissionsPage";
-import { TemplatesSettingsPage } from "./admin-ui/TemplatesSettingsPage";
-import { WebhooksSettingsPage } from "./admin-ui/WebhooksSettingsPage";
+import { lazyPage } from "./admin-ui/lazy-page";
 
 /** EmDash native admin entry — pages keyed by path, widgets by id. */
 export const pages = {
-  "/forms": FormsPage,
-  "/submissions": SubmissionsPage,
-  "/settings": SettingsPage,
-  // Settings detail pages (hub-only in sidebar; resolved via splat route)
-  "/settings/email": EmailSettingsPage,
-  "/settings/templates": TemplatesSettingsPage,
-  "/settings/webhooks": WebhooksSettingsPage,
-  "/settings/ai": AiSettingsPage,
+  "/forms": lazyPage(() => import("./admin-ui/FormsPage"), "FormsPage"),
+  "/submissions": lazyPage(
+    () => import("./admin-ui/SubmissionsPage"),
+    "SubmissionsPage",
+  ),
+  "/settings": lazyPage(() => import("./admin-ui/SettingsPage"), "SettingsPage"),
+  "/settings/email": lazyPage(
+    () => import("./admin-ui/EmailSettingsPage"),
+    "EmailSettingsPage",
+  ),
+  "/settings/templates": lazyPage(
+    () => import("./admin-ui/TemplatesSettingsPage"),
+    "TemplatesSettingsPage",
+  ),
+  "/settings/webhooks": lazyPage(
+    () => import("./admin-ui/WebhooksSettingsPage"),
+    "WebhooksSettingsPage",
+  ),
+  "/settings/ai": lazyPage(
+    () => import("./admin-ui/AiSettingsPage"),
+    "AiSettingsPage",
+  ),
 };
 
+/** Lazy so the dashboard shell does not pull Freeform React into the first paint. */
 export const widgets = {
-  stats: StatsWidget,
+  stats: lazyPage(() => import("./admin-ui/StatsWidget"), "StatsWidget"),
 };

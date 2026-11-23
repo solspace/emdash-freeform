@@ -17,3 +17,23 @@ security problems.
   provider the site operator configured under Settings → Email (Freeform does
   not store SMTP passwords).
 - Export links are short-lived, signed tokens; they expire automatically.
+
+**AI chat & agent endpoints (opt-in)**
+
+These routes are public when enabled. Defaults are **off** per form
+(Protection → AI chat & agents):
+
+| Surface | Gate | Extra controls |
+| --- | --- | --- |
+| `chat` | `access.chatEnabled` | Per-IP rate limit **before** the LLM call; message count/length caps; `salesContext` / site name come only from form settings (client values ignored) |
+| `list-public-forms` / manifests | `access.agentDiscoverable` | No demo seed from unauthenticated requests |
+| `submit-agent` | `access.agentSubmitEnabled` | Per-IP rate limit (missing IP shares a tight `no-ip` bucket); Turnstile required when the form has Turnstile configured |
+
+Standard HTML submit still uses honeypot + CSRF (+ Turnstile when configured).
+Agent submit does not use CSRF/honeypot; enable it only when you need machine
+clients, and keep Turnstile on if you need captcha on that path.
+
+**Demo Contact form**
+
+Seeding runs from install / first Freeform admin visit only — never from
+public routes. Settings → AI & spam can skip creating the starter Contact form.

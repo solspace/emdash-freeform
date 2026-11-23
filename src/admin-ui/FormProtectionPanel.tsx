@@ -1,5 +1,9 @@
 import type { ReactNode } from "react";
-import type { FormCaptchaSettings, FormPrivacySettings } from "../types";
+import type {
+  FormAccessSettings,
+  FormCaptchaSettings,
+  FormPrivacySettings,
+} from "../types";
 import { FfSwitchRow } from "./ff-list";
 import { goToSettingsSection } from "./ff-nav";
 
@@ -7,9 +11,11 @@ type Props = {
   honeypotEnabled: boolean;
   captcha: FormCaptchaSettings | undefined;
   privacy: FormPrivacySettings | undefined;
+  access: FormAccessSettings | undefined;
   onHoneypotChange: (enabled: boolean) => void;
   onCaptchaChange: (next: FormCaptchaSettings | null) => void;
   onPrivacyChange: (next: FormPrivacySettings) => void;
+  onAccessChange: (next: FormAccessSettings) => void;
 };
 
 const RETENTION_OPTIONS: Array<{ value: string; label: string }> = [
@@ -88,15 +94,20 @@ export function FormProtectionPanel({
   honeypotEnabled,
   captcha,
   privacy,
+  access,
   onHoneypotChange,
   onCaptchaChange,
   onPrivacyChange,
+  onAccessChange,
 }: Props) {
   const provider = captcha?.provider ?? "none";
   const retentionValue =
     typeof privacy?.retentionDays === "number" && privacy.retentionDays > 0
       ? String(privacy.retentionDays)
       : "";
+  const chatOn = access?.chatEnabled === true;
+  const agentListOn = access?.agentDiscoverable === true;
+  const agentSubmitOn = access?.agentSubmitEnabled === true;
 
   return (
     <div className="ff-page grid max-w-3xl gap-8">
@@ -105,7 +116,7 @@ export function FormProtectionPanel({
           Protection
         </h2>
         <p className="mt-1.5 max-w-2xl text-sm leading-5 text-pretty text-kumo-subtle">
-          Spam filters, captcha, and privacy defaults for this form.
+          Spam filters, captcha, privacy, and opt-in AI chat / agent access.
         </p>
       </div>
 
@@ -117,6 +128,81 @@ export function FormProtectionPanel({
             description="Adds a hidden field bots often fill. When tripped, the submission is silently dropped. CSRF always runs on public submit."
             checked={honeypotEnabled}
             onCheckedChange={onHoneypotChange}
+          />
+        </FieldRow>
+      </SettingsSection>
+
+      <SettingsSection id="ff-protection-access" title="AI chat & agents">
+        <FieldRow>
+          <FfSwitchRow
+            id="ff-chat-enabled"
+            label="Enable AI chat"
+            description="Off by default. Allows the public chat route and FreeformChat widget for this form. Rate-limited per IP; sales context is stored here (not accepted from the browser)."
+            checked={chatOn}
+            onCheckedChange={(checked) =>
+              onAccessChange({ ...access, chatEnabled: checked })
+            }
+          />
+        </FieldRow>
+        {chatOn ? (
+          <>
+            <FieldRow>
+              <FieldBlock
+                label="Chat site name"
+                htmlFor="ff-chat-site-name"
+                description="Used in the system prompt. Defaults to the form name."
+              >
+                <input
+                  id="ff-chat-site-name"
+                  className={INPUT}
+                  value={access?.chatSiteName ?? ""}
+                  placeholder="Acme Inc"
+                  onChange={(e) =>
+                    onAccessChange({ ...access, chatSiteName: e.target.value })
+                  }
+                />
+              </FieldBlock>
+            </FieldRow>
+            <FieldRow>
+              <FieldBlock
+                label="Chat sales context"
+                htmlFor="ff-chat-sales-context"
+                description="Server-owned briefing for the concierge. Do not put secrets here."
+              >
+                <textarea
+                  id="ff-chat-sales-context"
+                  className={TEXTAREA}
+                  rows={4}
+                  placeholder="What this form is for, product context, tone…"
+                  value={access?.chatSalesContext ?? ""}
+                  onChange={(e) =>
+                    onAccessChange({ ...access, chatSalesContext: e.target.value })
+                  }
+                />
+              </FieldBlock>
+            </FieldRow>
+          </>
+        ) : null}
+        <FieldRow>
+          <FfSwitchRow
+            id="ff-agent-discoverable"
+            label="List for AI agents"
+            description="Off by default. When on, this form appears in /.well-known/freeform.json and agent manifests."
+            checked={agentListOn}
+            onCheckedChange={(checked) =>
+              onAccessChange({ ...access, agentDiscoverable: checked })
+            }
+          />
+        </FieldRow>
+        <FieldRow>
+          <FfSwitchRow
+            id="ff-agent-submit"
+            label="Allow agent submit"
+            description="Off by default. When on, submit-agent accepts posts for this form (rate-limited). If Turnstile is configured, agent submit requires a Turnstile token."
+            checked={agentSubmitOn}
+            onCheckedChange={(checked) =>
+              onAccessChange({ ...access, agentSubmitEnabled: checked })
+            }
           />
         </FieldRow>
       </SettingsSection>

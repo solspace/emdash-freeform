@@ -1,14 +1,15 @@
 import type { PluginContext } from "emdash";
 import { PluginRouteError } from "../lib/plugin-route-error";
 import { findFormByHandle, runAgentSubmission } from "../lib/agent-submit";
+import { clientIp } from "../lib/client-ip";
+import { isAgentDiscoverable } from "../lib/form-access";
 import { isMultiType, isOptionType } from "../lib/options";
-import { ensureDemoSeed } from "../lib/seed";
 import type { FormField, StoredForm, VisitorPageView } from "../types";
 
 // Routes that let an AI agent discover and submit forms without an MCP install.
-// Public counterparts to the human-facing get-form/submit pair, with the
-// browser-only protections (CSRF, honeypot, timing) replaced by content
-// scoring + per-IP rate limit.
+// Opt-in per form (access.agentDiscoverable / access.agentSubmitEnabled).
+// Browser CSRF/honeypot are not used here; Turnstile is required when the
+// form has it configured. Rate limit fails closed (missing IP → shared bucket).
 
 // Public URL surfaced in manifests. The actual plugin handler lives at
 // /_emdash/api/plugins/freeform/submit-agent, but EmDash's default robots.txt
@@ -161,17 +162,17 @@ export const agentRoutes = {
   "list-public-forms": {
     public: true,
     handler: async (_routeCtx: any, ctx: PluginContext) => {
-      // See note in routes/public.ts get-form: ensures the default Contact form
-      // exists before an agent's first lookup of /.well-known/freeform.json.
-      await ensureDemoSeed(ctx);
+      // Do not seed from unauthenticated requests — install/admin only.
       const { items } = await ctx.storage.forms.query({ orderBy: { createdAt: "desc" } });
       return {
-        forms: (items as Array<{ id: string; data: StoredForm }>).map((f) => ({
-          id: f.id,
-          handle: f.data.handle,
-          name: f.data.name,
-          fieldCount: f.data.rows.reduce((n, r) => n + r.fields.length, 0),
-        })),
+        forms: (items as Array<{ id: string; data: StoredForm }>)
+          .filter((f) => isAgentDiscoverable(f.data))
+          .map((f) => ({
+            id: f.id,
+            handle: f.data.handle,
+            name: f.data.name,
+            fieldCount: f.data.rows.reduce((n, r) => n + r.fields.length, 0),
+          })),
       };
     },
   },
@@ -179,15 +180,15 @@ export const agentRoutes = {
   "get-form-manifest": {
     public: true,
     handler: async (routeCtx: any, ctx: PluginContext) => {
-      await ensureDemoSeed(ctx);
-
       const url = new URL(routeCtx.request.url);
       const handle = url.searchParams.get("handle");
       const origin = url.searchParams.get("origin") ?? "";
       if (!handle) throw PluginRouteError.badRequest("Missing ?handle=");
 
       const found = await findFormByHandle(ctx, handle);
-      if (!found) throw PluginRouteError.notFound(`Form "${handle}" not found`);
+      if (!found || !isAgentDiscoverable(found.data)) {
+        throw PluginRouteError.notFound(`Form "${handle}" not found`);
+      }
 
       return buildManifest(found.data, found.id, origin);
     },
@@ -197,17 +198,24 @@ export const agentRoutes = {
     public: true,
     handler: async (routeCtx: any, ctx: PluginContext) => {
       const body = routeCtx.input as Record<string, unknown>;
-      const { formId, __ff_journey, ...rawData } = body;
+      const { formId, __ff_journey, __ff_turnstile, ...rawData } = body;
       const journey = Array.isArray(__ff_journey)
         ? (__ff_journey as VisitorPageView[])
         : undefined;
-      const ip = routeCtx.request.headers.get("cf-connecting-ip");
+      const turnstileToken =
+        typeof __ff_turnstile === "string"
+          ? __ff_turnstile
+          : typeof rawData["cf-turnstile-response"] === "string"
+            ? String(rawData["cf-turnstile-response"])
+            : undefined;
+      const ip = clientIp(routeCtx.request);
 
       return runAgentSubmission(ctx, {
         formId: typeof formId === "string" ? formId : "",
         data: rawData,
         journey,
         ip,
+        turnstileToken,
       });
     },
   },
@@ -234,7 +242,9 @@ export const agentRoutes = {
         throw PluginRouteError.badRequest("Missing origin");
       }
       const found = await findFormByHandle(ctx, handle);
-      if (!found) throw PluginRouteError.notFound(`Form "${handle}" not found`);
+      if (!found || !isAgentDiscoverable(found.data)) {
+        throw PluginRouteError.notFound(`Form "${handle}" not found`);
+      }
 
       const MAX_VALUE_LENGTH = 2000;
       const MAX_MULTI_VALUES = 50;

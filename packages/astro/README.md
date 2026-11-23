@@ -83,20 +83,17 @@ Style with your own CSS by targeting `data-freeform-*` attributes:
 
 ### `FreeformChat`
 
-Streaming AI chat widget tied to a form handle. Submissions go through the same Freeform pipeline as a normal form.
+AI chat widget tied to a form handle. Enable **AI chat** on the form
+(Freeform → form → Protection) and set sales context there — the API ignores
+client-supplied context. Submissions use the same pipeline as a normal form
+when agent/chat submit is allowed for that form.
 
 ```astro
 ---
 import { FreeformChat } from "@solspace/freeform-astro/components";
-
-const salesContext = "Your site/product context for the AI assistant.";
 ---
 
-<FreeformChat
-  formHandle="contact"
-  salesContext={salesContext}
-  siteName="My Site"
-/>
+<FreeformChat formHandle="contact" />
 ```
 
 ### `FreeformDiscovery`

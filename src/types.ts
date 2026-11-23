@@ -140,6 +140,34 @@ export interface StoredForm {
   captcha?: FormCaptchaSettings;
   /** Privacy notice, retention, and IP storage. */
   privacy?: FormPrivacySettings;
+  /**
+   * Public AI chat + agent discovery/submit. Every flag defaults to off when
+   * omitted — enable per form in Protection. See docs/security.md.
+   */
+  access?: FormAccessSettings;
+}
+
+/**
+ * Opt-in surfaces beyond the standard honeypot/CSRF/Turnstile submit path.
+ * Omitted / false = disabled.
+ */
+export interface FormAccessSettings {
+  /** Allow the public `chat` route for this form. Default false. */
+  chatEnabled?: boolean;
+  /** Include in list-public-forms / well-known catalog. Default false. */
+  agentDiscoverable?: boolean;
+  /**
+   * Accept `submit-agent` and chat-driven submissions. Default false.
+   * When Turnstile is configured, agent submit also requires a Turnstile token.
+   */
+  agentSubmitEnabled?: boolean;
+  /**
+   * Server-owned system-prompt context for AI chat. Never accept this from
+   * the client — prompt injection / billing abuse otherwise.
+   */
+  chatSalesContext?: string;
+  /** Optional display name for the chat system prompt. Default = form name. */
+  chatSiteName?: string;
 }
 
 export type CaptchaProvider = "none" | "turnstile";

@@ -2,8 +2,14 @@ import type { PluginContext } from "emdash";
 import { generateBrief } from "../ai/brief";
 import { scoreSubmissionWithAI } from "../ai/spam";
 import { getAiCredentials } from "./ai-config";
+import { formHasTurnstile, isAgentSubmitEnabled } from "./form-access";
 import { sendNotificationsForSubmission } from "./notifications";
+import { rateLimitCheck } from "./rate-limit";
 import { effectiveSpamSettings, getSpamSettings } from "./spam-settings";
+import {
+  TURNSTILE_TOKEN_FIELD,
+  verifyTurnstileToken,
+} from "./turnstile";
 import { deliverWebhooks } from "./webhooks";
 import { uid } from "./handles";
 import type {
@@ -13,7 +19,7 @@ import type {
   StoredSubmission,
 } from "../types";
 
-const AGENT_RATE_LIMIT_PER_HOUR = 10;
+export const AGENT_RATE_LIMIT_PER_HOUR = 10;
 
 export interface VisitorPageView {
   url: string;
@@ -27,6 +33,13 @@ export interface AgentSubmissionInput {
   data: Record<string, unknown>;
   journey?: VisitorPageView[];
   ip?: string | null;
+  /**
+   * When true, skip the per-form agentSubmitEnabled gate (chat path already
+   * checked chatEnabled). Turnstile and rate limits still apply.
+   */
+  fromChat?: boolean;
+  /** Cloudflare Turnstile response token when the form requires captcha. */
+  turnstileToken?: string;
 }
 
 export interface AgentSubmissionResult {
@@ -64,32 +77,21 @@ const coerceFieldValue = (
   return String(raw);
 };
 
-// Hour-bucketed soft limit per IP. Falls open when ip is null (dev / chat
-// path without forwarded headers). Stale buckets accumulate — acceptable
-// for POC scale; sweep or move to KV TTL later.
-const rateLimitCheck = async (
-  ctx: PluginContext,
-  ip: string | null | undefined,
-): Promise<boolean> => {
-  if (!ip) return true;
-  const bucket = Math.floor(Date.now() / 3_600_000);
-  const key = `agent-rl:${ip}:${bucket}`;
-  const count = (await ctx.kv.get<number>(key)) ?? 0;
-  if (count >= AGENT_RATE_LIMIT_PER_HOUR) return false;
-  await ctx.kv.set(key, count + 1);
-  return true;
-};
-
 export async function runAgentSubmission(
   ctx: PluginContext,
   input: AgentSubmissionInput,
 ): Promise<AgentSubmissionResult> {
-  const { formId, data, journey, ip } = input;
+  const { formId, data, journey, ip, fromChat, turnstileToken } = input;
   if (!formId || typeof formId !== "string") {
     return { success: false, error: "Missing formId" };
   }
 
-  if (!(await rateLimitCheck(ctx, ip))) {
+  if (
+    !(await rateLimitCheck(ctx, ip, {
+      prefix: "agent-rl",
+      limit: AGENT_RATE_LIMIT_PER_HOUR,
+    }))
+  ) {
     return { success: false, error: "Rate limit exceeded. Try again later." };
   }
 
@@ -103,6 +105,42 @@ export async function runAgentSubmission(
     }
   }
   if (!formData) return { success: false, error: "Form not found" };
+
+  if (!fromChat && !isAgentSubmitEnabled(formData)) {
+    return {
+      success: false,
+      error: "Agent submissions are disabled for this form.",
+    };
+  }
+
+  if (formHasTurnstile(formData)) {
+    // Chat cannot present Turnstile; refuse chat-driven submit when captcha is on.
+    if (fromChat) {
+      return {
+        success: false,
+        error:
+          "This form requires Cloudflare Turnstile. Use the standard form submit instead of chat.",
+      };
+    }
+    const token =
+      turnstileToken?.trim() ||
+      (typeof data[TURNSTILE_TOKEN_FIELD] === "string"
+        ? String(data[TURNSTILE_TOKEN_FIELD])
+        : typeof data.__ff_turnstile === "string"
+          ? String(data.__ff_turnstile)
+          : "");
+    const verified = await verifyTurnstileToken({
+      secretKey: formData.captcha!.secretKey!,
+      token,
+      remoteIp: ip ?? undefined,
+    });
+    if (!verified.ok) {
+      return {
+        success: false,
+        error: verified.error ?? "Captcha check failed. Please try again.",
+      };
+    }
+  }
 
   const cleanData: Record<string, string | string[]> = {};
   for (const row of formData.rows) {

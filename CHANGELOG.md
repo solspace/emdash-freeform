@@ -7,6 +7,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.4.4] — 2026-11-23
+
+### Security
+
+- **AI chat** — per-IP rate limit runs before the LLM call; message count/length capped; client `salesContext` / `siteName` ignored (use form Protection → AI chat & agents). Chat is **off by default** per form.
+- **Agent submit** — requires `access.agentSubmitEnabled`; Turnstile token required when the form has Turnstile; missing IP no longer bypasses the rate limit (shared `no-ip` bucket).
+- **Agent discovery** — `list-public-forms` / manifests / prefill only include forms with `access.agentDiscoverable`.
+- **Demo seed** — no longer runs from public or agent routes (install + admin only). Optional Settings → AI & spam toggle to skip the starter Contact form.
+
+### Added
+
+- Per-form **AI chat & agents** controls on the Protection tab (chat, agent list, agent submit, server-owned sales context).
+- Registry **cover/banner** image (`release.artifacts.banner` → `banner.jpg`).
+- Registry screenshots refreshed to Forms dashboard + Form builder only.
+
+### Changed
+
+- `<FreeformChat>` no longer sends `salesContext` / `siteName` to the API (props deprecated). Enable chat and set context on the form in admin.
+- Starter Contact form (when seeded) opts into chat + agent access so the demo embed still works after first admin open.
+
 ## [1.4.3] — 2026-11-19
 
 ### Changed

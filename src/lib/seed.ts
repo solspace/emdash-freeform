@@ -4,35 +4,49 @@ import { ensureRetentionCronScheduled } from "./retention";
 import { uid } from "./handles";
 import type { StoredForm } from "../types";
 
+const SEED_FLAG = "seed:contact_v1";
+const SKIP_DEMO_KEY = "seed:skip_demo";
+
+export async function getSkipDemoSeed(ctx: PluginContext): Promise<boolean> {
+  return (await ctx.kv.get<boolean>(SKIP_DEMO_KEY)) === true;
+}
+
+export async function setSkipDemoSeed(
+  ctx: PluginContext,
+  skip: boolean,
+): Promise<boolean> {
+  await ctx.kv.set(SKIP_DEMO_KEY, skip);
+  return skip;
+}
+
 // Idempotent: writes a default Contact form on the
 // first call against a clean install, and no-ops on subsequent calls.
 //
-// Called from three places:
+// Called from:
 //   - hooks/install.ts            — marketplace install path
 //   - admin/router.ts page_load   — admin first opens the Freeform section
-//   - public/agent routes         — visitor or AI hits the form before admin
 //
-// The trusted-plugin boot path (`plugins: [freeformPlugin()]` in
-// astro.config.mjs) never fires `plugin:install`, and customers can embed
-// <FreeformForm formId="contact" /> on their site before opening the admin,
-// so the public routes need to seed lazily too. The KV-flag guard makes
-// every call after the first one effectively free (one KV read).
+// Never call from public/agent routes — unauthenticated traffic must not
+// create data. Trusted-plugin boot (`plugins: [freeformPlugin()]`) never
+// fires `plugin:install`, so admin page_load remains the lazy seed path.
 export async function ensureDemoSeed(ctx: PluginContext): Promise<void> {
   // Built-in email templates (Admin Notify, Submitter Receipt) — always ensure,
   // even on installs that already have the Contact form seed flag.
   await ensureDefaultTemplates(ctx);
   await ensureRetentionCronScheduled(ctx);
 
+  if (await getSkipDemoSeed(ctx)) return;
+
   // Cheap guard: a single KV key marks the seed as already run for this
   // install, so we don't pay the storage query cost on every admin page load.
-  const flag = await ctx.kv.get<string>("seed:contact_v1");
+  const flag = await ctx.kv.get<string>(SEED_FLAG);
   if (flag) return;
 
   // Belt-and-braces: even if the flag is missing (e.g. KV was wiped but
   // storage wasn't), don't overwrite an existing form at id `"contact"`.
   const existing = await ctx.storage.forms.get("contact");
   if (existing) {
-    await ctx.kv.set("seed:contact_v1", "done");
+    await ctx.kv.set(SEED_FLAG, "done");
     return;
   }
 
@@ -100,10 +114,20 @@ export async function ensureDemoSeed(ctx: PluginContext): Promise<void> {
       retentionDays: 90,
       storeIp: false,
     },
+    // Demo Contact form opts into chat/agent so the starter embed works after
+    // first admin open. New forms leave these off by default.
+    access: {
+      chatEnabled: true,
+      agentDiscoverable: true,
+      agentSubmitEnabled: true,
+      chatSiteName: "this site",
+      chatSalesContext:
+        "Help visitors leave a clear enquiry about this site. Collect name, email, and message. Be concise; do not invent product claims.",
+    },
     createdAt: now,
     updatedAt: now,
   };
   await ctx.storage.forms.put("contact", contactForm);
-  await ctx.kv.set("seed:contact_v1", "done");
+  await ctx.kv.set(SEED_FLAG, "done");
   ctx.log.info("Freeform: default Contact form seeded");
 }
