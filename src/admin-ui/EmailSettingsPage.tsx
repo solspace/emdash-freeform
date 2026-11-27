@@ -27,7 +27,7 @@ export function EmailSettingsPage() {
     <FreeformShell>
       <SettingsFrame
         title="Email Delivery"
-        description="Choose how Freeform sends notification emails. Direct SMTP is the recommended default."
+        description="Choose how Freeform sends notification emails. EmDash Host mail is the default; optional direct SMTP or Resend."
         actions={
           <SaveButton
             type="submit"

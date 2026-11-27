@@ -38,8 +38,9 @@ US SaaS black box. Document your own hosting and sub-processors for clients.
 
 ## Email delivery
 
-Notification emails are sent through EmDash’s email provider (Settings → Email),
-not through IMAP/SMTP settings inside Freeform. See [email.md](./email.md).
+Notification emails default to EmDash Host mail (Settings → Email). You can
+instead configure optional Freeform SMTP or Resend under Freeform → Settings →
+Email Delivery. Freeform does not do IMAP/POP3 inbound. See [email.md](./email.md).
 The email provider and any webhook destinations are additional processors —
 document them for your clients the same way you document Freeform storage.
 

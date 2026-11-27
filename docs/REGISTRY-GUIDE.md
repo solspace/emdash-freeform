@@ -130,7 +130,7 @@ Submit a test entry and confirm it under **Freeform → Submissions**.
 | CLI finds Freeform but the admin doesn't | Site config | Add `registry:`, restart/redeploy |
 | Plugin installed but no public form | Missing Astro package | Install `@solspace/freeform-astro` and add `freeformAstro()` |
 | "Form not found" on a page | Wrong handle | Use the form **handle** from the admin (e.g. `contact`), not its internal ID |
-| Notification emails never arrive (prod) | No EmDash email provider | **Settings → Email** — select provider, send test; see [email.md](./email.md) |
+| Notification emails never arrive (prod) | No email provider / wrong Freeform delivery mode | Freeform → Settings → Email Delivery, and/or EmDash → Settings → Email; see [email.md](./email.md) |
 | Registry root URL shows an error in the browser | Expected — it's an API, not a website | Use the CLI commands above |
 
 ## Links

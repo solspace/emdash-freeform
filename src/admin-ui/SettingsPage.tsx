@@ -31,7 +31,7 @@ const SECTIONS: HubSection[] = [
       {
         id: "email",
         title: "Email Delivery",
-        description: "SMTP credentials, EmDash host mail, and delivery tests",
+        description: "EmDash Host (default), optional SMTP/Resend, and delivery tests",
         icon: "email",
       },
       {

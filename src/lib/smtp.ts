@@ -151,7 +151,7 @@ export async function sendSmtpEmail(
               const tlsSocket = tls.connect({
                 socket,
                 host: config.host,
-                rejectUnauthorized: false,
+                rejectUnauthorized: true,
               });
               socket = tlsSocket;
               socket.on("data", onData);
@@ -247,7 +247,7 @@ export async function sendSmtpEmail(
       socket = tls.connect({
         host: config.host,
         port,
-        rejectUnauthorized: false,
+        rejectUnauthorized: true,
       });
     } else {
       socket = net.connect({

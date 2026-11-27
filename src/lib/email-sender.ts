@@ -19,7 +19,8 @@ const KV_SMTP_FROM = "settings:email:smtpFrom";
 const KV_SMTP_SECURE = "settings:email:smtpSecure";
 
 export async function getEmailSettings(ctx: PluginContext): Promise<EmailProviderSettings> {
-  const provider = (await ctx.kv.get<EmailProviderType>(KV_PROVIDER)) || "smtp";
+  // Prefer EmDash host mail unless the site explicitly chose SMTP/Resend/log.
+  const provider = (await ctx.kv.get<EmailProviderType>(KV_PROVIDER)) || "emdash";
   const resendApiKey = (await ctx.kv.get<string>(KV_RESEND_KEY)) || "";
   const resendFrom = (await ctx.kv.get<string>(KV_RESEND_FROM)) || "";
   const smtpHost = (await ctx.kv.get<string>(KV_SMTP_HOST)) || "";

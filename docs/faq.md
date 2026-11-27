@@ -6,13 +6,14 @@ key under Freeform → Settings → AI & spam. Forms, email, and webhooks work
 without one.
 
 **Where do I configure SMTP / Resend / SendGrid?**
-In **EmDash → Settings → Email**, not Freeform. Freeform decides what to send;
-EmDash’s email provider delivers it. See [Email & notifications](./email.md).
+**Default:** EmDash → Settings → Email (Freeform provider = EmDash Host).
+**Optional:** Freeform → Settings → Email Delivery for direct SMTP or Resend.
+See [Email & notifications](./email.md).
 
 **Why don’t notification emails arrive in production?**
-Usually no email provider is selected. Open EmDash → Settings → Email, activate
-a provider (e.g. `emdash-smtp` or Cloudflare Email), send a test, then retry.
-In local `astro dev`, EmDash logs mail to the terminal (console provider).
+Check Freeform → Settings → Email Delivery. For EmDash Host, also open EmDash →
+Settings → Email, activate a provider, and send a test. In local `astro dev`,
+EmDash may log mail to the terminal (console provider).
 
 **How are submissions protected from spam?**
 Every form has a honeypot and signed CSRF. Optional Cloudflare Turnstile is on

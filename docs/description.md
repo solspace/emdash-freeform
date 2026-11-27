@@ -21,7 +21,7 @@ Build forms, collect submissions, and act on them — without leaving EmDash.
 
 ### Automation & protection
 
-- Email notifications with reusable templates (delivery via EmDash’s email provider — Settings → Email)
+- Email notifications with reusable templates (EmDash Host by default; optional Freeform SMTP / Resend)
 - Privacy tooling: consent fields, retention auto-delete, export/delete submissions
 - Signed webhooks (HMAC-SHA256) with automatic retries and a delivery log
 - Spam scoring with honeypot + CSRF protection on every submission

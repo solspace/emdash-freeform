@@ -7,6 +7,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.4.6] — 2026-11-27
+
+### Security
+
+- **SMTP TLS** — direct SMTP no longer disables certificate verification (`rejectUnauthorized: true`).
+- **AI defaults** — starter Contact seed no longer enables chat / agent discovery / agent submit (all remain off until Protection toggles).
+
+### Changed
+
+- Default email provider is **EmDash Host** (was SMTP when unset).
+- Docs/README accurately describe optional Freeform SMTP/Resend vs EmDash Host mail.
+
 ## [1.4.5] — 2026-11-23
 
 ### Changed
@@ -31,7 +43,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - `<FreeformChat>` no longer sends `salesContext` / `siteName` to the API (props deprecated). Enable chat and set context on the form in admin.
-- Starter Contact form (when seeded) opts into chat + agent access so the demo embed still works after first admin open.
+- Starter Contact form (when seeded) leaves chat / agent access off (enable under Protection if needed).
 
 ## [1.4.3] — 2026-11-19
 

@@ -13,9 +13,9 @@ security problems.
   so receivers can verify authenticity.
 - API keys you provide (e.g. OpenAI) are stored in your site's own
   plugin storage — they are never sent to Solspace.
-- Outbound notification email uses EmDash’s `email:send` pipeline and whatever
-  provider the site operator configured under Settings → Email (Freeform does
-  not store SMTP passwords).
+- Outbound notification email defaults to EmDash’s `email:send` pipeline.
+  Optional Freeform SMTP/Resend credentials (when configured) stay in your
+  site’s plugin storage. The SMTP client verifies TLS certificates.
 - Export links are short-lived, signed tokens; they expire automatically.
 
 **AI chat & agent endpoints (opt-in)**
@@ -36,4 +36,5 @@ clients, and keep Turnstile on if you need captcha on that path.
 **Demo Contact form**
 
 Seeding runs from install / first Freeform admin visit only — never from
-public routes. Settings → AI & spam can skip creating the starter Contact form.
+public routes. The starter Contact form leaves AI chat / agent discovery /
+agent submit **off**. Settings → AI & spam can skip creating the starter form.

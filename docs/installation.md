@@ -37,16 +37,20 @@ import { FreeformForm } from "@solspace/freeform-astro/components";
 
 ## 3. Email delivery (required for real notification mail)
 
-Freeform does **not** configure SMTP/IMAP. Configure EmDash first:
+**Default:** EmDash Host — configure EmDash first, then leave Freeform on EmDash Host:
 
 1. Install an email provider plugin (e.g. `emdash-smtp` or Cloudflare Email)
 2. **EmDash admin → Settings → Email** → select provider → **Send test email**
-3. Then attach Freeform notification templates to your forms
+3. Attach Freeform notification templates to your forms
+
+**Optional:** Freeform → **Settings → Email Delivery** can use direct SMTP or
+Resend instead (credentials stored in Freeform plugin storage). Freeform does
+not do IMAP/POP3 inbound.
 
 Full details: [Email & notifications](./email.md).
 
 In local `astro dev`, EmDash uses a console provider (logs to the terminal) so
-you can test Freeform notifications without SMTP.
+you can test Freeform notifications without outbound SMTP.
 
 ## 4. Optional: AI features
 

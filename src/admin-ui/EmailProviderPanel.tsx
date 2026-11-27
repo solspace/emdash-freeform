@@ -80,7 +80,7 @@ export function EmailProviderPanel({ formId, onToast, onSaveMetaChange }: Props)
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [provider, setProvider] = useState<EmailProviderType>("smtp");
+  const [provider, setProvider] = useState<EmailProviderType>("emdash");
   const [smtpHost, setSmtpHost] = useState("");
   const [smtpPort, setSmtpPort] = useState(587);
   const [smtpUser, setSmtpUser] = useState("");
@@ -96,7 +96,7 @@ export function EmailProviderPanel({ formId, onToast, onSaveMetaChange }: Props)
 
   const applyLoaded = useCallback((data: EmailSettingsResponse) => {
     const next: Draft = {
-      provider: data.provider || "smtp",
+      provider: data.provider || "emdash",
       smtpHost: data.smtpHost || "",
       smtpPort: data.smtpPort || 587,
       smtpUser: data.smtpUser || "",
@@ -227,7 +227,7 @@ export function EmailProviderPanel({ formId, onToast, onSaveMetaChange }: Props)
               Delivery configuration
             </h2>
             <p className="ff-settings-section-desc">
-              Pick a dispatch method and configure credentials when using SMTP.
+              EmDash Host is the default. Configure SMTP credentials only if you choose direct SMTP.
             </p>
           </div>
           <div className="ff-status-badge">
@@ -248,16 +248,16 @@ export function EmailProviderPanel({ formId, onToast, onSaveMetaChange }: Props)
               <div className="ff-transport-selector">
                 {[
                   {
-                    id: "smtp",
-                    title: "SMTP Server",
-                    badge: "Default",
-                    desc: "Standard direct delivery with STARTTLS or SSL/TLS",
-                  },
-                  {
                     id: "emdash",
                     title: "EmDash Host",
-                    badge: null,
+                    badge: "Default",
                     desc: "Use the host CMS email pipeline (Settings → Email: SMTP, Cloudflare, or plugins)",
+                  },
+                  {
+                    id: "smtp",
+                    title: "SMTP Server",
+                    badge: null,
+                    desc: "Optional direct delivery with STARTTLS or SSL/TLS (certificates verified)",
                   },
                   {
                     id: "log",

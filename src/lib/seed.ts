@@ -114,16 +114,8 @@ export async function ensureDemoSeed(ctx: PluginContext): Promise<void> {
       retentionDays: 90,
       storeIp: false,
     },
-    // Demo Contact form opts into chat/agent so the starter embed works after
-    // first admin open. New forms leave these off by default.
-    access: {
-      chatEnabled: true,
-      agentDiscoverable: true,
-      agentSubmitEnabled: true,
-      chatSiteName: "this site",
-      chatSalesContext:
-        "Help visitors leave a clear enquiry about this site. Collect name, email, and message. Be concise; do not invent product claims.",
-    },
+    // AI chat / agent discovery / agent submit stay off (omit access).
+    // Enable per form under Protection when needed.
     createdAt: now,
     updatedAt: now,
   };

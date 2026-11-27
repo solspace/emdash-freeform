@@ -98,7 +98,7 @@ Submit a test entry, then check **Freeform → Submissions** in the admin.
 - **Form builder** — 13 field types (text, email, textarea, number, phone, date, checkbox, checkbox groups, radio, select, multi-select, hidden, HTML), row layout, per-field validation
 - **AI builder** — describe a form in plain English (optional, bring your own OpenAI key)
 - **Submissions inbox** — list + detail, AI brief when configured, CSV export / hard delete
-- **Email notifications** — Mustache templates; delivery via EmDash’s email provider (not IMAP/SMTP inside Freeform)
+- **Email notifications** — Mustache templates; delivery via EmDash Host mail by default, or optional Freeform SMTP / Resend
 - **Webhooks** — HMAC-signed `POST` on every submission, automatic retries, delivery log
 - **Spam / privacy** — honeypot, CSRF, optional Turnstile + AI spam scoring; consent field, retention, privacy notice
 - **MCP server** — tools so AI agents can manage forms and read submissions
@@ -107,7 +107,7 @@ Submit a test entry, then check **Freeform → Submissions** in the admin.
 
 | Area | Where | Notes |
 | --- | --- | --- |
-| **Email delivery (SMTP / Resend / etc.)** | **EmDash → Settings → Email** | Required for real notification mail in production — [docs/email.md](docs/email.md) |
+| **Email delivery** | Freeform → Settings → Email **or** EmDash → Settings → Email | EmDash Host by default; optional Freeform SMTP/Resend — [docs/email.md](docs/email.md) |
 | Notification templates & recipients | Freeform → Settings → Notifications + form → Notifications | What to send and to whom |
 | AI builder, spam scoring, briefs | Freeform → Settings → AI & spam | OpenAI API key, stored in your site |
 | AI chat / agent discovery & submit | Form → Protection → AI chat & agents | Off by default; see [docs/security.md](docs/security.md) |
@@ -150,9 +150,12 @@ crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(req.headers["x-freefor
 
 ## Email notifications
 
-Freeform does **not** ask for IMAP, POP3, or SMTP credentials. Delivery is
-handled by EmDash’s email provider (Settings → Email). Full setup, dev console
-provider, and troubleshooting: **[Email & notifications](docs/email.md)**.
+By default Freeform uses **EmDash Host** mail (`email:send` → Settings → Email).
+You can instead configure **optional** direct SMTP or Resend under
+**Freeform → Settings → Email Delivery** (credentials stay in your site’s
+plugin storage). Freeform does not do IMAP/POP3 inbound mail.
+
+Full setup and troubleshooting: **[Email & notifications](docs/email.md)**.
 
 Templates use a Mustache subset: `{{form_name}}`, `{{submission_id}}`,
 `{{submitted_at}}`, `{{all_fields}}`, plus any field by handle (`{{email}}`).
